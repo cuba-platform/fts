@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" version="1.0">
+    <persistence-unit name="cuba" transaction-type="RESOURCE_LOCAL">
+        <provider>org.apache.openjpa.persistence.PersistenceProviderImpl</provider>
+
+        <class>com.haulmont.workflow.core.entity.Proc</class>
+        <class>com.haulmont.workflow.core.entity.ProcRole</class>
+        <class>com.haulmont.workflow.core.entity.Card</class>
+        <class>com.haulmont.workflow.core.entity.CardRelation</class>
+        <class>com.haulmont.workflow.core.entity.CardProc</class>
+        <class>com.haulmont.workflow.core.entity.CardRole</class>
+        <class>com.haulmont.workflow.core.entity.Assignment</class>
+        <class>com.haulmont.workflow.core.entity.Attachment</class>
+        <class>com.haulmont.workflow.core.entity.CardAttachment</class>
+        <class>com.haulmont.workflow.core.entity.AssignmentAttachment</class>
+        <class>com.haulmont.workflow.core.entity.DefaultProcActor</class>
+        <class>com.haulmont.workflow.core.entity.TimerEntity</class>
+        <class>com.haulmont.workflow.core.entity.WorkCalendarEntity</class>
+        <class>com.haulmont.workflow.core.entity.CardInfo</class>
+        <class>com.haulmont.workflow.core.entity.ProcRolePermission</class>
+
+        <properties>
+            <property name="openjpa.Log"
+                      value="log4j"/>
+
+            <property name="openjpa.ConnectionFactoryProperties"
+                      value="PrettyPrint=true, PrettyPrintLineLength=72"/>
+
+            <property name="openjpa.jdbc.DBDictionary" 
+                      value="com.haulmont.cuba.core.sys.persistence.CubaHSQLDictionary(SimulateLocking=true)"/>
+
+            <property name="openjpa.jdbc.SchemaFactory"
+                      value="native(ForeignKeys=true)"/>
+
+            <property name="openjpa.DetachState"
+                      value="loaded(DetachedStateField=true, DetachedStateManager=true)"/>
+
+            <property name="openjpa.IgnoreChanges"
+                      value="true"/>
+
+            <property name="openjpa.jdbc.MappingDefaults"
+                      value="FieldStrategies='java.util.UUID=com.haulmont.cuba.core.sys.persistence.UuidStringValueHandler'"/>
+
+            <property name="openjpa.DataCache"
+                      value="true(CacheSize=50000)"/>
+
+            <property name="openjpa.QueryCache"
+                      value="CacheSize=1000"/>
+
+            <property name="openjpa.RemoteCommitProvider"
+                      value="sjvm"/>
+
+            <property name="openjpa.jdbc.SubclassFetchMode"
+                      value="none"/>
+        </properties>
+
+    </persistence-unit>
+</persistence>

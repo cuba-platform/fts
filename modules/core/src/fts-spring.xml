@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+        http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+
+    <bean id="jbpmConfiguration" class="org.jbpm.pvm.internal.cfg.SpringConfiguration">
+        <constructor-arg value="wf.jbpm.cfg.xml"/>
+    </bean>
+
+    <!-- Various beans -->
+
+    <bean id="cuba_TimeBetweenQueryMacroHandler" class="com.haulmont.workflow.core.sys.WorkingTimeBetweenQueryMacroHandler" 
+          scope="prototype"/>
+
+    <!-- Annotation-based beans -->
+
+    <context:component-scan base-package="com.haulmont.workflow"/>
+
+
+    <!-- MBeans registration -->
+
+    <bean id="wf_MBeanExporter" class="org.springframework.jmx.export.MBeanExporter" lazy-init="false">
+        <property name="beans">
+            <map>
+                <entry key="${cuba.webContextName}.workflow:service=WfEngine" value-ref="workflow_WfEngine"/>
+                <entry key="${cuba.webContextName}.workflow:service=TimerManager" value-ref="workflow_TimerManager"/>
+                <entry key="${cuba.webContextName}.workflow:service=WorkCalendar" value-ref="workflow_WorkCalendar"/>
+                <entry key="${cuba.webContextName}.workflow:service=PermissionsManager" value-ref="workflow_PermissionsManager"/>
+            </map>
+        </property>
+        <property name="assembler">
+            <bean class="org.springframework.jmx.export.assembler.InterfaceBasedMBeanInfoAssembler">
+                <property name="interfaceMappings">
+                    <map>
+                        <entry key="workflow_WfEngine" value="com.haulmont.workflow.core.app.WfEngineMBean"/>
+                        <entry key="workflow_TimerManager" value="com.haulmont.workflow.core.app.TimerManagerMBean"/>
+                        <entry key="workflow_WorkCalendar" value="com.haulmont.workflow.core.app.WorkCalendarMBean"/>
+                        <entry key="workflow_PermissionsManager" value="com.haulmont.workflow.core.app.WorkCalendarMBean"/>
+                    </map>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+</beans>

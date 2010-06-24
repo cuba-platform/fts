@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<project xmlns:ext="http://haulmont.com/schema/ant"
+	name="fts-web" default="build-module" basedir=".">
+
+	<property name="project.dir" location="../.."/>
+	<property name="root.dir" location="${project.dir}/.."/>
+	
+	<property name="module.name" value="web"/>
+	<property name="module.jar" value="fts-web.jar"/>
+
+	<import file="${root.dir}/build-inc-mod.xml"/>
+	<property file="${root.dir}/build.properties"/>
+
+    <fileset id="chile-jars" dir="${root.dir}/chile/build">
+        <include name="*.jar"/>
+    </fileset>
+
+    <fileset id="cuba-jars-fs" dir="${root.dir}/cuba/build">
+        <include name="cuba-global.jar"/>
+        <include name="cuba-gui.jar"/>
+        <include name="cuba-web.jar"/>
+    </fileset>
+
+    <path id="compile-cp">
+        <fileset refid="common-lib-fs"/>
+        <fileset refid="server-lib-fs"/>
+        <fileset refid="chile-jars"/>
+        <fileset refid="cuba-jars-fs"/>
+        <pathelement location="${prod.out.dir}/global"/>
+    </path>
+
+    <path id="test-compile-cp">
+        <fileset refid="common-lib-fs"/>
+        <fileset refid="server-lib-fs"/>
+        <fileset refid="chile-jars"/>
+        <fileset refid="cuba-jars-fs"/>
+        <pathelement location="${prod.out.dir}/global"/>
+        <pathelement location="${prod.out.dir}/${module.name}"/>
+    </path>
+
+    <target name="build-module" depends="base-mod.build-module">
+        <mkdir dir="${build.dir}/conf"/>
+        <copy todir="${build.dir}/conf">
+            <fileset dir="src-conf" includes="**/*"/>
+        </copy>
+    </target>
+
+</project>

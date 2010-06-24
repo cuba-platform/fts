@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<project xmlns:ext="http://haulmont.com/schema/ant"
+	name="fts-core" default="build-module" basedir=".">
+
+	<property name="project.dir" location="../.."/>
+	<property name="root.dir" location="${project.dir}/.."/>
+	
+	<property name="module.name" value="core"/>
+	<property name="module.jar" value="fts-core.jar"/>
+
+    <import file="${root.dir}/build-inc-mod.xml"/>
+	<property file="${root.dir}/build.properties"/>
+
+    <fileset id="chile-jars" dir="${root.dir}/chile/build">
+        <include name="*.jar"/>
+    </fileset>
+
+    <fileset id="cuba-jars-fs" dir="${root.dir}/cuba/build">
+        <include name="cuba-global.jar"/>
+        <include name="cuba-core.jar"/>
+    </fileset>
+
+    <fileset id="cuba-test-jars-fs" dir="${root.dir}/cuba/build">
+        <include name="cuba-test.jar"/>
+    </fileset>
+
+    <path id="compile-cp">
+        <fileset refid="common-lib-fs"/>
+        <fileset refid="server-lib-fs"/>
+        <fileset refid="chile-jars"/>
+        <fileset refid="cuba-jars-fs"/>
+        <pathelement location="${prod.out.dir}/global"/>
+    </path>
+
+    <path id="test-compile-cp">
+        <fileset refid="test-lib-fs"/>
+        <fileset refid="common-lib-fs"/>
+        <fileset refid="server-lib-fs"/>
+        <fileset refid="chile-jars"/>
+        <fileset refid="cuba-jars-fs"/>
+        <fileset refid="cuba-test-jars-fs"/>
+        <pathelement location="${prod.out.dir}/global"/>
+        <pathelement location="${prod.out.dir}/${module.name}"/>
+    </path>
+
+    <target name="build-module" depends="compile-module">
+        <echo>==> building ${project.dir} ${module.name}</echo>
+        <mkdir dir="${build.dir}"/>
+        <jar basedir="${prod.out.dir}/${module.name}" destfile="${build.dir}/${module.jar}">
+            <include name="**/*"/>
+        </jar>
+        <mkdir dir="${build.dir}/conf"/>
+        <copy todir="${build.dir}/conf">
+            <fileset dir="src-conf" includes="**/*"/>
+        </copy>
+    </target>
+
+</project>
