@@ -1,0 +1,10 @@
+<fts-config>
+
+    <entities>
+        <entity class="com.haulmont.cuba.security.entity.User">
+            <include re=".*"/>
+            <exclude name="password"/>
+        </entity>
+    </entities>
+
+</fts-config>

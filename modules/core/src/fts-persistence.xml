@@ -3,21 +3,7 @@
     <persistence-unit name="cuba" transaction-type="RESOURCE_LOCAL">
         <provider>org.apache.openjpa.persistence.PersistenceProviderImpl</provider>
 
-        <class>com.haulmont.workflow.core.entity.Proc</class>
-        <class>com.haulmont.workflow.core.entity.ProcRole</class>
-        <class>com.haulmont.workflow.core.entity.Card</class>
-        <class>com.haulmont.workflow.core.entity.CardRelation</class>
-        <class>com.haulmont.workflow.core.entity.CardProc</class>
-        <class>com.haulmont.workflow.core.entity.CardRole</class>
-        <class>com.haulmont.workflow.core.entity.Assignment</class>
-        <class>com.haulmont.workflow.core.entity.Attachment</class>
-        <class>com.haulmont.workflow.core.entity.CardAttachment</class>
-        <class>com.haulmont.workflow.core.entity.AssignmentAttachment</class>
-        <class>com.haulmont.workflow.core.entity.DefaultProcActor</class>
-        <class>com.haulmont.workflow.core.entity.TimerEntity</class>
-        <class>com.haulmont.workflow.core.entity.WorkCalendarEntity</class>
-        <class>com.haulmont.workflow.core.entity.CardInfo</class>
-        <class>com.haulmont.workflow.core.entity.ProcRolePermission</class>
+        <!--<class>com.haulmont.workflow.core.entity.ProcRolePermission</class>-->
 
         <properties>
             <property name="openjpa.Log"
