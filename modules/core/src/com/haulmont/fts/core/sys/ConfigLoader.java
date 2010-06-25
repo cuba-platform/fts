@@ -12,6 +12,9 @@ package com.haulmont.fts.core.sys;
 
 import com.haulmont.bali.util.Dom4j;
 import com.haulmont.bali.util.ReflectionHelper;
+import com.haulmont.chile.core.datatypes.Datatype;
+import com.haulmont.chile.core.datatypes.Datatypes;
+import com.haulmont.chile.core.datatypes.impl.*;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.global.ConfigProvider;
@@ -123,7 +126,7 @@ public class ConfigLoader {
     private void includeByRe(Set<String> properties, MetaClass metaClass, String re) {
         Pattern pattern = Pattern.compile(re);
         for (MetaProperty metaProperty : metaClass.getProperties()) {
-            if (!isSystemProperty(metaProperty)) {
+            if (!isSearchableProperty(metaProperty)) {
                 Matcher matcher = pattern.matcher(metaProperty.getName());
                 if (matcher.matches())
                     properties.add(metaProperty.getName());
@@ -145,7 +148,22 @@ public class ConfigLoader {
         }
     }
 
-    private boolean isSystemProperty(MetaProperty metaProperty) {
-        return Arrays.binarySearch(systemProps, metaProperty.getName()) >= 0;
+    private boolean isSearchableProperty(MetaProperty metaProperty) {
+        if (Arrays.binarySearch(systemProps, metaProperty.getName()) < 0)
+            return false;
+
+        if (metaProperty.getRange().isDatatype()) {
+            Datatype dt = metaProperty.getRange().asDatatype();
+            return (Datatypes.getInstance().get(StringDatatype.NAME).equals(dt)
+                    || Datatypes.getInstance().get(DateDatatype.NAME).equals(dt)
+                    || Datatypes.getInstance().get(IntegerDatatype.NAME).equals(dt)
+                    || Datatypes.getInstance().get(DoubleDatatype.NAME).equals(dt)
+                    || Datatypes.getInstance().get(BigDecimalDatatype.NAME).equals(dt));
+
+        } else if (metaProperty.getRange().isEnum()) {
+            return true;
+        }
+
+        return false;
     }
 }

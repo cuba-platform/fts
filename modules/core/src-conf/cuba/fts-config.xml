@@ -1,10 +1,21 @@
 <fts-config>
 
     <entities>
+        <entity class="com.haulmont.cuba.security.entity.Role"/>
+
+        <entity class="com.haulmont.cuba.security.entity.Group"/>
+
         <entity class="com.haulmont.cuba.security.entity.User">
-            <include re=".*"/>
             <exclude name="password"/>
         </entity>
     </entities>
+
+    <documents>
+        <document class="com.haulmont.cuba.security.entity.Group" view="_local"/>
+
+        <document class="com.haulmont.cuba.security.entity.Role" view="_local"/>
+
+        <document class="com.haulmont.cuba.security.entity.User" view="user-fts"/>
+    </documents>
 
 </fts-config>

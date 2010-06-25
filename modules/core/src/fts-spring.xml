@@ -15,21 +15,25 @@
 
     <!-- MBeans registration -->
 
-    <!--<bean id="wf_MBeanExporter" class="org.springframework.jmx.export.MBeanExporter" lazy-init="false">-->
-        <!--<property name="beans">-->
-            <!--<map>-->
-                <!--<entry key="${cuba.webContextName}.workflow:service=WfEngine" value-ref="workflow_WfEngine"/>-->
-            <!--</map>-->
-        <!--</property>-->
-        <!--<property name="assembler">-->
-            <!--<bean class="org.springframework.jmx.export.assembler.InterfaceBasedMBeanInfoAssembler">-->
-                <!--<property name="interfaceMappings">-->
-                    <!--<map>-->
-                        <!--<entry key="workflow_WfEngine" value="com.haulmont.workflow.core.app.WfEngineMBean"/>-->
-                    <!--</map>-->
-                <!--</property>-->
-            <!--</bean>-->
-        <!--</property>-->
-    <!--</bean>-->
+    <bean id="fts_MBeanExporter" class="org.springframework.jmx.export.MBeanExporter" lazy-init="false">
+        <property name="beans">
+            <map>
+                <entry key="${cuba.webContextName}.cuba:service=FtsManager" value-ref="cuba_FtsManager"/>
+            </map>
+        </property>
+        <property name="assembler">
+            <bean class="org.springframework.jmx.export.assembler.InterfaceBasedMBeanInfoAssembler">
+                <property name="interfaceMappings">
+                    <map>
+                        <entry key="cuba_FtsManager" value="com.haulmont.fts.core.app.FtsManagerMBean"/>
+                    </map>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!--<task:scheduled-tasks scheduler="scheduler">-->
+        <!--<task:scheduled ref="cuba_FtsManager" method="processQueue" fixed-rate="10000"/>-->
+    <!--</task:scheduled-tasks>-->
 
 </beans>

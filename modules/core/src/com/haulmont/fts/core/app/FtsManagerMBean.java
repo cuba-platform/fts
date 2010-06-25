@@ -4,19 +4,13 @@
  * Use is subject to license terms.
 
  * Author: Konstantin Krivopustov
- * Created: 24.06.2010 18:06:59
+ * Created: 25.06.2010 15:23:26
  *
  * $Id$
  */
 package com.haulmont.fts.core.app;
 
-import com.haulmont.cuba.core.entity.BaseEntity;
+public interface FtsManagerMBean {
 
-public interface FtsManagerAPI {
-
-    String NAME = "cuba_FtsManager";
-
-    boolean isSearchable(BaseEntity entity);
-
-    void processQueue();
+    String processQueueJmx();
 }

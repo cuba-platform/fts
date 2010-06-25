@@ -11,7 +11,6 @@
 package com.haulmont.fts.core.app;
 
 import com.haulmont.chile.core.model.MetaClass;
-import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.PersistenceProvider;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.entity.BaseEntity;
