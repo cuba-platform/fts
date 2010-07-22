@@ -49,8 +49,8 @@ public class ConfigLoader {
         Arrays.sort(systemProps);
     }
 
-    public Map<String, Set<String>> loadConfiguration() {
-        HashMap<String, Set<String>> map = new HashMap<String, Set<String>>();
+    public Map<String, EntityDescr> loadConfiguration() {
+        HashMap<String, EntityDescr> map = new HashMap<String, EntityDescr>();
 
         String configName = AppContext.getProperty("cuba.fts.config");
         if (StringUtils.isBlank(configName))
@@ -83,73 +83,67 @@ public class ConfigLoader {
             String className = entityElem.attributeValue("class");
             MetaClass metaClass = MetadataProvider.getSession().getClass(ReflectionHelper.getClass(className));
 
-            Set<String> properties = new HashSet<String>();
+            EntityDescr entityDescr = new EntityDescr(metaClass, entityElem.attributeValue("view"));
 
-            boolean explicitInclude = false;
             for (Element element : Dom4j.elements(entityElem, "include")) {
                 String re = element.attributeValue("re");
                 if (!StringUtils.isBlank(re))
-                    includeByRe(properties, metaClass, re);
+                    includeByRe(entityDescr, metaClass, re);
                 else {
                     String name = element.attributeValue("name");
                     if (!StringUtils.isBlank(name))
-                        includeByName(properties, metaClass, name);
+                        includeByName(entityDescr, metaClass, name);
                 }
-                explicitInclude = true;
-            }
-            if (!explicitInclude) {
-                includeByRe(properties, metaClass, ".*");
             }
 
             for (Element element : Dom4j.elements(entityElem, "exclude")) {
                 String re = element.attributeValue("re");
                 if (!StringUtils.isBlank(re))
-                    excludeByRe(properties, metaClass, re);
+                    excludeByRe(entityDescr, metaClass, re);
                 else {
                     String name = element.attributeValue("name");
                     if (!StringUtils.isBlank(name))
-                        excludeByName(properties, metaClass, name);
+                        excludeByName(entityDescr, metaClass, name);
                 }
             }
 
-            map.put(className, properties);
+            map.put(className, entityDescr);
         }
 
         return map;
     }
 
-    private void includeByName(Set<String> properties, MetaClass metaClass, String name) {
-        if (metaClass.getProperty(name) != null)
-            properties.add(name);
+    private void includeByName(EntityDescr descr, MetaClass metaClass, String name) {
+        if (metaClass.getPropertyEx(name) != null)
+            descr.addProperty(name);
     }
 
-    private void includeByRe(Set<String> properties, MetaClass metaClass, String re) {
+    private void includeByRe(EntityDescr descr, MetaClass metaClass, String re) {
         Pattern pattern = Pattern.compile(re);
         for (MetaProperty metaProperty : metaClass.getProperties()) {
-            if (!isSearchableProperty(metaProperty)) {
+            if (isSearchableProperty(metaProperty)) {
                 Matcher matcher = pattern.matcher(metaProperty.getName());
                 if (matcher.matches())
-                    properties.add(metaProperty.getName());
+                    descr.addProperty(metaProperty.getName());
             }
         }
     }
 
-    private void excludeByName(Set<String> properties, MetaClass metaClass, String name) {
-        if (metaClass.getProperty(name) != null)
-            properties.remove(name);
+    private void excludeByName(EntityDescr descr, MetaClass metaClass, String name) {
+        descr.removeProperty(name);
     }
 
-    private void excludeByRe(Set<String> properties, MetaClass metaClass, String re) {
+    private void excludeByRe(EntityDescr descr, MetaClass metaClass, String re) {
         Pattern pattern = Pattern.compile(re);
-        for (String property : new ArrayList<String>(properties)) {
+        for (String property : descr.getPropertyNames()) {
             Matcher matcher = pattern.matcher(property);
             if (matcher.matches())
-                properties.remove(property);
+                descr.removeProperty(property);
         }
     }
 
     private boolean isSearchableProperty(MetaProperty metaProperty) {
-        if (Arrays.binarySearch(systemProps, metaProperty.getName()) < 0)
+        if (Arrays.binarySearch(systemProps, metaProperty.getName()) >= 0)
             return false;
 
         if (metaProperty.getRange().isDatatype()) {
@@ -160,7 +154,7 @@ public class ConfigLoader {
                     || Datatypes.getInstance().get(DoubleDatatype.NAME).equals(dt)
                     || Datatypes.getInstance().get(BigDecimalDatatype.NAME).equals(dt));
 
-        } else if (metaProperty.getRange().isEnum()) {
+        } else if (metaProperty.getRange().isEnum() || metaProperty.getRange().isClass()) {
             return true;
         }
 

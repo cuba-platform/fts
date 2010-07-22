@@ -12,5 +12,13 @@ package com.haulmont.fts.core.app;
 
 public interface FtsManagerMBean {
 
-    String processQueueJmx();
+    boolean isWriting();
+
+    String jmxProcessQueue();
+
+    String jmxOptimize();
+
+    String jmxReindexEntity(String entityName);
+
+    String reindexAll();
 }

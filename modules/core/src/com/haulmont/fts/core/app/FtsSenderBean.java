@@ -11,7 +11,9 @@
 package com.haulmont.fts.core.app;
 
 import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.PersistenceProvider;
+import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.entity.BaseEntity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
@@ -43,5 +45,27 @@ public class FtsSenderBean implements FtsSender {
         q.setChangeType(changeType);
 
         PersistenceProvider.getEntityManager().persist(q);
+    }
+
+    public void enqueue(String entityName, UUID entityId, FtsChangeType changeType) {
+        FtsQueue q = new FtsQueue();
+        q.setEntityId(entityId);
+        q.setEntityName(entityName);
+        q.setChangeType(changeType);
+
+        PersistenceProvider.getEntityManager().persist(q);
+    }
+
+    public void emptyQueue(String entityName) {
+        EntityManager em = PersistenceProvider.getEntityManager();
+        Query q = em.createQuery("delete from core$FtsQueue q where q.entityName = ?1");
+        q.setParameter(1, entityName);
+        q.executeUpdate();
+    }
+
+    public void emptyQueue() {
+        EntityManager em = PersistenceProvider.getEntityManager();
+        Query q = em.createQuery("delete from core$FtsQueue q");
+        q.executeUpdate();
     }
 }

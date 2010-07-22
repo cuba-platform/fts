@@ -10,51 +10,104 @@
  */
 package com.haulmont.fts.core.app;
 
+import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.cuba.core.*;
+import com.haulmont.cuba.core.app.FtsSender;
+import com.haulmont.cuba.core.app.ManagementBean;
 import com.haulmont.cuba.core.entity.BaseEntity;
+import com.haulmont.cuba.core.entity.Entity;
+import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
-import com.haulmont.cuba.core.global.ConfigProvider;
-import com.haulmont.cuba.core.global.FtsConfig;
+import com.haulmont.cuba.core.global.*;
+import com.haulmont.cuba.security.global.LoginException;
 import com.haulmont.fts.core.sys.ConfigLoader;
+import com.haulmont.fts.core.sys.EntityDescr;
+import com.haulmont.fts.core.sys.LuceneIndexer;
+import com.haulmont.fts.core.sys.LuceneWriter;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 
 import javax.annotation.ManagedBean;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import javax.inject.Inject;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 @ManagedBean(FtsManagerAPI.NAME)
-public class FtsManager implements FtsManagerAPI, FtsManagerMBean {
+public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsManagerMBean {
 
     private static Log log = LogFactory.getLog(FtsManager.class);
 
-    private volatile Map<String, Set<String>> entities;
+    private volatile Map<String, EntityDescr> descrByClassName;
+    private volatile Map<String, EntityDescr> descrByName;
 
-    private volatile boolean processingQueue;
+    private ReentrantLock writeLock = new ReentrantLock();
+    private volatile boolean writing;
+    private volatile int writeCount;
 
-    private Map<String, Set<String>> getEntities() {
-        if (entities == null) {
+    private volatile Directory directory;
+
+    private static final int DEL_CHUNK = 10;
+
+    private FtsConfig config;
+
+    @Inject
+    public void setConfigProvider(ConfigProvider configProvider) {
+        config = configProvider.doGetConfig(FtsConfig.class);
+    }
+
+    public boolean isWriting() {
+        return writing;
+    }
+
+    private Map<String, EntityDescr> getDescrByClassName() {
+        if (descrByClassName == null) {
             synchronized (this) {
-                if (entities == null) {
+                if (descrByClassName == null) {
                     ConfigLoader loader = new ConfigLoader();
-                    entities = loader.loadConfiguration();
+                    descrByClassName = loader.loadConfiguration();
                 }
             }
         }
-        return entities;
+        return descrByClassName;
+    }
+
+    private Map<String, EntityDescr> getDescrByName() {
+        if (descrByName == null) {
+            synchronized (this) {
+                if (descrByName == null) {
+                    descrByName = new HashMap<String, EntityDescr>(getDescrByClassName().size());
+                    for (EntityDescr descr : getDescrByClassName().values()) {
+                        String name = descr.getMetaClass().getName();
+                        descrByName.put(name, descr);
+                    }
+                }
+            }
+        }
+        return descrByName;
     }
 
     public boolean isSearchable(BaseEntity entity) {
-        Set<String> properties = getEntities().get(entity.getClass().getName());
-        if (properties == null)
+        EntityDescr descr = getDescrByClassName().get(entity.getClass().getName());
+        if (descr == null)
             return false;
+
+        Set<String> properties = descr.getPropertyNames();
+
+        Set<String> ownProperties = new HashSet<String>(properties.size());
+        for (String property : properties) {
+            String p = property.indexOf(".") < 0 ? property : property.substring(0, property.indexOf("."));
+            ownProperties.add(p);
+        }
 
         Set<String> dirty = PersistenceProvider.getDirtyFields(entity);
         for (String s : dirty) {
-            if (properties.contains(s))
+            if (ownProperties.contains(s))
                 return true;
         }
         return false;
@@ -62,14 +115,17 @@ public class FtsManager implements FtsManagerAPI, FtsManagerMBean {
 
     public void processQueue() {
         log.debug("Start processing queue");
-        if (processingQueue) {
-            log.warn("Previous processing have not finished yet, exiting");
+        boolean locked = writeLock.tryLock();
+        if (!locked) {
+            log.warn("Unable to process queue: writing at the moment");
             return;
         }
-
-        processingQueue = true;
         try {
-            int maxSize = ConfigProvider.getConfig(FtsConfig.class).getIndexingBatchSize();
+            writing = true;
+
+            loginOnce();
+
+            int maxSize = config.getIndexingBatchSize();
             List<FtsQueue> list;
 
             Transaction tx = Locator.createTransaction();
@@ -83,36 +139,201 @@ public class FtsManager implements FtsManagerAPI, FtsManagerMBean {
                 tx.end();
             }
 
-            for (FtsQueue ftsQueue : list) {
-                processQueueItem(ftsQueue.getEntityName(), ftsQueue.getEntityId());
+            if (!list.isEmpty()) {
+                LuceneIndexer indexer = new LuceneIndexer(getDescrByName(), getDirectory());
+                for (FtsQueue ftsQueue : list) {
+                    indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
+                }
+
+                int period = config.getOptimizationPeriod();
+                if (++writeCount > period) {
+                    indexer.optimize();
+                    writeCount = 0;
+                }
+                indexer.close();
 
                 tx = Locator.createTransaction();
                 try {
                     EntityManager em = PersistenceProvider.getEntityManager();
-                    Query query = em.createQuery("delete from core$FtsQueue q where q.id = ?1");
-                    query.setParameter(1, ftsQueue.getId());
-                    query.executeUpdate();
+
+                    for (int i = 0; i < list.size(); i += DEL_CHUNK) {
+                        StringBuilder sb = new StringBuilder("delete from SYS_FTS_QUEUE where ID in (");
+                        List<FtsQueue> sublist = list.subList(i, Math.min(i + DEL_CHUNK, list.size()));
+                        for (int idx = 0; idx < sublist.size(); idx++) {
+                            sb.append("?");
+                            if (idx < sublist.size() - 1)
+                                sb.append(", ");
+                        }
+                        sb.append(")");
+
+                        Query query = em.createNativeQuery(sb.toString());
+                        for (int idx = 0; idx < sublist.size(); idx++) {
+                            query.setParameter(idx + 1, sublist.get(idx).getId());
+                        }
+                        query.executeUpdate();
+                    }
+
                     tx.commit();
                 } finally {
                     tx.end();
                 }
+
+                log.debug(list.size() + " queue items succesfully processed");
             }
-            log.debug(list.size() + " queue items succesfully processed");
+        } catch (LoginException e) {
+            throw new RuntimeException(e);
         } finally {
-            processingQueue = false;
+            writeLock.unlock();
+            writing = false;
         }
     }
 
-    public String processQueueJmx() {
+    public String jmxProcessQueue() {
         try {
+            // login performed inside processQueue()
             processQueue();
             return "Done";
         } catch (Exception e) {
+            log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
         }
     }
 
-    private void processQueueItem(String entityName, UUID entityId) {
+    public String jmxOptimize() {
+        boolean locked = writeLock.tryLock();
+        if (!locked) {
+            return "Unable to optimize: writing at the moment";
+        }
+        try {
+            writing = true;
+            loginOnce();
 
+            LuceneWriter luceneWriter = new LuceneWriter(getDirectory());
+            luceneWriter.optimize();
+            luceneWriter.close();
+
+            return "Done";
+        } catch (Exception e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        } finally {
+            writeLock.unlock();
+            writing = false;
+        }
+    }
+
+    public String jmxReindexEntity(String entityName) {
+        try {
+            loginOnce();
+            deleteIndexForEntity(entityName);
+            reindexEntity(entityName);
+            return "Enqueued. Reindexing will be performed on next processQueue invocation.";
+        } catch (Exception e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        }
+    }
+
+    private void deleteIndexForEntity(String entityName) {
+        boolean locked = writeLock.tryLock();
+        if (!locked) {
+            throw new IllegalStateException("Unable to delete index: writing at the moment");
+        }
+        try {
+            writing = true;
+            LuceneWriter.deleteIndexForEntity(getDirectory(), entityName);
+        } finally {
+            writeLock.unlock();
+            writing = false;
+        }
+    }
+
+    private void deleteIndex() {
+        boolean locked = writeLock.tryLock();
+        if (!locked) {
+            throw new IllegalStateException("Unable to delete index: writing at the moment");
+        }
+        try {
+            writing = true;
+
+            LuceneWriter writer = new LuceneWriter(getDirectory());
+            writer.deleteAll();
+            writer.close();
+        } finally {
+            writeLock.unlock();
+            writing = false;
+        }
+    }
+
+    private void reindexEntity(String entityName) {
+        MetaClass metaClass = MetadataProvider.getSession().getClass(entityName);
+        if (metaClass == null)
+            throw new IllegalArgumentException("MetaClass not found for " + entityName);
+
+        Transaction tx = Locator.createTransaction();
+        try {
+            FtsSender sender = Locator.lookup(FtsSender.NAME);
+
+            sender.emptyQueue(entityName);
+            tx.commitRetaining();
+
+            EntityManager em = PersistenceProvider.getEntityManager();
+
+            Query q = em.createQuery("select e.id from " + entityName + " e");
+
+            List<UUID> list = q.getResultList();
+
+            for (UUID id : list) {
+                sender.enqueue(entityName, id, FtsChangeType.INSERT);
+            }
+
+            tx.commit();
+        } finally {
+            tx.end();
+        }
+    }
+
+    public String reindexAll() {
+        try {
+            loginOnce();
+            deleteIndex();
+
+            for (String entityName : getDescrByName().keySet()) {
+                reindexEntity(entityName);
+            }
+
+            return "Enqueued. Reindexing will be performed on next processQueue invocation.";
+        } catch (Exception e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        }
+    }
+
+    private Directory getDirectory() {
+        if (directory == null) {
+            synchronized (this) {
+                if (directory == null) {
+                    String dir = config.getIndexDir();
+                    if (StringUtils.isBlank(dir))
+                        dir = ConfigProvider.getConfig(GlobalConfig.class).getDataDir() + "/ftsindex";
+                    File file = new File(dir);
+                    if (!file.exists()) {
+                        boolean b = file.mkdirs();
+                        if (!b)
+                            throw new RuntimeException("Directory " + dir + " doesn't exist and can not be created");
+                    }
+                    try {
+                        directory = FSDirectory.open(file);
+
+                        if (directory.fileExists("write.lock")) {
+                            directory.deleteFile("write.lock");
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+        return directory;
     }
 }
