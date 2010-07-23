@@ -1,0 +1,16 @@
+<window
+        xmlns="http://www.haulmont.com/schema/cuba/gui/window.xsd"
+        class="com.haulmont.fts.web.ui.results.SearchResultsWindow"
+        messagesPack="com.haulmont.fts.web.ui.results"
+        >
+
+    <dsContext/>
+    
+    <layout expand="scrollBox">
+        <scrollbox id="scrollBox">
+            <vbox id="contentBox" spacing="true">
+
+            </vbox>
+        </scrollbox>
+    </layout>
+</window>

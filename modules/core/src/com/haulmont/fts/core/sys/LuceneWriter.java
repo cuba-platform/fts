@@ -1,30 +1,27 @@
 package com.haulmont.fts.core.sys;
 
 import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.SimpleAnalyzer;
+import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Version;
 
 import java.io.IOException;
 
-public class LuceneWriter {
+public class LuceneWriter extends Lucene {
 
-    protected Directory directory;
     protected PerFieldAnalyzerWrapper analyzer;
     protected IndexWriter writer;
 
-    protected static final String FLD_ENTITY = "entity";
-    protected static final String FLD_ID = "id";
-    protected static final String FLD_ALL = "all";
-    protected static final String FLD_LINKS = "links";
-
     public LuceneWriter(Directory directory) {
-        this.directory = directory;
-        analyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(Version.LUCENE_30));
+        super(directory);
+
+        analyzer = new PerFieldAnalyzerWrapper(new SimpleAnalyzer());
+        analyzer.addAnalyzer(FLD_LINKS, new WhitespaceAnalyzer());
+
         try {
             writer = new IndexWriter(directory, analyzer, new KeepOnlyLastCommitDeletionPolicy(), IndexWriter.MaxFieldLength.UNLIMITED);
         } catch (IOException e) {

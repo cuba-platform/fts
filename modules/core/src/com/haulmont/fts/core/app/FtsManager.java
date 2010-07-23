@@ -15,7 +15,6 @@ import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ManagementBean;
 import com.haulmont.cuba.core.entity.BaseEntity;
-import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.*;
@@ -36,6 +35,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ManagedBean(FtsManagerAPI.NAME)
@@ -309,7 +309,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         }
     }
 
-    private Directory getDirectory() {
+    public Directory getDirectory() {
         if (directory == null) {
             synchronized (this) {
                 if (directory == null) {

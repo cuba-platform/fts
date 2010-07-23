@@ -80,8 +80,6 @@ public class LuceneIndexer extends LuceneWriter {
             }
 
             Field idField, entityField, allField, linksField;
-            PerFieldAnalyzerWrapper analyzer = new PerFieldAnalyzerWrapper(new StandardAnalyzer(Version.LUCENE_30));
-
             Transaction tx = Locator.createTransaction();
             try {
                 EntityManager em = PersistenceProvider.getEntityManager();
@@ -94,8 +92,7 @@ public class LuceneIndexer extends LuceneWriter {
 
                 allField = new Field(FLD_ALL, createAllFieldContent(entity, descr), Field.Store.NO, Field.Index.ANALYZED);
 
-                linksField = new Field(FLD_LINKS, createLinksFieldContent(entity, descr), Field.Store.YES, Field.Index.NOT_ANALYZED);
-                analyzer.addAnalyzer(FLD_LINKS, new WhitespaceAnalyzer());
+                linksField = new Field(FLD_LINKS, createLinksFieldContent(entity, descr), Field.Store.YES, Field.Index.ANALYZED);
 
                 tx.commit();
             } finally {

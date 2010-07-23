@@ -11,10 +11,13 @@
 package com.haulmont.fts.core.app;
 
 import com.haulmont.cuba.core.entity.BaseEntity;
+import org.apache.lucene.store.Directory;
 
 public interface FtsManagerAPI {
 
     String NAME = "cuba_FtsManager";
+
+    Directory getDirectory();
 
     boolean isSearchable(BaseEntity entity);
 
