@@ -41,10 +41,26 @@ public class LuceneSearcher extends Lucene {
 
     public List<EntityInfo> searchAllField(String searchTerm, int maxResults) {
         Set<EntityInfo> set = new LinkedHashSet<EntityInfo>();
-        Term term = new Term(FLD_ALL, searchTerm);
-        Query termQuery = new PrefixQuery(term);
+
+        ValueFormatter valueFormatter = new ValueFormatter();
+
+        String[] strings = searchTerm.split("\\s");
+        Query query;
+        if (strings.length == 1) {
+            String s = valueFormatter.guessTypeAndFormat(searchTerm);
+            Term term = new Term(FLD_ALL, s);
+            query = new PrefixQuery(term);
+        } else {
+            query = new BooleanQuery();
+            for (String string : strings) {
+                String s = valueFormatter.guessTypeAndFormat(string);
+                Term term = new Term(FLD_ALL, s);
+                Query q = new PrefixQuery(term);
+                ((BooleanQuery) query).add(q, BooleanClause.Occur.SHOULD);
+            }
+        }
         try {
-            TopDocs topDocs = searcher.search(termQuery, maxResults);
+            TopDocs topDocs = searcher.search(query, maxResults);
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();

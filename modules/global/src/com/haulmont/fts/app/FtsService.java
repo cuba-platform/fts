@@ -18,4 +18,5 @@ public interface FtsService {
 
     SearchResult search(String searchTerm);
 
+    SearchResult expandResult(SearchResult result, String entityName);
 }

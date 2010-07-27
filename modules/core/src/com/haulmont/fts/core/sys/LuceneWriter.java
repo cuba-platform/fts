@@ -1,7 +1,6 @@
 package com.haulmont.fts.core.sys;
 
 import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.SimpleAnalyzer;
 import org.apache.lucene.analysis.WhitespaceAnalyzer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -19,7 +18,7 @@ public class LuceneWriter extends Lucene {
     public LuceneWriter(Directory directory) {
         super(directory);
 
-        analyzer = new PerFieldAnalyzerWrapper(new SimpleAnalyzer());
+        analyzer = new PerFieldAnalyzerWrapper(new EntityAttributeAnalyzer());
         analyzer.addAnalyzer(FLD_LINKS, new WhitespaceAnalyzer());
 
         try {

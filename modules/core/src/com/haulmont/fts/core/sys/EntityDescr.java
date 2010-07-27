@@ -23,15 +23,22 @@ public class EntityDescr {
 
     private Map<String, Boolean> properties = new HashMap<String, Boolean>();
 
+    private String script;
+
     private String viewName;
 
-    public EntityDescr(MetaClass metaClass, String viewName) {
+    public EntityDescr(MetaClass metaClass, String viewName, String script) {
         this.metaClass = metaClass;
         this.viewName = StringUtils.isBlank(viewName) ? "_local" : viewName;
+        this.script = script;
     }
 
     public MetaClass getMetaClass() {
         return metaClass;
+    }
+
+    public String getScript() {
+        return script;
     }
 
     public void addProperty(String name) {

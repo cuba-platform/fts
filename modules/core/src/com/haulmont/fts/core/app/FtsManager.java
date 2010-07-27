@@ -15,6 +15,7 @@ import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ManagementBean;
 import com.haulmont.cuba.core.entity.BaseEntity;
+import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.*;
@@ -23,6 +24,7 @@ import com.haulmont.fts.core.sys.ConfigLoader;
 import com.haulmont.fts.core.sys.EntityDescr;
 import com.haulmont.fts.core.sys.LuceneIndexer;
 import com.haulmont.fts.core.sys.LuceneWriter;
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
@@ -107,18 +109,30 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
 
         Set<String> dirty = PersistenceProvider.getDirtyFields(entity);
         for (String s : dirty) {
-            if (ownProperties.contains(s))
-                return true;
+            if (ownProperties.contains(s)) {
+                if (StringUtils.isBlank(descr.getScript()))
+                    return true;
+                else
+                    return runSearchableScript(entity, descr);
+            }
         }
         return false;
     }
 
-    public void processQueue() {
+    private boolean runSearchableScript(BaseEntity entity, EntityDescr descr) {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("entity", entity);
+        Boolean value = ScriptingProvider.evaluateGroovy(ScriptingProvider.Layer.CORE, descr.getScript(), params);
+        return BooleanUtils.isTrue(value);
+    }
+
+    public int processQueue() {
         log.debug("Start processing queue");
+        int count = 0;
         boolean locked = writeLock.tryLock();
         if (!locked) {
             log.warn("Unable to process queue: writing at the moment");
-            return;
+            return count;
         }
         try {
             writing = true;
@@ -143,6 +157,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
                 LuceneIndexer indexer = new LuceneIndexer(getDescrByName(), getDirectory());
                 for (FtsQueue ftsQueue : list) {
                     indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
+                    count++;
                 }
 
                 int period = config.getOptimizationPeriod();
@@ -177,8 +192,6 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
                 } finally {
                     tx.end();
                 }
-
-                log.debug(list.size() + " queue items succesfully processed");
             }
         } catch (LoginException e) {
             throw new RuntimeException(e);
@@ -186,13 +199,15 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             writeLock.unlock();
             writing = false;
         }
+        log.debug(count + " queue items succesfully processed");
+        return count;
     }
 
     public String jmxProcessQueue() {
         try {
             // login performed inside processQueue()
-            processQueue();
-            return "Done";
+            int count = processQueue();
+            return String.format("Done %d items", count);
         } catch (Exception e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
@@ -226,8 +241,8 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         try {
             loginOnce();
             deleteIndexForEntity(entityName);
-            reindexEntity(entityName);
-            return "Enqueued. Reindexing will be performed on next processQueue invocation.";
+            int count = reindexEntity(entityName);
+            return String.format("Enqueued %d items. Reindexing will be performed on next processQueue invocation.", count);
         } catch (Exception e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
@@ -265,7 +280,9 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         }
     }
 
-    private void reindexEntity(String entityName) {
+    private int reindexEntity(String entityName) {
+        int count = 0;
+
         MetaClass metaClass = MetadataProvider.getSession().getClass(entityName);
         if (metaClass == null)
             throw new IllegalArgumentException("MetaClass not found for " + entityName);
@@ -277,32 +294,47 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             sender.emptyQueue(entityName);
             tx.commitRetaining();
 
+            EntityDescr descr = getDescrByName().get(entityName);
+            if (descr == null)
+                return count;
+
             EntityManager em = PersistenceProvider.getEntityManager();
 
-            Query q = em.createQuery("select e.id from " + entityName + " e");
-
-            List<UUID> list = q.getResultList();
-
-            for (UUID id : list) {
-                sender.enqueue(entityName, id, FtsChangeType.INSERT);
+            if (StringUtils.isBlank(descr.getScript())) {
+                Query q = em.createQuery("select e.id from " + entityName + " e");
+                List<UUID> list = q.getResultList();
+                for (UUID id : list) {
+                    sender.enqueue(entityName, id, FtsChangeType.INSERT);
+                    count++;
+                }
+            } else {
+                Query q = em.createQuery("select e from " + entityName + " e");
+                List<BaseEntity> list = q.getResultList();
+                for (BaseEntity entity : list) {
+                    if (runSearchableScript(entity, descr)) {
+                        sender.enqueue(entityName, (UUID) entity.getId(), FtsChangeType.INSERT);
+                        count++;
+                    }
+                }
             }
-
             tx.commit();
         } finally {
             tx.end();
         }
+        return count;
     }
 
-    public String reindexAll() {
+    public String jmxReindexAll() {
         try {
             loginOnce();
             deleteIndex();
 
+            int count = 0;
             for (String entityName : getDescrByName().keySet()) {
-                reindexEntity(entityName);
+                count += reindexEntity(entityName);
             }
 
-            return "Enqueued. Reindexing will be performed on next processQueue invocation.";
+            return String.format("Enqueued %d items. Reindexing will be performed on next processQueue invocation.", count);
         } catch (Exception e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);

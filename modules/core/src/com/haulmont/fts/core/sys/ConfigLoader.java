@@ -44,9 +44,14 @@ public class ConfigLoader {
     private static String[] systemProps = new String[] {
             "id", "createTs", "createdBy", "version", "updateTs", "updatedBy", "deleteTs", "deletedBy"
     };
+    protected String confDir;
 
     static {
         Arrays.sort(systemProps);
+    }
+
+    public ConfigLoader() {
+        confDir = ConfigProvider.getConfig(GlobalConfig.class).getConfDir();
     }
 
     public Map<String, EntityDescr> loadConfiguration() {
@@ -56,34 +61,37 @@ public class ConfigLoader {
         if (StringUtils.isBlank(configName))
             configName = DEFAULT_CONFIG;
 
-        File file = new File(ConfigProvider.getConfig(GlobalConfig.class).getConfDir() + "/" + configName);
+        File file = new File(confDir + "/" + configName);
         if (!file.exists()) {
             log.error("FTS config file not found: " + file.getAbsolutePath());
             return map;
         }
 
-        Document document;
-        FileInputStream inputStream = null;
-        try {
-            inputStream = new FileInputStream(file);
-            document = Dom4j.readDocument(inputStream);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (inputStream != null)
-                try {
-                    inputStream.close();
-                } catch (IOException e) {
-                    //
-                }
+        loadFromFile(file, map);
+
+        return map;
+    }
+
+    private void loadFromFile(File file, Map<String, EntityDescr> map) {
+        Document document = Dom4j.readDocument(file);
+        for (Element element : Dom4j.elements(document.getRootElement(), "include")) {
+            String fileName = element.attributeValue("file");
+            if (!StringUtils.isBlank(fileName)) {
+                File incFile = new File(confDir + "/" + fileName);
+                loadFromFile(incFile, map);
+            }
         }
+
         Element rootElem = document.getRootElement();
         Element entitiesElem = rootElem.element("entities");
         for (Element entityElem : Dom4j.elements(entitiesElem, "entity")) {
             String className = entityElem.attributeValue("class");
             MetaClass metaClass = MetadataProvider.getSession().getClass(ReflectionHelper.getClass(className));
 
-            EntityDescr entityDescr = new EntityDescr(metaClass, entityElem.attributeValue("view"));
+            Element scriptElem = entityElem.element("searchable");
+            String script = scriptElem != null ? scriptElem.getText() : null;
+
+            EntityDescr entityDescr = new EntityDescr(metaClass, entityElem.attributeValue("view"), script);
 
             for (Element element : Dom4j.elements(entityElem, "include")) {
                 String re = element.attributeValue("re");
@@ -109,8 +117,6 @@ public class ConfigLoader {
 
             map.put(className, entityDescr);
         }
-
-        return map;
     }
 
     private void includeByName(EntityDescr descr, MetaClass metaClass, String name) {
@@ -150,9 +156,9 @@ public class ConfigLoader {
             Datatype dt = metaProperty.getRange().asDatatype();
             return (Datatypes.getInstance().get(StringDatatype.NAME).equals(dt)
                     || Datatypes.getInstance().get(DateDatatype.NAME).equals(dt)
+                    || Datatypes.getInstance().get(BigDecimalDatatype.NAME).equals(dt)
                     || Datatypes.getInstance().get(IntegerDatatype.NAME).equals(dt)
-                    || Datatypes.getInstance().get(DoubleDatatype.NAME).equals(dt)
-                    || Datatypes.getInstance().get(BigDecimalDatatype.NAME).equals(dt));
+                    || Datatypes.getInstance().get(DoubleDatatype.NAME).equals(dt));
 
         } else if (metaProperty.getRange().isEnum() || metaProperty.getRange().isClass()) {
             return true;

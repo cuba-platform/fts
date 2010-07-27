@@ -21,5 +21,5 @@ public interface FtsManagerAPI {
 
     boolean isSearchable(BaseEntity entity);
 
-    void processQueue();
+    int processQueue();
 }

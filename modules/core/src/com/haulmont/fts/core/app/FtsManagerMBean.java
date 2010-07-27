@@ -20,5 +20,5 @@ public interface FtsManagerMBean {
 
     String jmxReindexEntity(String entityName);
 
-    String reindexAll();
+    String jmxReindexAll();
 }

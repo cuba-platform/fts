@@ -56,13 +56,21 @@ public class SearchResult implements Serializable {
     }
 
     private Map<String, Set<Entry>> results = new HashMap<String, Set<Entry>>();
+    private Map<String, Set<UUID>> ids = new HashMap<String, Set<UUID>>();
+
 
     public List<String> getEntities() {
         return new ArrayList(results.keySet());
     }
 
     public List<Entry> getEntries(String entityName) {
-        return new ArrayList(results.get(entityName));
+        Set<Entry> entries = results.get(entityName);
+        return entries == null ? new ArrayList() : new ArrayList(entries);
+    }
+
+    public int getEntriesCount(String entityName) {
+        Set<Entry> entries = results.get(entityName);
+        return entries == null ? 0 : entries.size();
     }
 
     public void addEntry(String entityName, Entry entry) {
@@ -73,8 +81,41 @@ public class SearchResult implements Serializable {
         }
         set.add(entry);
     }
-    
+
+    public void addId(String entityName, UUID id) {
+        Set<UUID> set = ids.get(entityName);
+        if (set == null) {
+            set = new LinkedHashSet<UUID>();
+            ids.put(entityName, set);
+        }
+        set.add(id);
+    }
+
+    public List<UUID> getIds(String entityName) {
+        Set<UUID> set = ids.get(entityName);
+        return set == null ? new ArrayList() : new ArrayList(set);
+    }
+
+    public void removeId(String entityName, UUID id) {
+        Set<UUID> set = ids.get(entityName);
+        if (set != null)
+            set.remove(id);
+    }
+
     public boolean isEmpty() {
         return results.isEmpty();
+    }
+
+    public boolean hasEntry(String entityName, UUID id) {
+        Set<Entry> entries = results.get(entityName);
+        if (entries == null)
+            return false;
+        else {
+            for (Entry entry : entries) {
+                if (entry.getId().equals(id))
+                    return true;
+            }
+            return false;
+        }
     }
 }

@@ -11,6 +11,8 @@
 package com.haulmont.fts.core.sys;
 
 import com.haulmont.bali.datastruct.Pair;
+import com.haulmont.chile.core.datatypes.Datatype;
+import com.haulmont.chile.core.datatypes.Datatypes;
 import com.haulmont.chile.core.model.Instance;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.utils.InstanceUtils;
@@ -46,9 +48,13 @@ public class LuceneIndexer extends LuceneWriter {
 
     private List<Pair<String, UUID>> deleteQueue = new ArrayList<Pair<String, UUID>>();
 
+    private ValueFormatter valueFormatter;
+
     public LuceneIndexer(Map<String, EntityDescr> descriptions, Directory directory) {
         super(directory);
         this.descriptions = descriptions;
+
+        valueFormatter = new ValueFormatter();
     }
 
     public void close() {
@@ -123,12 +129,14 @@ public class LuceneIndexer extends LuceneWriter {
 
         for (String propName : descr.getLocalProperties()) {
             Object value = ((Instance) entity).getValue(propName);
-            if (value != null && !StringUtils.isBlank(value.toString())) {
-                appendString(sb, value);
+
+            String str = valueFormatter.format(value);
+            if (str != null && !StringUtils.isBlank(str)) {
+                appendString(sb, str);
             }
         }
         if (log.isTraceEnabled())
-            log.trace("Entity " + entity.getId() + " all field: " + sb.toString());
+            log.trace("Entity " + entity + " all field: " + sb.toString());
 
         return sb.toString();
     }
@@ -140,7 +148,7 @@ public class LuceneIndexer extends LuceneWriter {
             addLinkedPropertyEx(sb, (Instance) entity, InstanceUtils.parseValuePath(propName));
         }
         if (log.isTraceEnabled())
-            log.trace("Entity " + entity.getId() + " links field: " + sb.toString());
+            log.trace("Entity " + entity + " links field: " + sb.toString());
 
         return sb.toString();
     }

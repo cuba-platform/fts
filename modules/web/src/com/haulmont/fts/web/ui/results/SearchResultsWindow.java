@@ -29,6 +29,9 @@ import com.haulmont.cuba.web.AppWindow;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
 import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.global.SearchResult;
+import com.vaadin.data.Property;
+import com.vaadin.event.FieldEvents;
+import com.vaadin.terminal.Paintable;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.BaseTheme;
 import org.apache.commons.lang.StringUtils;
@@ -38,6 +41,10 @@ import java.util.*;
 public class SearchResultsWindow extends AbstractWindow {
 
     protected AbstractOrderedLayout contentLayout;
+
+    protected FtsService service;
+
+    protected SearchResult searchResult;
 
     public SearchResultsWindow(IFrame frame) {
         super(frame);
@@ -58,8 +65,8 @@ public class SearchResultsWindow extends AbstractWindow {
             searchTerm = searchTerm.trim();
             setCaption(getMessage("caption") + ": " + searchTerm);
 
-            FtsService service = ServiceLocator.lookup(FtsService.NAME);
-            SearchResult searchResult = service.search(searchTerm.toLowerCase());
+            service = ServiceLocator.lookup(FtsService.NAME);
+            searchResult = service.search(searchTerm.toLowerCase());
 
             if (searchResult.isEmpty()) {
                 Label label = new Label(getMessage("notFound"));
@@ -99,26 +106,40 @@ public class SearchResultsWindow extends AbstractWindow {
                     grid.addComponent(entityLabel, 0, 0);
 
                     VerticalLayout instancesLayout = new VerticalLayout();
-
-                    List<SearchResult.Entry> entries = searchResult.getEntries(entityPair.getFirst());
-                    for (SearchResult.Entry entry : entries) {
-                        HorizontalLayout instanceLayout = new HorizontalLayout();
-
-                        Button instanceBtn = new Button(entry.getCaption());
-                        instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
-                        instanceBtn.addListener(new InstanceClickListener(entityPair.getFirst(), entry.getId()));
-
-                        instanceLayout.addComponent(instanceBtn);
-                        instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
-
-                        instancesLayout.addComponent(instanceLayout);
-                    }
-
+                    displayInstances(entityPair.getFirst(), instancesLayout);
                     grid.addComponent(instancesLayout, 1, 0);
 
                     contentLayout.addComponent(grid);
                 }
             }
+        }
+    }
+
+    private void displayInstances(String entityName, VerticalLayout instancesLayout) {
+        List<SearchResult.Entry> entries = searchResult.getEntries(entityName);
+        for (SearchResult.Entry entry : entries) {
+            HorizontalLayout instanceLayout = new HorizontalLayout();
+
+            Button instanceBtn = new Button(entry.getCaption());
+            instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
+            instanceBtn.addListener(new InstanceClickListener(entityName, entry.getId()));
+
+            instanceLayout.addComponent(instanceBtn);
+            instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
+
+            instancesLayout.addComponent(instanceLayout);
+        }
+        if (!searchResult.getIds(entityName).isEmpty()) {
+            HorizontalLayout instanceLayout = new HorizontalLayout();
+
+            Button instanceBtn = new Button(getMessage("more"));
+            instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
+            instanceBtn.addListener(new MoreClickListener(entityName, instancesLayout));
+
+            instanceLayout.addComponent(instanceBtn);
+            instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
+
+            instancesLayout.addComponent(instanceLayout);
         }
     }
 
@@ -143,6 +164,24 @@ public class SearchResultsWindow extends AbstractWindow {
             WindowManager.OpenType openType = AppWindow.Mode.TABBED.equals(App.getInstance().getAppWindow().getMode()) ?
                     WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
             openEditor(windowId, entity, openType);
+        }
+    }
+
+    private class MoreClickListener implements Button.ClickListener {
+
+        private String entityName;
+        private VerticalLayout instancesLayout;
+
+        public MoreClickListener(String entityName, VerticalLayout instancesLayout) {
+            this.entityName = entityName;
+            this.instancesLayout = instancesLayout;
+        }
+
+        public void buttonClick(Button.ClickEvent event) {
+            searchResult = service.expandResult(searchResult, entityName);
+
+            instancesLayout.removeAllComponents();
+            displayInstances(entityName, instancesLayout);
         }
     }
 }
