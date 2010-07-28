@@ -365,7 +365,6 @@
         <root url="jar://$PROJECT_DIR$/../lib/common/google-collect-1.0-rc2.jar!/" />
         <root url="jar://$PROJECT_DIR$/../lib/common/jasperreports-3.5.1.jar!/" />
         <root url="jar://$PROJECT_DIR$/../lib/common/iText-2.1.0.jar!/" />
-        <root url="jar://$PROJECT_DIR$/../lib/common/poi-3.2-FINAL-20081019.jar!/" />
         <root url="jar://$PROJECT_DIR$/../lib/common/commons-lang-2.4.jar!/" />
         <root url="jar://$PROJECT_DIR$/../lib/common/jsr305-ri.jar!/" />
         <root url="jar://$PROJECT_DIR$/../lib/common/freemarker-2.3.15.jar!/" />
@@ -429,6 +428,8 @@
         <root url="jar://$PROJECT_DIR$/../lib/server/vaadin-6.3.1-patch1.jar!/" />
         <root url="jar://$PROJECT_DIR$/../lib/server/jgroups-2.8.1.GA.jar!/" />
         <root url="jar://$PROJECT_DIR$/../lib/server/lucene-core-3.0.2.jar!/" />
+        <root url="jar://$PROJECT_DIR$/../lib/server/tika-core-0.7.jar!/" />
+        <root url="jar://$PROJECT_DIR$/../lib/server/tika-parsers-0.7.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES>
@@ -439,6 +440,7 @@
         <root url="jar://$PROJECT_DIR$/../lib/server/src/springframework.context.support-3.0.0.RELEASE-src.zip!/" />
         <root url="jar://$PROJECT_DIR$/../lib/server/vaadin-6.3.1-patch1.jar!/" />
         <root url="jar://$PROJECT_DIR$/../lib/server/src/lucene-core-3.0.2-src.zip!/" />
+        <root url="jar://$PROJECT_DIR$/../lib/server/src/tika-core-0.7-src.zip!/" />
       </SOURCES>
     </library>
     <library name="chile">

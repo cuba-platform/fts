@@ -28,9 +28,6 @@ import org.dom4j.Document;
 import org.dom4j.Element;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -88,10 +85,16 @@ public class ConfigLoader {
             String className = entityElem.attributeValue("class");
             MetaClass metaClass = MetadataProvider.getSession().getClass(ReflectionHelper.getClass(className));
 
-            Element scriptElem = entityElem.element("searchable");
-            String script = scriptElem != null ? scriptElem.getText() : null;
+            Element searchableIfScriptElem = entityElem.element("searchableIf");
+            String searchableIfScript = searchableIfScriptElem != null ? searchableIfScriptElem.getText() : null;
 
-            EntityDescr entityDescr = new EntityDescr(metaClass, entityElem.attributeValue("view"), script);
+            Element searchablesScriptElem = entityElem.element("searchables");
+            String searchablesScript = searchablesScriptElem != null ? searchablesScriptElem.getText() : null;
+
+            String showStr = entityElem.attributeValue("show");
+            boolean show = showStr == null || Boolean.valueOf(showStr);
+
+            EntityDescr entityDescr = new EntityDescr(metaClass, searchableIfScript, searchablesScript, show);
 
             for (Element element : Dom4j.elements(entityElem, "include")) {
                 String re = element.attributeValue("re");

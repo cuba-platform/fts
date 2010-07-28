@@ -19,6 +19,10 @@
             <exclude name="substitutions"/>
         </entity>
 
+        <entity class="com.haulmont.cuba.core.entity.FileDescriptor" show="false">
+            <include name="name"/>
+        </entity>
+
     </entities>
 
 </fts-config>

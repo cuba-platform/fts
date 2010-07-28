@@ -71,6 +71,9 @@ public class FtsServiceBean implements FtsService {
             Transaction tx = Locator.createTransaction();
             try {
                 for (EntityInfo entityInfo : allFieldResults) {
+                    if (!manager.showInResults(entityInfo.getName()))
+                        continue;
+
                     if (result.getEntriesCount(entityInfo.getName()) < config.getSearchResultsBatchSize()) {
                         SearchResult.Entry entry = createEntry(entityInfo.getName(), entityInfo.getId());
                         if (entry != null) {
@@ -93,6 +96,9 @@ public class FtsServiceBean implements FtsService {
                     tx = Locator.createTransaction();
                     try {
                         for (EntityInfo linkEntityInfo : linksFieldResults) {
+                            if (!manager.showInResults(linkEntityInfo.getName()))
+                                continue;
+                            
                             if (result.getEntriesCount(linkEntityInfo.getName()) < config.getSearchResultsBatchSize()) {
                                 SearchResult.Entry entry = createEntry(linkEntityInfo.getName(), linkEntityInfo.getId());
                                 if (entry != null) {

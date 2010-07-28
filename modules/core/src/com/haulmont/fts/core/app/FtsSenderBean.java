@@ -22,6 +22,7 @@ import com.haulmont.cuba.core.global.MetadataProvider;
 
 import javax.annotation.ManagedBean;
 import javax.inject.Inject;
+import java.util.List;
 import java.util.UUID;
 
 @ManagedBean(FtsSender.NAME)
@@ -35,16 +36,17 @@ public class FtsSenderBean implements FtsSender {
     }
 
     public void enqueue(BaseEntity<UUID> entity, FtsChangeType changeType) {
-        if (!manager.isSearchable(entity))
-            return;
+        if (changeType.equals(FtsChangeType.DELETE)) {
+            MetaClass metaClass = MetadataProvider.getSession().getClass(entity.getClass());
+            enqueue(metaClass.getName(), entity.getId(), FtsChangeType.DELETE);
+        }
 
-        FtsQueue q = new FtsQueue();
-        q.setEntityId(entity.getId());
-        MetaClass metaClass = MetadataProvider.getSession().getClass(entity.getClass());
-        q.setEntityName(metaClass.getName());
-        q.setChangeType(changeType);
+        List<BaseEntity> list = manager.getSearchableEntities(entity);
 
-        PersistenceProvider.getEntityManager().persist(q);
+        for (BaseEntity<UUID> e : list) {
+            MetaClass metaClass = MetadataProvider.getSession().getClass(e.getClass());
+            enqueue(metaClass.getName(), e.getId(), FtsChangeType.UPDATE);
+        }
     }
 
     public void enqueue(String entityName, UUID entityId, FtsChangeType changeType) {

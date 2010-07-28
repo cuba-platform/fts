@@ -15,7 +15,6 @@ import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ManagementBean;
 import com.haulmont.cuba.core.entity.BaseEntity;
-import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.*;
@@ -37,7 +36,6 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 @ManagedBean(FtsManagerAPI.NAME)
@@ -94,10 +92,12 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         return descrByName;
     }
 
-    public boolean isSearchable(BaseEntity entity) {
+    public List<BaseEntity> getSearchableEntities(BaseEntity entity) {
+        List<BaseEntity> list = new ArrayList<BaseEntity>();
+
         EntityDescr descr = getDescrByClassName().get(entity.getClass().getName());
         if (descr == null)
-            return false;
+            return list;
 
         Set<String> properties = descr.getPropertyNames();
 
@@ -110,19 +110,29 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         Set<String> dirty = PersistenceProvider.getDirtyFields(entity);
         for (String s : dirty) {
             if (ownProperties.contains(s)) {
-                if (StringUtils.isBlank(descr.getScript()))
-                    return true;
-                else
-                    return runSearchableScript(entity, descr);
+                if (StringUtils.isBlank(descr.getSearchableIfScript())) {
+                    list.add(entity);
+                } else if (runSearchableIf(entity, descr)) {
+                    list.add(entity);
+                }
+                break;
             }
         }
-        return false;
+        
+        if (!StringUtils.isBlank(descr.getSearchablesScript())) {
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("entity", entity);
+            params.put("searchables", list);
+            ScriptingProvider.evaluateGroovy(ScriptingProvider.Layer.CORE, descr.getSearchablesScript(), params);
+        }
+
+        return list;
     }
 
-    private boolean runSearchableScript(BaseEntity entity, EntityDescr descr) {
+    private boolean runSearchableIf(BaseEntity entity, EntityDescr descr) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("entity", entity);
-        Boolean value = ScriptingProvider.evaluateGroovy(ScriptingProvider.Layer.CORE, descr.getScript(), params);
+        Boolean value = ScriptingProvider.evaluateGroovy(ScriptingProvider.Layer.CORE, descr.getSearchableIfScript(), params);
         return BooleanUtils.isTrue(value);
     }
 
@@ -155,17 +165,20 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
 
             if (!list.isEmpty()) {
                 LuceneIndexer indexer = new LuceneIndexer(getDescrByName(), getDirectory());
-                for (FtsQueue ftsQueue : list) {
-                    indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
-                    count++;
-                }
+                try {
+                    for (FtsQueue ftsQueue : list) {
+                        indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
+                        count++;
+                    }
 
-                int period = config.getOptimizationPeriod();
-                if (++writeCount > period) {
-                    indexer.optimize();
-                    writeCount = 0;
+                    int period = config.getOptimizationPeriod();
+                    if (++writeCount > period) {
+                        indexer.optimize();
+                        writeCount = 0;
+                    }
+                } finally {
+                    indexer.close();
                 }
-                indexer.close();
 
                 tx = Locator.createTransaction();
                 try {
@@ -203,12 +216,17 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         return count;
     }
 
+    public boolean showInResults(String entityName) {
+        EntityDescr descr = getDescrByName().get(entityName);
+        return descr != null && descr.isShow();
+    }
+
     public String jmxProcessQueue() {
         try {
             // login performed inside processQueue()
             int count = processQueue();
             return String.format("Done %d items", count);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
         }
@@ -228,7 +246,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             luceneWriter.close();
 
             return "Done";
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
         } finally {
@@ -243,7 +261,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             deleteIndexForEntity(entityName);
             int count = reindexEntity(entityName);
             return String.format("Enqueued %d items. Reindexing will be performed on next processQueue invocation.", count);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
         }
@@ -300,7 +318,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
 
             EntityManager em = PersistenceProvider.getEntityManager();
 
-            if (StringUtils.isBlank(descr.getScript())) {
+            if (StringUtils.isBlank(descr.getSearchableIfScript())) {
                 Query q = em.createQuery("select e.id from " + entityName + " e");
                 List<UUID> list = q.getResultList();
                 for (UUID id : list) {
@@ -311,7 +329,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
                 Query q = em.createQuery("select e from " + entityName + " e");
                 List<BaseEntity> list = q.getResultList();
                 for (BaseEntity entity : list) {
-                    if (runSearchableScript(entity, descr)) {
+                    if (runSearchableIf(entity, descr)) {
                         sender.enqueue(entityName, (UUID) entity.getId(), FtsChangeType.INSERT);
                         count++;
                     }
@@ -335,7 +353,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             }
 
             return String.format("Enqueued %d items. Reindexing will be performed on next processQueue invocation.", count);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
         }

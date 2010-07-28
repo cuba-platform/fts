@@ -20,8 +20,11 @@ import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Locator;
 import com.haulmont.cuba.core.PersistenceProvider;
 import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.core.app.FileStorageAPI;
 import com.haulmont.cuba.core.entity.Entity;
+import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.entity.FtsChangeType;
+import com.haulmont.cuba.core.global.FileStorageException;
 import com.haulmont.cuba.core.global.MetadataProvider;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -36,8 +39,24 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
+import org.apache.tika.exception.TikaException;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.parser.microsoft.OfficeParser;
+import org.apache.tika.parser.microsoft.ooxml.OOXMLParser;
+import org.apache.tika.parser.odf.OpenDocumentParser;
+import org.apache.tika.parser.pdf.PDFParser;
+import org.apache.tika.parser.rtf.RTFParser;
+import org.apache.tika.parser.txt.TXTParser;
+import org.apache.tika.sax.BodyContentHandler;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.*;
 
 public class LuceneIndexer extends LuceneWriter {
@@ -135,10 +154,53 @@ public class LuceneIndexer extends LuceneWriter {
                 appendString(sb, str);
             }
         }
+        if (entity instanceof FileDescriptor) {
+            appendFileContent(sb, ((FileDescriptor) entity));
+        }
+
         if (log.isTraceEnabled())
             log.trace("Entity " + entity + " all field: " + sb.toString());
 
         return sb.toString();
+    }
+
+    private void appendFileContent(StringBuilder sb, FileDescriptor fileDescriptor) {
+        FileStorageAPI fs = Locator.lookup(FileStorageAPI.NAME);
+        byte[] data;
+        try {
+            data = fs.loadFile(fileDescriptor);
+        } catch (FileStorageException e) {
+            log.error("Error indexing file " + fileDescriptor.getFileName() + ": " + e.getMessage());
+            return;
+        }
+        InputStream stream = new ByteArrayInputStream(data);
+        Parser parser;
+        String ext = fileDescriptor.getExtension();
+        if ("pdf".equals(ext))
+            parser = new PDFParser();
+        else if ("doc".equals(ext) || "xls".equals(ext))
+            parser = new OfficeParser();
+        else if ("docx".equals(ext) || "xlsx".equals(ext))
+            parser = new OOXMLParser();
+        else if ("odt".equals(ext) || "ods".equals(ext))
+            parser = new OpenDocumentParser();
+        else if ("rtf".equals(ext))
+            parser = new RTFParser();
+        else if ("txt".equals(ext))
+            parser = new TXTParser();
+        else {
+            log.warn("Unsupported file extension: " + ext);
+            return;
+        }
+
+        StringWriter stringWriter = new StringWriter();
+        ContentHandler handler = new BodyContentHandler(stringWriter);
+        try {
+            parser.parse(stream, handler, new Metadata(), new ParseContext());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        sb.append(stringWriter.toString());
     }
 
     private String createLinksFieldContent(Entity entity, EntityDescr descr) {

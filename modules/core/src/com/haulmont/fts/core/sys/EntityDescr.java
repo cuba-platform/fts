@@ -11,9 +11,7 @@
 package com.haulmont.fts.core.sys;
 
 import com.haulmont.chile.core.model.MetaClass;
-import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.chile.core.model.MetaPropertyPath;
-import org.apache.commons.lang.StringUtils;
 
 import java.util.*;
 
@@ -23,22 +21,29 @@ public class EntityDescr {
 
     private Map<String, Boolean> properties = new HashMap<String, Boolean>();
 
-    private String script;
+    private String searchableIfScript;
 
-    private String viewName;
+    private String searchablesScript;
 
-    public EntityDescr(MetaClass metaClass, String viewName, String script) {
+    private boolean show;
+
+    public EntityDescr(MetaClass metaClass, String searchableIfScript, String searchablesScript, boolean show) {
         this.metaClass = metaClass;
-        this.viewName = StringUtils.isBlank(viewName) ? "_local" : viewName;
-        this.script = script;
+        this.searchableIfScript = searchableIfScript;
+        this.searchablesScript = searchablesScript;
+        this.show = show;
     }
 
     public MetaClass getMetaClass() {
         return metaClass;
     }
 
-    public String getScript() {
-        return script;
+    public String getSearchableIfScript() {
+        return searchableIfScript;
+    }
+
+    public String getSearchablesScript() {
+        return searchablesScript;
     }
 
     public void addProperty(String name) {
@@ -79,8 +84,7 @@ public class EntityDescr {
         return list;
     }
 
-    public String getViewName() {
-        return viewName;
+    public boolean isShow() {
+        return show;
     }
-
 }
