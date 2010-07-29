@@ -31,7 +31,7 @@ public class EntityAttributeTokenizer extends CharTokenizer {
 
     @Override
     protected boolean isTokenChar(char c) {
-        return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '/' || c == '\\';
+        return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '/' || c == '\\' || c == '^';
     }
 
     @Override

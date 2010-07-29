@@ -16,11 +16,13 @@ public class EntityInfo implements Comparable<EntityInfo> {
 
     private String name;
     private UUID id;
+    private String text;
     private boolean inLinks;
 
-    public EntityInfo(String name, UUID id, boolean inLinks) {
+    public EntityInfo(String name, UUID id, String text, boolean inLinks) {
         this.id = id;
         this.name = name;
+        this.text = text;
         this.inLinks = inLinks;
     }
 
@@ -30,6 +32,10 @@ public class EntityInfo implements Comparable<EntityInfo> {
 
     public String getName() {
         return name;
+    }
+
+    public String getText() {
+        return text;
     }
 
     public boolean isInLinks() {

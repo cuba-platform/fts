@@ -25,7 +25,9 @@ import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.global.FileStorageException;
+import com.haulmont.cuba.core.global.FtsConfig;
 import com.haulmont.cuba.core.global.MetadataProvider;
+import com.haulmont.fts.global.Constants;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -65,13 +67,16 @@ public class LuceneIndexer extends LuceneWriter {
 
     private Map<String, EntityDescr> descriptions;
 
+    private boolean storeContentInIndex;
+
     private List<Pair<String, UUID>> deleteQueue = new ArrayList<Pair<String, UUID>>();
 
     private ValueFormatter valueFormatter;
 
-    public LuceneIndexer(Map<String, EntityDescr> descriptions, Directory directory) {
+    public LuceneIndexer(Map<String, EntityDescr> descriptions, Directory directory, boolean storeContentInIndex) {
         super(directory);
         this.descriptions = descriptions;
+        this.storeContentInIndex = storeContentInIndex;
 
         valueFormatter = new ValueFormatter();
     }
@@ -115,9 +120,19 @@ public class LuceneIndexer extends LuceneWriter {
 
                 entityField = new Field(FLD_ENTITY, entityName, Field.Store.YES, Field.Index.NOT_ANALYZED);
 
-                allField = new Field(FLD_ALL, createAllFieldContent(entity, descr), Field.Store.NO, Field.Index.ANALYZED);
+                allField = new Field(
+                        FLD_ALL,
+                        createAllFieldContent(entity, descr),
+                        storeContentInIndex ? Field.Store.YES : Field.Store.NO,
+                        Field.Index.ANALYZED
+                );
 
-                linksField = new Field(FLD_LINKS, createLinksFieldContent(entity, descr), Field.Store.YES, Field.Index.ANALYZED);
+                linksField = new Field(
+                        FLD_LINKS,
+                        createLinksFieldContent(entity, descr),
+                        Field.Store.YES,
+                        Field.Index.ANALYZED
+                );
 
                 tx.commit();
             } finally {
@@ -131,10 +146,10 @@ public class LuceneIndexer extends LuceneWriter {
             doc.add(linksField);
 
             if (FtsChangeType.UPDATE.equals(changeType)) {
-                log.debug("Updating document " + entityId);
+                log.debug("Updating document " + entityName + "-" + entityId);
                 writer.updateDocument(new Term(FLD_ID, entityId.toString()), doc);
             } else {
-                log.debug("Adding document " + entityId);
+                log.debug("Adding document " + entityName + "-" + entityId);
                 writer.addDocument(doc);
             }
 
@@ -151,10 +166,15 @@ public class LuceneIndexer extends LuceneWriter {
 
             String str = valueFormatter.format(value);
             if (str != null && !StringUtils.isBlank(str)) {
+                if (storeContentInIndex) {
+                    appendString(sb, makeFieldName(propName));
+                }
                 appendString(sb, str);
             }
         }
         if (entity instanceof FileDescriptor) {
+            appendString(sb, makeFieldName(Constants.FILE_CONT_PROP));
+            sb.append(Constants.FIELD_SEP).append(((FileDescriptor) entity).getName().replaceAll("\\s", Constants.FIELD_SEP));
             appendFileContent(sb, ((FileDescriptor) entity));
         }
 
@@ -200,19 +220,26 @@ public class LuceneIndexer extends LuceneWriter {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        sb.append(stringWriter.toString());
+        appendString(sb, stringWriter.toString());
     }
 
     private String createLinksFieldContent(Entity entity, EntityDescr descr) {
         StringBuilder sb = new StringBuilder();
 
         for (String propName : descr.getLinkProperties()) {
+            if (storeContentInIndex) {
+                appendString(sb, makeFieldName(propName));
+            }
             addLinkedPropertyEx(sb, (Instance) entity, InstanceUtils.parseValuePath(propName));
         }
         if (log.isTraceEnabled())
             log.trace("Entity " + entity + " links field: " + sb.toString());
 
         return sb.toString();
+    }
+
+    private String makeFieldName(String propName) {
+        return Constants.FIELD_START + propName.replace(".", Constants.FIELD_SEP);
     }
 
     private void addLinkedPropertyEx(StringBuilder sb, Instance instance, String[] propertyPath) {

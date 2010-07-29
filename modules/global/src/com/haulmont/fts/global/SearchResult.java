@@ -10,6 +10,8 @@
  */
 package com.haulmont.fts.global;
 
+import org.apache.commons.lang.StringUtils;
+
 import java.io.Serializable;
 import java.util.*;
 
@@ -17,7 +19,13 @@ public class SearchResult implements Serializable {
 
     private static final long serialVersionUID = -7860852850200335906L;
 
-    public static class Entry implements Serializable {
+    private String searchTerm;
+
+    public SearchResult(String searchTerm) {
+        this.searchTerm = searchTerm;
+    }
+
+    public static class Entry implements Serializable, Comparable<Entry> {
 
         private static final long serialVersionUID = -1033032285547581245L;
 
@@ -53,11 +61,93 @@ public class SearchResult implements Serializable {
         public int hashCode() {
             return id.hashCode();
         }
+
+        public int compareTo(Entry o) {
+            String c1 = caption == null ? "" : caption;
+            String c2 = o.caption == null ? "" : o.caption;
+            return c1.compareTo(c2);
+        }
+    }
+
+    public static class HitInfo implements Serializable {
+
+        private static final long serialVersionUID = 1418133997886915727L;
+
+        private Map<String, String> hits = new HashMap<String, String>();
+
+        public void init(String searchTerm, String text, String entityName) {
+            String[] terms = searchTerm.toLowerCase().split("\\s");
+
+            Map<String, String> fieldsMap = new HashMap<String, String>();
+
+            for (String term : terms) {
+                String[] fields = text.split(Constants.FIELD_START_RE);
+                for (String field : fields) {
+                    if (StringUtils.isBlank(field))
+                        continue;
+
+                    int nameEnd = field.indexOf(" ");
+                    String fieldName = field.substring(0, nameEnd).replace(Constants.FIELD_SEP, ".");
+                    if (entityName != null)
+                        fieldName = entityName + "." + fieldName;
+                    String fieldText = field.substring(nameEnd);
+
+                    String[] words = fieldText.split("\\s");
+                    for (String word : words) {
+                        if (word.toLowerCase().startsWith(term)) {
+                            fieldsMap.put(fieldName, fieldText);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
+                String fieldName = entry.getKey();
+                String fieldText = entry.getValue();
+
+                StringBuilder sb = new StringBuilder();
+
+                String[] words = fieldText.split("\\s");
+                for (int i = 0; i < words.length; i++) {
+                    String word = words[i];
+                    for (String term : terms) {
+                        if (word.toLowerCase().startsWith(term)) {
+                            if (i > 0) {
+                                if (i > 1)
+                                    sb.append("...");
+                                sb.append(words[i-1]).append(' ');
+                            }
+                            sb.append("<b>");
+                            sb.append(word.substring(0, term.length()));
+                            sb.append("</b>");
+                            sb.append(word.substring(term.length())).append(' ');
+                            if (i < words.length-1) {
+                                sb.append(words[i+1]);
+                                if (i < words.length-2)
+                                    sb.append("...");
+                            }
+                        }
+                    }
+                }
+                String hitText = sb.toString();
+                hits.put(fieldName, hitText);
+            }
+        }
+
+        public Map<String, String> getHits() {
+            return hits;
+        }
+
+        @Override
+        public String toString() {
+            return hits.toString();
+        }
     }
 
     private Map<String, Set<Entry>> results = new HashMap<String, Set<Entry>>();
     private Map<String, Set<UUID>> ids = new HashMap<String, Set<UUID>>();
-
+    private Map<UUID, HitInfo> hitInfos = new HashMap<UUID, HitInfo>();
 
     public List<String> getEntities() {
         return new ArrayList(results.keySet());
@@ -91,6 +181,15 @@ public class SearchResult implements Serializable {
         set.add(id);
     }
 
+    public void addHit(UUID id, String text, String linkedEntityName) {
+        HitInfo hi = hitInfos.get(id);
+        if (hi == null) {
+            hi = new HitInfo();
+            hitInfos.put(id, hi);
+        }
+        hi.init(searchTerm, text, linkedEntityName);
+    }
+
     public List<UUID> getIds(String entityName) {
         Set<UUID> set = ids.get(entityName);
         return set == null ? new ArrayList() : new ArrayList(set);
@@ -117,5 +216,9 @@ public class SearchResult implements Serializable {
             }
             return false;
         }
+    }
+
+    public HitInfo getHitInfo(UUID id) {
+        return hitInfos.get(id);
     }
 }

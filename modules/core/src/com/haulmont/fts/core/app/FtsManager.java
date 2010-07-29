@@ -12,12 +12,14 @@ package com.haulmont.fts.core.app;
 
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.cuba.core.*;
+import com.haulmont.cuba.core.app.ClusterManagerAPI;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ManagementBean;
 import com.haulmont.cuba.core.entity.BaseEntity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.*;
+import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.global.LoginException;
 import com.haulmont.fts.core.sys.ConfigLoader;
 import com.haulmont.fts.core.sys.EntityDescr;
@@ -56,9 +58,16 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
 
     private FtsConfig config;
 
+    private ClusterManagerAPI clusterManager;
+
     @Inject
     public void setConfigProvider(ConfigProvider configProvider) {
         config = configProvider.doGetConfig(FtsConfig.class);
+    }
+
+    @Inject
+    public void setClusterManager(ClusterManagerAPI clusterManager) {
+        this.clusterManager = clusterManager;
     }
 
     public boolean isWriting() {
@@ -137,6 +146,12 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
     }
 
     public int processQueue() {
+        if (!AppContext.isStarted())
+            return 0;
+
+        if (!clusterManager.isMaster())
+            return 0;
+
         log.debug("Start processing queue");
         int count = 0;
         boolean locked = writeLock.tryLock();
@@ -164,7 +179,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             }
 
             if (!list.isEmpty()) {
-                LuceneIndexer indexer = new LuceneIndexer(getDescrByName(), getDirectory());
+                LuceneIndexer indexer = new LuceneIndexer(getDescrByName(), getDirectory(), config.getStoreContentInIndex());
                 try {
                     for (FtsQueue ftsQueue : list) {
                         indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());

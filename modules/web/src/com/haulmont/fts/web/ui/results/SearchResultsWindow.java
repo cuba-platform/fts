@@ -11,12 +11,12 @@
 package com.haulmont.fts.web.ui.results;
 
 import com.haulmont.bali.datastruct.Pair;
+import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.chile.core.model.Session;
 import com.haulmont.cuba.core.entity.Entity;
-import com.haulmont.cuba.core.global.LoadContext;
-import com.haulmont.cuba.core.global.MessageUtils;
-import com.haulmont.cuba.core.global.MetadataProvider;
-import com.haulmont.cuba.core.global.View;
+import com.haulmont.cuba.core.entity.FileDescriptor;
+import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.AppConfig;
 import com.haulmont.cuba.gui.NoSuchScreenException;
 import com.haulmont.cuba.gui.ServiceLocator;
@@ -28,6 +28,7 @@ import com.haulmont.cuba.web.App;
 import com.haulmont.cuba.web.AppWindow;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
 import com.haulmont.fts.app.FtsService;
+import com.haulmont.fts.global.Constants;
 import com.haulmont.fts.global.SearchResult;
 import com.vaadin.data.Property;
 import com.vaadin.event.FieldEvents;
@@ -46,8 +47,14 @@ public class SearchResultsWindow extends AbstractWindow {
 
     protected SearchResult searchResult;
 
+    protected Session metadata;
+
+    protected MetaClass fileMetaClass;
+
     public SearchResultsWindow(IFrame frame) {
         super(frame);
+        metadata = MetadataProvider.getSession();
+        fileMetaClass = metadata.getClass(FileDescriptor.class);
     }
 
     @Override
@@ -117,29 +124,93 @@ public class SearchResultsWindow extends AbstractWindow {
 
     private void displayInstances(String entityName, VerticalLayout instancesLayout) {
         List<SearchResult.Entry> entries = searchResult.getEntries(entityName);
+        Collections.sort(entries);
+
         for (SearchResult.Entry entry : entries) {
             HorizontalLayout instanceLayout = new HorizontalLayout();
 
             Button instanceBtn = new Button(entry.getCaption());
             instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
+            instanceBtn.addStyleName("fts-found-instance");
             instanceBtn.addListener(new InstanceClickListener(entityName, entry.getId()));
 
             instanceLayout.addComponent(instanceBtn);
             instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
 
             instancesLayout.addComponent(instanceLayout);
+
+            SearchResult.HitInfo hi = searchResult.getHitInfo(entry.getId());
+            if (hi != null) {
+                List<String> list = new ArrayList<String>(hi.getHits().size());
+                for (Map.Entry<String, String> hitEntry : hi.getHits().entrySet()) {
+                    String hitProperty = hitEntry.getKey();
+                    list.add(getHitPropertyCaption(entityName, hitProperty) + ": " + hitEntry.getValue());
+                }
+                Collections.sort(list);
+
+                for (String caption : list) {
+                    HorizontalLayout hitLayout = new HorizontalLayout();
+                    hitLayout.addStyleName("fts-hit");
+
+                    Label hitLabel = new Label(caption);
+                    hitLabel.setContentMode(Label.CONTENT_XHTML);
+                    hitLabel.addStyleName("fts-hit");
+
+                    hitLayout.addComponent(hitLabel);
+                    hitLayout.setComponentAlignment(hitLabel, com.vaadin.ui.Alignment.MIDDLE_LEFT);
+
+                    instancesLayout.addComponent(hitLayout);
+                }
+            }
         }
         if (!searchResult.getIds(entityName).isEmpty()) {
             HorizontalLayout instanceLayout = new HorizontalLayout();
 
             Button instanceBtn = new Button(getMessage("more"));
             instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
+            instanceBtn.addStyleName("fts-found-instance");
             instanceBtn.addListener(new MoreClickListener(entityName, instancesLayout));
 
             instanceLayout.addComponent(instanceBtn);
             instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
 
             instancesLayout.addComponent(instanceLayout);
+        }
+    }
+
+    private String getHitPropertyCaption(String entityName, String hitProperty) {
+        String[] parts = hitProperty.split("\\.");
+        if (parts.length == 1) {
+            MetaClass metaClass = metadata.getClass(entityName);
+            if (metaClass == null)
+                return hitProperty;
+
+            MetaProperty metaProperty = metaClass.getProperty(hitProperty);
+            if (metaProperty == null)
+                return hitProperty;
+
+            return MessageUtils.getPropertyCaption(metaProperty);
+        } else {
+            String linkEntityName = parts[0];
+            MetaClass metaClass = metadata.getClass(linkEntityName);
+            if (metaClass == null)
+                return hitProperty;
+
+            if (metaClass == fileMetaClass && parts[1].equals(Constants.FILE_CONT_PROP)) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 2; i < parts.length; i++) {
+                    sb.append(parts[i]);
+                    if (i < parts.length - 1)
+                        sb.append(".");
+                }
+                return MessageProvider.formatMessage(getClass(), "fileContent", sb.toString());
+            }
+
+            MetaProperty metaProperty = metaClass.getProperty(parts[1]);
+            if (metaProperty == null)
+                return hitProperty;
+
+            return MessageUtils.getEntityCaption(metaClass) + "." + MessageUtils.getPropertyCaption(metaProperty);
         }
     }
 

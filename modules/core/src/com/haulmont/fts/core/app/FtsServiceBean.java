@@ -52,7 +52,7 @@ public class FtsServiceBean implements FtsService {
         if (searcher == null) {
             synchronized (this) {
                 if (searcher == null) {
-                    searcher = new LuceneSearcher(manager.getDirectory());
+                    searcher = new LuceneSearcher(manager.getDirectory(), config.getStoreContentInIndex());
                 }
             }
         }
@@ -64,7 +64,7 @@ public class FtsServiceBean implements FtsService {
             searcher = null;
 
         int maxResults = config.getMaxSearchResults();
-        SearchResult result = new SearchResult();
+        SearchResult result = new SearchResult(searchTerm);
 
         List<EntityInfo> allFieldResults = getSearcher().searchAllField(searchTerm, maxResults);
         if (!allFieldResults.isEmpty()) {
@@ -80,11 +80,12 @@ public class FtsServiceBean implements FtsService {
                             result.addEntry(entityInfo.getName(), entry);
                         }
                     } else {
-                        if (!result.hasEntry(entityInfo.getName(), entityInfo.getId()))
+                        if (!result.hasEntry(entityInfo.getName(), entityInfo.getId())) {
                             result.addId(entityInfo.getName(), entityInfo.getId());
+                        }
                     }
+                    result.addHit(entityInfo.getId(), entityInfo.getText(), null);
                 }
-
                 tx.commit();
             } finally {
                 tx.end();
@@ -105,9 +106,11 @@ public class FtsServiceBean implements FtsService {
                                     result.addEntry(linkEntityInfo.getName(), entry);
                                 }
                             } else {
-                                if (!result.hasEntry(linkEntityInfo.getName(), linkEntityInfo.getId()))
+                                if (!result.hasEntry(linkEntityInfo.getName(), linkEntityInfo.getId())) {
                                     result.addId(linkEntityInfo.getName(), linkEntityInfo.getId());
+                                }
                             }
+                            result.addHit(linkEntityInfo.getId(), entityInfo.getText(), entityInfo.getName());
                         }
                         tx.commit();
                     } finally {

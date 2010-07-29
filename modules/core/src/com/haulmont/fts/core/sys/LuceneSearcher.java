@@ -22,8 +22,11 @@ public class LuceneSearcher extends Lucene {
 
     protected IndexSearcher searcher;
 
-    public LuceneSearcher(Directory directory) {
+    protected boolean storeContentInIndex;
+
+    public LuceneSearcher(Directory directory, boolean storeContentInIndex) {
         super(directory);
+        this.storeContentInIndex = storeContentInIndex;
         try {
             searcher = new IndexSearcher(directory, true);
         } catch (IOException e) {
@@ -65,7 +68,8 @@ public class LuceneSearcher extends Lucene {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
                 UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
-                EntityInfo entityInfo = new EntityInfo(entityName, entityId, false);
+                String text = storeContentInIndex ? doc.getField(FLD_ALL).stringValue() : null;
+                EntityInfo entityInfo = new EntityInfo(entityName, entityId, text, false);
                 set.add(entityInfo);
             }
         } catch (IOException e) {
@@ -84,7 +88,7 @@ public class LuceneSearcher extends Lucene {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
                 UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
-                EntityInfo entityInfo = new EntityInfo(entityName, entityId, true);
+                EntityInfo entityInfo = new EntityInfo(entityName, entityId, null, true);
                 set.add(entityInfo);
             }
         } catch (IOException e) {
