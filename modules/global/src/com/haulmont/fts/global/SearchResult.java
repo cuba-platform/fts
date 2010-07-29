@@ -87,6 +87,9 @@ public class SearchResult implements Serializable {
                         continue;
 
                     int nameEnd = field.indexOf(" ");
+                    if (nameEnd == -1)
+                        continue;
+
                     String fieldName = field.substring(0, nameEnd).replace(Constants.FIELD_SEP, ".");
                     if (entityName != null)
                         fieldName = entityName + "." + fieldName;
