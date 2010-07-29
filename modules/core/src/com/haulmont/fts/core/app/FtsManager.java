@@ -70,6 +70,19 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         this.clusterManager = clusterManager;
     }
 
+    public boolean isEnabled() {
+        return config.getEnabled();
+    }
+
+    public void setEnabled(boolean value) {
+        try {
+            loginOnce();
+        } catch (LoginException e) {
+            throw new RuntimeException(e);
+        }
+        config.setEnabled(value);
+    }
+
     public boolean isWriting() {
         return writing;
     }
@@ -150,6 +163,9 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             return 0;
 
         if (!clusterManager.isMaster())
+            return 0;
+
+        if (!config.getEnabled())
             return 0;
 
         log.debug("Start processing queue");

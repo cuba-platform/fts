@@ -12,6 +12,9 @@ package com.haulmont.fts.core.app;
 
 public interface FtsManagerMBean {
 
+    boolean isEnabled();
+    void setEnabled(boolean value);
+
     boolean isWriting();
 
     String jmxProcessQueue();
