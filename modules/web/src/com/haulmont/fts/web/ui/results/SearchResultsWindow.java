@@ -73,7 +73,10 @@ public class SearchResultsWindow extends AbstractWindow {
             setCaption(getMessage("caption") + ": " + searchTerm);
 
             service = ServiceLocator.lookup(FtsService.NAME);
-            searchResult = service.search(searchTerm.toLowerCase());
+
+            searchResult = (SearchResult) params.get("searchResult");
+            if (searchResult == null)
+                searchResult = service.search(searchTerm.toLowerCase());
 
             if (searchResult.isEmpty()) {
                 Label label = new Label(getMessage("notFound"));
