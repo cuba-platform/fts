@@ -165,7 +165,7 @@ public class LuceneIndexer extends LuceneWriter {
         }
         if (entity instanceof FileDescriptor) {
             appendString(sb, makeFieldName(FTS.FILE_CONT_PROP));
-            sb.append(FTS.FIELD_SEP).append(((FileDescriptor) entity).getName().replaceAll("\\s", FTS.FIELD_SEP));
+            sb.append(FTS.FIELD_SEP).append(((FileDescriptor) entity).getName().replaceAll("\\s+", FTS.FIELD_SEP));
             appendFileContent(sb, ((FileDescriptor) entity));
         }
 
