@@ -76,12 +76,17 @@ public class SearchResult implements Serializable {
         private Map<String, String> hits = new HashMap<String, String>();
 
         public void init(String searchTerm, String text, String entityName) {
-            String[] terms = searchTerm.toLowerCase().split("\\s");
-
             Map<String, String> fieldsMap = new HashMap<String, String>();
 
-            for (String term : terms) {
-                String[] fields = text.split(Constants.FIELD_START_RE);
+            List<String> terms = new ArrayList();
+            FTS.Tokenizer termTokenizer = new FTS.Tokenizer(searchTerm.toLowerCase());
+            while (termTokenizer.hasMoreTokens()) {
+                String term = termTokenizer.nextToken();
+                if (StringUtils.isBlank(term))
+                    continue;
+                terms.add(term);
+
+                String[] fields = text.split(FTS.FIELD_START_RE);
                 for (String field : fields) {
                     if (StringUtils.isBlank(field))
                         continue;
@@ -90,13 +95,14 @@ public class SearchResult implements Serializable {
                     if (nameEnd == -1)
                         continue;
 
-                    String fieldName = field.substring(0, nameEnd).replace(Constants.FIELD_SEP, ".");
+                    String fieldName = field.substring(0, nameEnd).replace(FTS.FIELD_SEP, ".");
                     if (entityName != null)
                         fieldName = entityName + "." + fieldName;
                     String fieldText = field.substring(nameEnd);
 
-                    String[] words = fieldText.split("\\s");
-                    for (String word : words) {
+                    FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
+                    while (tokenizer.hasMoreTokens()) {
+                        String word = tokenizer.nextToken();
                         if (word.toLowerCase().startsWith(term)) {
                             fieldsMap.put(fieldName, fieldText);
                             break;
@@ -111,24 +117,30 @@ public class SearchResult implements Serializable {
 
                 StringBuilder sb = new StringBuilder();
 
-                String[] words = fieldText.split("\\s");
-                for (int i = 0; i < words.length; i++) {
-                    String word = words[i];
+                FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
+                while (tokenizer.hasMoreTokens()) {
+                    String word = tokenizer.nextToken();
                     for (String term : terms) {
                         if (word.toLowerCase().startsWith(term)) {
-                            if (i > 0) {
-                                if (i > 1)
-                                    sb.append("...");
-                                sb.append(words[i-1]).append(' ');
-                            }
+                            int start = Math.max(tokenizer.getTokenStart() - FTS.HIT_CONTEXT_PAD, 0);
+                            while (start > 0 && FTS.isTokenChar(fieldText.charAt(start)))
+                                start--;
+
+                            int end = Math.min(tokenizer.getTokenEnd() + FTS.HIT_CONTEXT_PAD, fieldText.length());
+                            while (end < fieldText.length() && FTS.isTokenChar(fieldText.charAt(end)))
+                                end++;
+                            
+                            if (start > 0 && !sb.toString().endsWith("..."))
+                                sb.append("...");
+                            sb.append(fieldText.substring(start, tokenizer.getTokenStart()));
                             sb.append("<b>");
-                            sb.append(word.substring(0, term.length()));
+                            sb.append(fieldText.substring(tokenizer.getTokenStart(), tokenizer.getTokenEnd()));
                             sb.append("</b>");
-                            sb.append(word.substring(term.length())).append(' ');
-                            if (i < words.length-1) {
-                                sb.append(words[i+1]);
-                                if (i < words.length-2)
+                            if (end <= fieldText.length()) {
+                                sb.append(fieldText.substring(tokenizer.getTokenEnd(), end));
+                                if (end < fieldText.length()) {
                                     sb.append("...");
+                                }
                             }
                         }
                     }

@@ -11,8 +11,6 @@
 package com.haulmont.fts.core.sys;
 
 import com.haulmont.bali.datastruct.Pair;
-import com.haulmont.chile.core.datatypes.Datatype;
-import com.haulmont.chile.core.datatypes.Datatypes;
 import com.haulmont.chile.core.model.Instance;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.utils.InstanceUtils;
@@ -25,23 +23,17 @@ import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.global.FileStorageException;
-import com.haulmont.cuba.core.global.FtsConfig;
 import com.haulmont.cuba.core.global.MetadataProvider;
-import com.haulmont.fts.global.Constants;
+import com.haulmont.fts.global.FTS;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Version;
-import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
@@ -53,7 +45,6 @@ import org.apache.tika.parser.rtf.RTFParser;
 import org.apache.tika.parser.txt.TXTParser;
 import org.apache.tika.sax.BodyContentHandler;
 import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -173,8 +164,8 @@ public class LuceneIndexer extends LuceneWriter {
             }
         }
         if (entity instanceof FileDescriptor) {
-            appendString(sb, makeFieldName(Constants.FILE_CONT_PROP));
-            sb.append(Constants.FIELD_SEP).append(((FileDescriptor) entity).getName().replaceAll("\\s", Constants.FIELD_SEP));
+            appendString(sb, makeFieldName(FTS.FILE_CONT_PROP));
+            sb.append(FTS.FIELD_SEP).append(((FileDescriptor) entity).getName().replaceAll("\\s", FTS.FIELD_SEP));
             appendFileContent(sb, ((FileDescriptor) entity));
         }
 
@@ -239,7 +230,7 @@ public class LuceneIndexer extends LuceneWriter {
     }
 
     private String makeFieldName(String propName) {
-        return Constants.FIELD_START + propName.replace(".", Constants.FIELD_SEP);
+        return FTS.FIELD_START + propName.replace(".", FTS.FIELD_SEP);
     }
 
     private void addLinkedPropertyEx(StringBuilder sb, Instance instance, String[] propertyPath) {

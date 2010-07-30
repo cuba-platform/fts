@@ -17,22 +17,16 @@ import com.haulmont.chile.core.model.Session;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.global.*;
-import com.haulmont.cuba.gui.AppConfig;
-import com.haulmont.cuba.gui.NoSuchScreenException;
 import com.haulmont.cuba.gui.ServiceLocator;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.AbstractWindow;
 import com.haulmont.cuba.gui.components.IFrame;
-import com.haulmont.cuba.gui.config.WindowInfo;
 import com.haulmont.cuba.web.App;
 import com.haulmont.cuba.web.AppWindow;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
 import com.haulmont.fts.app.FtsService;
-import com.haulmont.fts.global.Constants;
+import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.SearchResult;
-import com.vaadin.data.Property;
-import com.vaadin.event.FieldEvents;
-import com.vaadin.terminal.Paintable;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.BaseTheme;
 import org.apache.commons.lang.StringUtils;
@@ -199,7 +193,7 @@ public class SearchResultsWindow extends AbstractWindow {
             if (metaClass == null)
                 return hitProperty;
 
-            if (metaClass == fileMetaClass && parts[1].equals(Constants.FILE_CONT_PROP)) {
+            if (metaClass == fileMetaClass && parts[1].equals(FTS.FILE_CONT_PROP)) {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 2; i < parts.length; i++) {
                     sb.append(parts[i]);

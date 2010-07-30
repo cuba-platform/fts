@@ -21,5 +21,11 @@ public class EntityAttributeTokenizerTest extends TestCase {
 
         boolean b = tokenizer.isTokenChar('^');
         assertTrue(b);
+
+        b = tokenizer.isTokenChar('"');
+        assertFalse(b);
+
+        b = tokenizer.isTokenChar('$');
+        assertTrue(b);
     }
 }

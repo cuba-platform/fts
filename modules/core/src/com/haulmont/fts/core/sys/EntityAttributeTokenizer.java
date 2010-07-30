@@ -10,6 +10,7 @@
  */
 package com.haulmont.fts.core.sys;
 
+import com.haulmont.fts.global.FTS;
 import org.apache.lucene.analysis.CharTokenizer;
 import org.apache.lucene.util.AttributeSource;
 
@@ -31,7 +32,7 @@ public class EntityAttributeTokenizer extends CharTokenizer {
 
     @Override
     protected boolean isTokenChar(char c) {
-        return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '/' || c == '\\' || c == '^';
+        return FTS.isTokenChar(c);
     }
 
     @Override
