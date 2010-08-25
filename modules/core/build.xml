@@ -8,8 +8,8 @@
 	<property name="module.name" value="core"/>
 	<property name="module.jar" value="fts-core.jar"/>
 
+    <property file="${root.dir}/build.properties"/>
     <import file="${root.dir}/build-inc-mod.xml"/>
-	<property file="${root.dir}/build.properties"/>
 
     <fileset id="chile-jars" dir="${root.dir}/chile/build">
         <include name="*.jar"/>
