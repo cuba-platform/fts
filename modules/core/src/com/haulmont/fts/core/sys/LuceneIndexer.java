@@ -34,6 +34,8 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
+import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
+import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
@@ -45,6 +47,7 @@ import org.apache.tika.parser.rtf.RTFParser;
 import org.apache.tika.parser.txt.TXTParser;
 import org.apache.tika.sax.BodyContentHandler;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -145,7 +148,11 @@ public class LuceneIndexer extends LuceneWriter {
             }
 
         } catch (IOException e) {
+            log.error("Error indexing "  + entityName + "-" + entityId);
             throw new RuntimeException(e);
+        } catch (RuntimeException e) {
+            log.error("Error indexing "  + entityName + "-" + entityId);
+            throw e;
         }
     }
 
@@ -205,11 +212,26 @@ public class LuceneIndexer extends LuceneWriter {
         }
 
         StringWriter stringWriter = new StringWriter();
-        ContentHandler handler = new BodyContentHandler(stringWriter);
         try {
-            parser.parse(stream, handler, new Metadata(), new ParseContext());
+            parser.parse(stream, new BodyContentHandler(stringWriter), new Metadata(), new ParseContext());
+        } catch (OfficeXmlFileException e) {
+            if (parser instanceof OfficeParser) {
+                parser = new OOXMLParser();
+                try {
+                    stream = new ByteArrayInputStream(data);
+                    stringWriter = new StringWriter();
+                    parser.parse(stream, new BodyContentHandler(stringWriter), new Metadata(), new ParseContext());
+                } catch (Exception e1) {
+                    log.error("Error indexing file " + fileDescriptor.getFileName(), e1);
+                    return;
+                }
+            } else {
+                log.error("Error indexing file " + fileDescriptor.getFileName(), e);
+                return;
+            }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("Error indexing file " + fileDescriptor.getFileName(), e);
+            return;
         }
         appendString(sb, stringWriter.toString());
     }
