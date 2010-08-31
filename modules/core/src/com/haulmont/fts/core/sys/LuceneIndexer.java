@@ -109,6 +109,10 @@ public class LuceneIndexer extends LuceneWriter {
                 EntityManager em = PersistenceProvider.getEntityManager();
                 MetaClass metaClass = MetadataProvider.getSession().getClass(entityName);
                 Entity entity = em.find(metaClass.getJavaClass(), entityId);
+                if (entity == null) {
+                    log.error("Entity instance not found: " + entityName + "-" + entityId);
+                    return;
+                }
 
                 idField = new Field(FLD_ID, entityId.toString(), Field.Store.YES, Field.Index.NOT_ANALYZED);
 
