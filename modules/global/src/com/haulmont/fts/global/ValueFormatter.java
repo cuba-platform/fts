@@ -8,9 +8,8 @@
  *
  * $Id$
  */
-package com.haulmont.fts.core.sys;
+package com.haulmont.fts.global;
 
-import com.haulmont.cuba.core.SecurityProvider;
 import com.haulmont.cuba.core.global.MessageUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 
@@ -70,13 +69,8 @@ public class ValueFormatter {
     }
 
     private Object tryNumber(String value) {
-        char decimalSeparator = '.';
-        char groupingSeparator = ',';
-        NumberFormat f = NumberFormat.getInstance(SecurityProvider.currentUserSession().getLocale());
-        if (f instanceof DecimalFormat) {
-            decimalSeparator = ((DecimalFormat) f).getDecimalFormatSymbols().getDecimalSeparator();
-            groupingSeparator = ((DecimalFormat) f).getDecimalFormatSymbols().getGroupingSeparator();
-        }
+        char decimalSeparator = MessageUtils.getNumberDecimalSeparator();
+        char groupingSeparator = MessageUtils.getNumberGroupingSeparator();
         if (decimalSeparator != '.')
             value = value.replace(decimalSeparator, '.');
         if (groupingSeparator != ',')

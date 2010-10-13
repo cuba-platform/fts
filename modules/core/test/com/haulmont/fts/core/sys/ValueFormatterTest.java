@@ -10,6 +10,7 @@
  */
 package com.haulmont.fts.core.sys;
 
+import com.haulmont.fts.global.ValueFormatter;
 import junit.framework.TestCase;
 
 import java.math.BigDecimal;

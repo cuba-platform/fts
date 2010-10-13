@@ -76,6 +76,18 @@ public class SearchResult implements Serializable {
         private Map<String, String> hits = new HashMap<String, String>();
 
         public void init(String searchTerm, String text, String entityName) {
+            ValueFormatter valueFormatter = new ValueFormatter();
+            StringBuilder searchTermBuilder = new StringBuilder();
+            String[] strings = searchTerm.split("\\s");
+            for (int i = 0; i < strings.length; i++) {
+                String string = strings[i];
+                String s = valueFormatter.guessTypeAndFormat(string);
+                searchTermBuilder.append(s);
+                if (i < strings.length - 1)
+                    searchTermBuilder.append(" ");
+            }
+            searchTerm = searchTermBuilder.toString();
+            
             Map<String, String> fieldsMap = new HashMap<String, String>();
 
             List<String> terms = new ArrayList();
