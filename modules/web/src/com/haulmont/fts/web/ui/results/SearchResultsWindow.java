@@ -121,7 +121,7 @@ public class SearchResultsWindow extends AbstractWindow {
 
     private void displayInstances(String entityName, VerticalLayout instancesLayout) {
         List<SearchResult.Entry> entries = searchResult.getEntries(entityName);
-        Collections.sort(entries);
+//        Collections.sort(entries);
 
         for (SearchResult.Entry entry : entries) {
             HorizontalLayout instanceLayout = new HorizontalLayout();

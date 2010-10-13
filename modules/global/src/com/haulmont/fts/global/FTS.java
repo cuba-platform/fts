@@ -58,7 +58,7 @@ public class FTS {
 
         public boolean hasMoreTokens() {
             skipDelimiters();
-            return currentPos < maxPos;
+            return currentPos <= maxPos;
         }
 
         public int getTokenStart() {

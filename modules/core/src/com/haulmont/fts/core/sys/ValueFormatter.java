@@ -10,14 +10,12 @@
  */
 package com.haulmont.fts.core.sys;
 
+import com.haulmont.cuba.core.SecurityProvider;
 import com.haulmont.cuba.core.global.MessageUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.text.*;
 import java.util.Date;
 
 public class ValueFormatter {
@@ -72,11 +70,22 @@ public class ValueFormatter {
     }
 
     private Object tryNumber(String value) {
-        DecimalFormat decimalFormat = new DecimalFormat();
+        char decimalSeparator = '.';
+        char groupingSeparator = ',';
+        NumberFormat f = NumberFormat.getInstance(SecurityProvider.currentUserSession().getLocale());
+        if (f instanceof DecimalFormat) {
+            decimalSeparator = ((DecimalFormat) f).getDecimalFormatSymbols().getDecimalSeparator();
+            groupingSeparator = ((DecimalFormat) f).getDecimalFormatSymbols().getGroupingSeparator();
+        }
+        if (decimalSeparator != '.')
+            value = value.replace(decimalSeparator, '.');
+        if (groupingSeparator != ',')
+            value = value.replace(groupingSeparator, ',');
+
         try {
-            Number number = decimalFormat.parse(value);
+            Number number = new BigDecimal(value);
             return number;
-        } catch (ParseException e) {
+        } catch (NumberFormatException e) {
             return null;
         }
     }

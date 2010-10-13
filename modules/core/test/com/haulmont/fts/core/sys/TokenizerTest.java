@@ -16,7 +16,13 @@ import junit.framework.TestCase;
 public class TokenizerTest extends TestCase {
 
     public void test() {
-        FTS.Tokenizer tokenizer = new FTS.Tokenizer("Было заключено контрактов на сумму ");
+        FTS.Tokenizer tokenizer = new FTS.Tokenizer("f");
+        while (tokenizer.hasMoreTokens()) {
+            String s = tokenizer.nextToken();
+            System.out.println(s + " (" + tokenizer.getTokenStart() + "," + tokenizer.getTokenEnd() + ")");
+        }
+
+        tokenizer = new FTS.Tokenizer("Было заключено контрактов на сумму ");
         while (tokenizer.hasMoreTokens()) {
             String s = tokenizer.nextToken();
             System.out.println(s + " (" + tokenizer.getTokenStart() + "," + tokenizer.getTokenEnd() + ")");
