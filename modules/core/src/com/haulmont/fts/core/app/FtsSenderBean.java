@@ -70,4 +70,11 @@ public class FtsSenderBean implements FtsSender {
         Query q = em.createQuery("delete from core$FtsQueue q");
         q.executeUpdate();
     }
+
+    public void initDefault() {
+        FtsManagerMBean ftsMBean = (FtsManagerMBean) manager;
+        ftsMBean.setEnabled(true);
+        ftsMBean.jmxReindexAll();
+        ftsMBean.jmxProcessQueue();
+    }
 }
