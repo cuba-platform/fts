@@ -4,8 +4,8 @@
 
 	<property name="root.dir" location=".."/>
 
-	<import file="${root.dir}/build-inc-prj.xml"/>
-	<property file="${root.dir}/build.properties"/>
+	<import file="${root.dir}/build-script/build-inc-prj.xml"/>
+	<property file="${root.dir}/build-script/build.properties"/>
 	<property file="lib.properties"/>
 
     <property name="chile.build.dir" location="${root.dir}/chile/build"/>
@@ -30,15 +30,15 @@
 	</target>
 		
 	<target name="install-lib">
-        <ext:install-lib name="lucene-core" version="${lucene-core.version}" toDir="${lib.server.dir}"/>
-        <ext:install-lib name="tika-core" version="${tika-core.version}" toDir="${lib.server.dir}"/>
-        <ext:install-lib name="tika-parsers" version="${tika-parsers.version}" toDir="${lib.server.dir}"/>
-        <ext:install-lib name="pdfbox" version="${pdfbox.version}" toDir="${lib.server.dir}"/>
-        <ext:install-lib name="fontbox" version="${fontbox.version}" toDir="${lib.server.dir}"/>
-        <ext:install-lib name="poi-scratchpad" version="${poi-scratchpad.version}" toDir="${lib.server.dir}"/>
-        <ext:install-lib name="poi-ooxml" version="${poi-ooxml.version}" toDir="${lib.server.dir}"/>
-        <ext:install-lib name="poi-ooxml-schemas" version="${poi-ooxml-schemas.version}" toDir="${lib.server.dir}"/>
-        <ext:install-lib name="xmlbeans" version="${xmlbeans.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.lucene" artifactId="lucene-core" version="${lucene-core.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.tika" artifactId="tika-core" version="${tika-core.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.tika" artifactId="tika-parsers" version="${tika-parsers.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.pdfbox" artifactId="pdfbox" version="${pdfbox.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.pdfbox" artifactId="fontbox" version="${fontbox.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.poi" artifactId="poi-scratchpad" version="${poi-scratchpad.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.poi" artifactId="poi-ooxml" version="${poi-ooxml.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.poi" artifactId="poi-ooxml-schemas" version="${poi-ooxml-schemas.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.apache.xmlbeans" artifactId="xmlbeans" version="${xmlbeans.version}" toDir="${lib.server.dir}"/>
     </target>
     
 	<target name="compile">

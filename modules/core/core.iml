@@ -18,6 +18,7 @@
     <orderEntry type="library" name="cuba-core" level="project" />
     <orderEntry type="library" name="cuba-test" level="project" />
     <orderEntry type="module" module-name="global" />
+    <orderEntry type="library" name="bali" level="project" />
   </component>
 </module>
 
