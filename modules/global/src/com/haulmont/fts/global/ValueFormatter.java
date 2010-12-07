@@ -43,7 +43,7 @@ public class ValueFormatter {
     }
 
     public String guessTypeAndFormat(String value) {
-        if (value == null)
+        if (value == null || value.length() == 0)
             return null;
 
         Object v = tryDate(value);
@@ -75,6 +75,9 @@ public class ValueFormatter {
             value = value.replace(decimalSeparator, '.');
         if (groupingSeparator != ',')
             value = value.replace(groupingSeparator, ',');
+
+        if (!Character.isDigit(value.charAt(0)) || value.startsWith("0"))
+            return null;
 
         try {
             Number number = new BigDecimal(value);
