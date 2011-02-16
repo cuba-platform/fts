@@ -36,6 +36,8 @@
         <ext:install-lib groupId="org.apache.tika" artifactId="tika-parsers" version="${tika-parsers.version}" toDir="${lib.server.dir}"/>
         <ext:install-lib groupId="org.apache.pdfbox" artifactId="pdfbox" version="${pdfbox.version}" toDir="${lib.server.dir}"/>
         <ext:install-lib groupId="org.apache.pdfbox" artifactId="fontbox" version="${fontbox.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.bouncycastle" artifactId="bcprov-jdk15" version="${bcprov-jdk15.version}" toDir="${lib.server.dir}"/>
+        <ext:install-lib groupId="org.bouncycastle" artifactId="bcmail-jdk15" version="${bcprov-jdk15.version}" toDir="${lib.server.dir}"/>
         <ext:install-lib groupId="org.apache.poi" artifactId="poi-scratchpad" version="${poi-scratchpad.version}" toDir="${lib.server.dir}"/>
         <ext:install-lib groupId="org.apache.poi" artifactId="poi-ooxml" version="${poi-ooxml.version}" toDir="${lib.server.dir}"/>
         <ext:install-lib groupId="org.apache.poi" artifactId="poi-ooxml-schemas" version="${poi-ooxml-schemas.version}" toDir="${lib.server.dir}"/>
