@@ -36,16 +36,17 @@ public class FtsSenderBean implements FtsSender {
     }
 
     public void enqueue(BaseEntity<UUID> entity, FtsChangeType changeType) {
-        if (changeType.equals(FtsChangeType.DELETE)) {
-            MetaClass metaClass = MetadataProvider.getSession().getClass(entity.getClass());
-            enqueue(metaClass.getName(), entity.getId(), FtsChangeType.DELETE);
-        }
-
         List<BaseEntity> list = manager.getSearchableEntities(entity);
+        if (!list.isEmpty()) {
+            if (changeType.equals(FtsChangeType.DELETE)) {
+                MetaClass metaClass = MetadataProvider.getSession().getClass(entity.getClass());
+                enqueue(metaClass.getName(), entity.getId(), FtsChangeType.DELETE);
+            }
 
-        for (BaseEntity<UUID> e : list) {
-            MetaClass metaClass = MetadataProvider.getSession().getClass(e.getClass());
-            enqueue(metaClass.getName(), e.getId(), FtsChangeType.UPDATE);
+            for (BaseEntity<UUID> e : list) {
+                MetaClass metaClass = MetadataProvider.getSession().getClass(e.getClass());
+                enqueue(metaClass.getName(), e.getId(), FtsChangeType.UPDATE);
+            }
         }
     }
 
