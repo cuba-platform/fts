@@ -1,0 +1,33 @@
+<component name="libraryTable">
+  <library name="server">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../lib/server" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/cas-client-core-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/poi-scratchpad-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/poi-ooxml-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/pdfbox-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/lucene-core-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/fontbox-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/tika-core-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/tika-parsers-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/spring-tx-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/spring-orm-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/xpp3_min-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/ooo-bootstrapconnector-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/jgroups-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/slf4j-log4j12-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/spring-jdbc-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/spring-context-support-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/commons-compress-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/commons-beanutils-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/commons-fileupload-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/slf4j-api-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/juel-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../lib/server/src/commons-digester-sources.jar!/" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/../lib/server" recursive="false" />
+  </library>
+</component>

@@ -56,15 +56,6 @@
 		</antcall>
 	</target>
 
-    <target name="deploy">
-    </target>
-
-    <target name="deploy-conf">
-    </target>
-
-    <target name="undeploy">
-    </target>
-
     <target name="start">
         <exec dir="${root.dir}/tomcat/bin" executable="cmd.exe" spawn="true">
             <env key="NOPAUSE" value="true"/>
@@ -77,22 +68,6 @@
             <env key="NOPAUSE" value="true"/>
             <arg line="/c start callAndExit.bat shutdown.bat"/>
         </exec>
-    </target>
-
-    <target name="restart">
-        <parallel>
-            <antcall target="stop"/>
-            <antcall target="deploy"/>
-        </parallel>
-        <waitfor maxwait="10" maxwaitunit="second" checkevery="2" checkeveryunit="second">
-            <not>
-                <socket server="localhost" port="8787"/>
-            </not>
-        </waitfor>
-        <antcall target="start"/>
-    </target>
-
-    <target name="output">
     </target>
 
 </project>

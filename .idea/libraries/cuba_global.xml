@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="cuba-global">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../cuba/build/cuba-global.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../cuba/modules/global/src" />
+    </SOURCES>
+  </library>
+</component>

@@ -54,7 +54,7 @@ public class ConfigLoader {
     public Map<String, EntityDescr> loadConfiguration() {
         HashMap<String, EntityDescr> map = new HashMap<String, EntityDescr>();
 
-        String configName = AppContext.getProperty("cuba.fts.config");
+        String configName = AppContext.getProperty("cuba.ftsConfig");
         if (StringUtils.isBlank(configName))
             configName = DEFAULT_CONFIG;
 

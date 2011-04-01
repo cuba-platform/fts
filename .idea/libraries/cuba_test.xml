@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="cuba-test">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../cuba/build/cuba-test.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../cuba/modules/core/test" />
+    </SOURCES>
+  </library>
+</component>

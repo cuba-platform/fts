@@ -45,8 +45,8 @@
     </path>
 
     <target name="build-module" depends="base-mod.build-module">
-        <mkdir dir="${build.dir}/conf"/>
-        <copy todir="${build.dir}/conf">
+        <mkdir dir="${build.dir}/web-conf"/>
+        <copy todir="${build.dir}/web-conf">
             <fileset dir="src-conf" includes="**/*"/>
         </copy>
     </target>
