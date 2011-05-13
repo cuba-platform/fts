@@ -18,8 +18,8 @@ public class HitInfoTest extends TestCase {
     public void test() {
         SearchResult.HitInfo hitInfo = new SearchResult.HitInfo();
         hitInfo.init(
-                "Контр",
-                "^^name Контракт №211 от 21.10.2010 ^^attachment^file Было заключено контрактов на сумму ",
+                "РљРѕРЅС‚СЂ",
+                "^^name РљРѕРЅС‚СЂР°РєС‚ в„–211 РѕС‚ 21.10.2010 ^^attachment^file Р‘С‹Р»Рѕ Р·Р°РєР»СЋС‡РµРЅРѕ РєРѕРЅС‚СЂР°РєС‚РѕРІ РЅР° СЃСѓРјРјСѓ ",
                 null
         );
 

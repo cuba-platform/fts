@@ -22,13 +22,13 @@ public class TokenizerTest extends TestCase {
             System.out.println(s + " (" + tokenizer.getTokenStart() + "," + tokenizer.getTokenEnd() + ")");
         }
 
-        tokenizer = new FTS.Tokenizer("Было заключено контрактов на сумму ");
+        tokenizer = new FTS.Tokenizer("Р‘С‹Р»Рѕ Р·Р°РєР»СЋС‡РµРЅРѕ РєРѕРЅС‚СЂР°РєС‚РѕРІ РЅР° СЃСѓРјРјСѓ ");
         while (tokenizer.hasMoreTokens()) {
             String s = tokenizer.nextToken();
             System.out.println(s + " (" + tokenizer.getTokenStart() + "," + tokenizer.getTokenEnd() + ")");
         }
 
-        tokenizer = new FTS.Tokenizer("[TM-0008] Было заключено контрактов на сумму 765271");
+        tokenizer = new FTS.Tokenizer("[TM-0008] Р‘С‹Р»Рѕ Р·Р°РєР»СЋС‡РµРЅРѕ РєРѕРЅС‚СЂР°РєС‚РѕРІ РЅР° СЃСѓРјРјСѓ 765271");
         while (tokenizer.hasMoreTokens()) {
             String s = tokenizer.nextToken();
             System.out.println(s + " (" + tokenizer.getTokenStart() + "," + tokenizer.getTokenEnd() + ")");

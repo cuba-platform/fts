@@ -1,0 +1,80 @@
+/*
+ * Copyright (c) 2011 Haulmont Technology Ltd. All Rights Reserved.
+ * Haulmont Technology proprietary and confidential.
+ * Use is subject to license terms.
+ */
+
+allprojects {
+    artifactGroup = 'com.haulmont.fts'
+    artifactVersion = '3.0'
+    isSnapshot = true
+    //tomcatDir = rootDir.absolutePath + '/../tomcat'
+}
+
+buildscript {
+    org.apache.ivy.util.url.CredentialsStore.INSTANCE.addCredentials(
+        'Sonatype Nexus Repository Manager',
+        'repository.haulmont.com',
+        System.getenv('HAULMONT_REPOSITORY_USER'),
+        System.getenv('HAULMONT_REPOSITORY_PASSWORD')
+    )
+    repositories {
+            mavenLocal()
+            mavenRepo(urls: "http://repository.haulmont.com:8587/nexus/content/groups/work")
+    }
+    dependencies {
+        classpath group: 'com.haulmont.gradle', name: 'cuba-plugin', version: '1.0-SNAPSHOT'
+    }
+}
+
+apply(plugin: 'idea')
+apply(plugin: 'cuba')
+
+def globalModule = project(':fts-global')
+def coreModule = project(':fts-core')
+def webModule = project(':fts-web')
+
+def cubaVersion = '3.0-SNAPSHOT'
+
+configure([globalModule, coreModule, webModule]) {
+    apply(plugin: 'java')
+    apply(plugin: 'idea')
+    apply(plugin: 'maven')
+    apply(plugin: CubaPlugin)
+
+    dependencies {
+        compile(group: 'com.haulmont.bali', name: 'bali', version: cubaVersion)
+        compile(group: 'com.haulmont.chile', name: 'chile-core', version: cubaVersion)
+        compile(group: 'com.haulmont.chile', name: 'chile-jpa', version: cubaVersion)
+        compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: cubaVersion)
+        testCompile(group: 'junit', name: 'junit', version: '4.5')
+    }
+
+    task sourceJar(type: Jar) {
+        from file('src')
+        classifier = 'sources'
+    } 
+
+    artifacts {
+        archives sourceJar
+    }
+}
+
+configure(coreModule) {
+    dependencies {
+        compile(globalModule)
+        compile(group: 'com.haulmont.cuba', name: 'cuba-core', version: cubaVersion)
+        compile(group: 'org.apache.lucene', name: 'lucene-core', version: '3.0.2')
+        compile(group: 'org.apache.tika', name: 'tika-core', version: '0.7')
+        compile(group: 'org.apache.tika', name: 'tika-parsers', version: '0.7')
+
+        testCompile(group: 'com.haulmont.cuba', name: 'cuba-core', version: cubaVersion, classifier: 'tests')
+    }
+}
+
+configure(webModule) {
+    dependencies {
+        compile(globalModule)
+        compile(group: 'com.haulmont.cuba', name: 'cuba-web', version: cubaVersion)
+    }
+}

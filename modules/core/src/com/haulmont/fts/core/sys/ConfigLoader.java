@@ -21,13 +21,19 @@ import com.haulmont.cuba.core.global.ConfigProvider;
 import com.haulmont.cuba.core.global.GlobalConfig;
 import com.haulmont.cuba.core.global.MetadataProvider;
 import com.haulmont.cuba.core.sys.AppContext;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.text.StrTokenizer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dom4j.Document;
 import org.dom4j.Element;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,7 +42,7 @@ public class ConfigLoader {
 
     private static Log log = LogFactory.getLog(ConfigLoader.class);
     
-    private static final String DEFAULT_CONFIG = "cuba/fts-config.xml";
+    private static final String DEFAULT_CONFIG = "/cuba-fts.xml";
 
     private static String[] systemProps = new String[] {
             "id", "createTs", "createdBy", "version", "updateTs", "updatedBy", "deleteTs", "deletedBy"
@@ -58,24 +64,35 @@ public class ConfigLoader {
         if (StringUtils.isBlank(configName))
             configName = DEFAULT_CONFIG;
 
-        File file = new File(confDir + "/" + configName);
-        if (!file.exists()) {
-            log.error("FTS config file not found: " + file.getAbsolutePath());
-            return map;
+        DefaultResourceLoader resourceLoader = new DefaultResourceLoader();
+        StrTokenizer tokenizer = new StrTokenizer(configName);
+        for (String location : tokenizer.getTokenArray()) {
+            Resource resource = resourceLoader.getResource(location);
+            if (resource.exists()) {
+                InputStream stream = null;
+                try {
+                    stream = resource.getInputStream();
+                    loadFromStream(stream, map);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    IOUtils.closeQuietly(stream);
+                }
+            } else {
+                log.warn("Resource " + location + " not found, ignore it");
+            }
         }
-
-        loadFromFile(file, map);
 
         return map;
     }
 
-    private void loadFromFile(File file, Map<String, EntityDescr> map) {
-        Document document = Dom4j.readDocument(file);
+    private void loadFromStream(InputStream stream, Map<String, EntityDescr> map) {
+        Document document = Dom4j.readDocument(stream);
         for (Element element : Dom4j.elements(document.getRootElement(), "include")) {
             String fileName = element.attributeValue("file");
             if (!StringUtils.isBlank(fileName)) {
-                File incFile = new File(confDir + "/" + fileName);
-                loadFromFile(incFile, map);
+                InputStream incStream = getClass().getResourceAsStream(fileName);
+                loadFromStream(incStream, map);
             }
         }
 
