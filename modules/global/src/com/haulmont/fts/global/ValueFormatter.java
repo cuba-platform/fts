@@ -10,7 +10,10 @@
  */
 package com.haulmont.fts.global;
 
+import com.haulmont.chile.core.datatypes.Datatypes;
+import com.haulmont.chile.core.datatypes.FormatStrings;
 import com.haulmont.cuba.core.global.MessageUtils;
+import com.haulmont.cuba.core.global.UserSessionProvider;
 import org.apache.commons.lang.time.DateFormatUtils;
 
 import java.math.BigDecimal;
@@ -58,8 +61,8 @@ public class ValueFormatter {
     }
 
     private Object tryDate(String value) {
-        String userDateFormat = MessageUtils.getDateFormat();
-        SimpleDateFormat sdf = new SimpleDateFormat(userDateFormat);
+        FormatStrings formatStrings = Datatypes.getFormatStrings(UserSessionProvider.getLocale());
+        SimpleDateFormat sdf = new SimpleDateFormat(formatStrings.getDateFormat());
         try {
             Date date = sdf.parse(value);
             return date;
@@ -69,8 +72,9 @@ public class ValueFormatter {
     }
 
     private Object tryNumber(String value) {
-        char decimalSeparator = MessageUtils.getNumberDecimalSeparator();
-        char groupingSeparator = MessageUtils.getNumberGroupingSeparator();
+        FormatStrings formatStrings = Datatypes.getFormatStrings(UserSessionProvider.getLocale());
+        char decimalSeparator = formatStrings.getFormatSymbols().getDecimalSeparator();
+        char groupingSeparator = formatStrings.getFormatSymbols().getGroupingSeparator();
         if (decimalSeparator != '.')
             value = value.replace(decimalSeparator, '.');
         if (groupingSeparator != ',')
