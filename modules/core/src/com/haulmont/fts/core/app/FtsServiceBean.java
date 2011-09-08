@@ -14,7 +14,7 @@ import com.haulmont.chile.core.model.Instance;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.entity.Entity;
-import com.haulmont.cuba.core.global.ConfigProvider;
+import com.haulmont.cuba.core.global.Configuration;
 import com.haulmont.cuba.core.global.FtsConfig;
 import com.haulmont.cuba.core.global.MetadataProvider;
 import com.haulmont.cuba.core.global.View;
@@ -34,18 +34,17 @@ public class FtsServiceBean implements FtsService {
 
     private LuceneSearcher searcher;
 
+    @Inject
     private FtsManagerAPI manager;
+
+    @Inject
+    private PersistenceSecurity security;
 
     private FtsConfig config;
 
     @Inject
-    public void setManager(FtsManagerAPI manager) {
-        this.manager = manager;
-    }
-
-    @Inject
-    public void setConfigProvider(ConfigProvider configProvider) {
-        config = configProvider.doGetConfig(FtsConfig.class);
+    public void setConfigProvider(Configuration configuration) {
+        config = configuration.getConfig(FtsConfig.class);
     }
 
     private LuceneSearcher getSearcher() {
@@ -149,13 +148,13 @@ public class FtsServiceBean implements FtsService {
     private SearchResult.Entry createEntry(String entityName, UUID entityId) {
         MetaClass metaClass = MetadataProvider.getSession().getClass(entityName);
 
-        if (!SecurityProvider.currentUserSession().isEntityOpPermitted(metaClass, EntityOp.READ))
+        if (!security.isEntityOpPermitted(metaClass, EntityOp.READ))
             return null;
 
         EntityManager em = PersistenceProvider.getEntityManager();
 
         Query query = em.createQuery("select e from " + entityName + " e where e.id = :id");
-        SecurityProvider.applyConstraints(query, entityName);
+        security.applyConstraints(query, entityName);
 
         query.setParameter("id", entityId);
 
