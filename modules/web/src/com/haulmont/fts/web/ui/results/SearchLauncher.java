@@ -11,11 +11,13 @@
 package com.haulmont.fts.web.ui.results;
 
 import com.haulmont.cuba.core.global.MessageProvider;
+import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.gui.AppConfig;
 import com.haulmont.cuba.gui.ServiceLocator;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.IFrame;
 import com.haulmont.cuba.gui.components.Window;
+import com.haulmont.cuba.gui.config.WindowConfig;
 import com.haulmont.cuba.gui.config.WindowInfo;
 import com.haulmont.cuba.web.App;
 import com.haulmont.fts.app.FtsService;
@@ -55,7 +57,7 @@ public class SearchLauncher implements Callable<Window> {
                 return null;
             } else {
                 params.put("searchResult", searchResult);
-                WindowInfo windowInfo = AppConfig.getInstance().getWindowConfig().getWindowInfo("fts$SearchResults");
+                WindowInfo windowInfo = AppContext.getBean(WindowConfig.class).getWindowInfo("fts$SearchResults");
 
                 Window window = windowManager.openWindow(windowInfo, WindowManager.OpenType.NEW_TAB, params);
                 return window;

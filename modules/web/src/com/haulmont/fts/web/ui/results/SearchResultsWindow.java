@@ -52,7 +52,7 @@ public class SearchResultsWindow extends AbstractWindow {
     }
 
     @Override
-    protected void init(Map<String, Object> params) {
+    public void init(Map<String, Object> params) {
         contentLayout = (AbstractOrderedLayout) WebComponentsHelper.unwrap(getComponent("contentBox"));
 
         String searchTerm = (String) params.get("searchTerm");
