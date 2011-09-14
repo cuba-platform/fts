@@ -145,7 +145,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("entity", entity);
             params.put("searchables", list);
-            ScriptingProvider.evaluateGroovy(Scripting.Layer.CORE, descr.getSearchablesScript(), params);
+            ScriptingProvider.evaluateGroovy(descr.getSearchablesScript(), params);
         }
 
         return list;
@@ -154,7 +154,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
     private boolean runSearchableIf(BaseEntity entity, EntityDescr descr) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("entity", entity);
-        Boolean value = ScriptingProvider.evaluateGroovy(Scripting.Layer.CORE, descr.getSearchableIfScript(), params);
+        Boolean value = ScriptingProvider.evaluateGroovy(descr.getSearchableIfScript(), params);
         return BooleanUtils.isTrue(value);
     }
 
