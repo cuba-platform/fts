@@ -6,7 +6,7 @@
 
 allprojects {
     artifactGroup = 'com.haulmont.fts'
-    artifactVersion = '3.0'
+    artifactVersion = '3.1'
     isSnapshot = true
     //tomcatDir = rootDir.absolutePath + '/../tomcat'
 }
@@ -34,7 +34,7 @@ def globalModule = project(':fts-global')
 def coreModule = project(':fts-core')
 def webModule = project(':fts-web')
 
-def cubaVersion = '3.0-SNAPSHOT'
+def cubaVersion = '3.1-SNAPSHOT'
 
 configure([globalModule, coreModule, webModule]) {
     apply(plugin: 'java')
