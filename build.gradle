@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2011 Haulmont Technology Ltd. All Rights Reserved.
  * Haulmont Technology proprietary and confidential.
  * Use is subject to license terms.
@@ -6,7 +6,7 @@
 
 allprojects {
     artifactGroup = 'com.haulmont.fts'
-    artifactVersion = '3.1'
+    artifactVersion = '3.1.1'
     isSnapshot = true
     //tomcatDir = rootDir.absolutePath + '/../tomcat'
 }
@@ -34,7 +34,8 @@ def globalModule = project(':fts-global')
 def coreModule = project(':fts-core')
 def webModule = project(':fts-web')
 
-def cubaVersion = '3.1-SNAPSHOT'
+def baseVersion = artifactVersion + (isSnapshot ? '-SNAPSHOT' : '')
+
 
 configure([globalModule, coreModule, webModule]) {
     apply(plugin: 'java')
@@ -43,10 +44,10 @@ configure([globalModule, coreModule, webModule]) {
     apply(plugin: CubaPlugin)
 
     dependencies {
-        compile(group: 'com.haulmont.bali', name: 'bali', version: cubaVersion)
-        compile(group: 'com.haulmont.chile', name: 'chile-core', version: cubaVersion)
-        compile(group: 'com.haulmont.chile', name: 'chile-jpa', version: cubaVersion)
-        compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: cubaVersion)
+        compile(group: 'com.haulmont.bali', name: 'bali', version: baseVersion)
+        compile(group: 'com.haulmont.chile', name: 'chile-core', version: baseVersion)
+        compile(group: 'com.haulmont.chile', name: 'chile-jpa', version: baseVersion)
+        compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: baseVersion)
         testCompile(group: 'junit', name: 'junit', version: '4.5')
     }
 
@@ -63,20 +64,20 @@ configure([globalModule, coreModule, webModule]) {
 configure(coreModule) {
     dependencies {
         compile(globalModule)
-        compile(group: 'com.haulmont.cuba', name: 'cuba-core', version: cubaVersion)
+        compile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion)
         compile(group: 'org.apache.lucene', name: 'lucene-core', version: '3.0.2')
         compile(group: 'org.apache.tika', name: 'tika-core', version: '0.9')
         compile(group: 'org.apache.tika', name: 'tika-parsers', version: '0.9') {
             exclude(group: 'org.apache.poi', module: 'poi')
         }
 
-        testCompile(group: 'com.haulmont.cuba', name: 'cuba-core', version: cubaVersion, classifier: 'tests')
+        testCompile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion, classifier: 'tests')
     }
 }
 
 configure(webModule) {
     dependencies {
         compile(globalModule)
-        compile(group: 'com.haulmont.cuba', name: 'cuba-web', version: cubaVersion)
+        compile(group: 'com.haulmont.cuba', name: 'cuba-web', version: baseVersion)
     }
 }
