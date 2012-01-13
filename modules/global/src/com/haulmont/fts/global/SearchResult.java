@@ -76,6 +76,9 @@ public class SearchResult implements Serializable {
         private Map<String, String> hits = new HashMap<String, String>();
 
         public void init(String searchTerm, String text, String entityName) {
+            boolean phraseSearch = searchTerm.startsWith("\"") && searchTerm.endsWith("\"");
+            boolean likeSearch = searchTerm.startsWith("*");
+
             ValueFormatter valueFormatter = new ValueFormatter();
             StringBuilder searchTermBuilder = new StringBuilder();
             String[] strings = searchTerm.split("\\s");
@@ -114,8 +117,8 @@ public class SearchResult implements Serializable {
 
                     FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
                     while (tokenizer.hasMoreTokens()) {
-                        String word = tokenizer.nextToken();
-                        if (word.toLowerCase().startsWith(term)) {
+                        String word = tokenizer.nextToken().toLowerCase();
+                        if (likeSearch ? word.contains(term) : word.startsWith(term)) {
                             fieldsMap.put(fieldName, fieldText);
                             break;
                         }
@@ -127,39 +130,96 @@ public class SearchResult implements Serializable {
                 String fieldName = entry.getKey();
                 String fieldText = entry.getValue();
 
-                StringBuilder sb = new StringBuilder();
+                if (phraseSearch) {
+                    makeFieldPhraseText(terms, fieldName, fieldText);
+                } else {
+                    makeFieldText(terms, fieldName, fieldText, likeSearch);
+                }
+            }
+        }
 
-                FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
-                while (tokenizer.hasMoreTokens()) {
-                    String word = tokenizer.nextToken();
-                    for (String term : terms) {
-                        if (word.toLowerCase().startsWith(term)) {
-                            int start = Math.max(tokenizer.getTokenStart() - FTS.HIT_CONTEXT_PAD, 0);
-                            while (start > 0 && FTS.isTokenChar(fieldText.charAt(start)))
-                                start--;
+        private void makeFieldText(List<String> terms, String fieldName, String fieldText, boolean likeSearch) {
+            StringBuilder sb = new StringBuilder();
+            FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
+            while (tokenizer.hasMoreTokens()) {
+                String word = tokenizer.nextToken().toLowerCase();
+                for (String term : terms) {
+                    if (likeSearch ? word.contains(term) : word.startsWith(term)) {
+                        int start = Math.max(tokenizer.getTokenStart() - FTS.HIT_CONTEXT_PAD, 0);
+                        while (start > 0 && FTS.isTokenChar(fieldText.charAt(start)))
+                            start--;
 
-                            int end = Math.min(tokenizer.getTokenEnd() + FTS.HIT_CONTEXT_PAD, fieldText.length());
-                            while (end < fieldText.length() && FTS.isTokenChar(fieldText.charAt(end)))
-                                end++;
-                            
-                            if (start > 0 && !sb.toString().endsWith("..."))
+                        int end = Math.min(tokenizer.getTokenEnd() + FTS.HIT_CONTEXT_PAD, fieldText.length());
+                        while (end < fieldText.length() && FTS.isTokenChar(fieldText.charAt(end)))
+                            end++;
+
+                        if (start > 0 && !sb.toString().endsWith("..."))
+                            sb.append("...");
+                        sb.append(fieldText.substring(start, tokenizer.getTokenStart()));
+                        sb.append("<b>");
+                        sb.append(fieldText.substring(tokenizer.getTokenStart(), tokenizer.getTokenEnd()));
+                        sb.append("</b>");
+                        if (end <= fieldText.length()) {
+                            sb.append(fieldText.substring(tokenizer.getTokenEnd(), end));
+                            if (end < fieldText.length()) {
                                 sb.append("...");
-                            sb.append(fieldText.substring(start, tokenizer.getTokenStart()));
-                            sb.append("<b>");
-                            sb.append(fieldText.substring(tokenizer.getTokenStart(), tokenizer.getTokenEnd()));
-                            sb.append("</b>");
-                            if (end <= fieldText.length()) {
-                                sb.append(fieldText.substring(tokenizer.getTokenEnd(), end));
-                                if (end < fieldText.length()) {
-                                    sb.append("...");
-                                }
                             }
                         }
                     }
                 }
-                String hitText = sb.toString();
-                hits.put(fieldName, hitText);
             }
+            hits.put(fieldName, sb.toString());
+        }
+
+        private void makeFieldPhraseText(List<String> terms, String fieldName, String fieldText) {
+            StringBuilder sb = new StringBuilder();
+            FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
+            while (tokenizer.hasMoreTokens()) {
+                String word = tokenizer.nextToken();
+                int start, end = -1;
+                if (word.equalsIgnoreCase(terms.get(0))) {
+                    start = Math.max(tokenizer.getTokenStart() - FTS.HIT_CONTEXT_PAD, 0);
+                    while (start > 0 && FTS.isTokenChar(fieldText.charAt(start)))
+                        start--;
+                    for (int i = 1; i < terms.size() && tokenizer.hasMoreTokens(); i++) {
+                        String term = terms.get(i);
+                        String w = tokenizer.nextToken();
+                        if (!w.equalsIgnoreCase(term)) {
+                            end = -1;
+                            break;
+                        }
+                        end = Math.min(tokenizer.getTokenEnd() + FTS.HIT_CONTEXT_PAD, fieldText.length());
+                        while (end < fieldText.length() && FTS.isTokenChar(fieldText.charAt(end)))
+                            end++;
+                    }
+                    if (end == -1) {
+                        continue;
+                    }
+                    String phrase = highlightPhraseTerms(fieldText.substring(start, end), terms);
+
+                    if (start > 0 && !sb.toString().endsWith("..."))
+                        sb.append("...");
+                    sb.append(phrase);
+                    if (end < fieldText.length())
+                        sb.append("...");
+                }
+            }
+            hits.put(fieldName, sb.toString());
+        }
+
+        private String highlightPhraseTerms(String text, List<String> terms) {
+            int start = text.toLowerCase().indexOf(terms.get(0));
+            int end = text.toLowerCase().indexOf(terms.get(terms.size() - 1)) + terms.get(terms.size() - 1).length();
+            if (start == -1 || end == -1)
+                return text;
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(text.substring(0, start));
+            sb.append("<b>");
+            sb.append(text.substring(start, end));
+            sb.append("</b>");
+            sb.append(text.substring(end));
+            return sb.toString();
         }
 
         public Map<String, String> getHits() {

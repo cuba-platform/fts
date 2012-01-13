@@ -10,7 +10,9 @@
  */
 package com.haulmont.fts.core.sys;
 
+import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
+import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
@@ -48,19 +50,26 @@ public class LuceneSearcher extends Lucene {
 
         ValueFormatter valueFormatter = new ValueFormatter();
 
-        String[] strings = searchTerm.split("\\s");
         Query query;
-        if (strings.length == 1) {
-            String s = valueFormatter.guessTypeAndFormat(searchTerm);
-            Term term = new Term(FLD_ALL, s);
-            query = new PrefixQuery(term);
+
+        if (searchTerm.startsWith("\"") && searchTerm.endsWith("\"")) {
+            searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
+            query = new PhraseQuery();
+            FTS.Tokenizer tokenizer = new FTS.Tokenizer(searchTerm);
+            while (tokenizer.hasMoreTokens()) {
+                Term term = new Term(FLD_ALL, tokenizer.nextToken());
+                ((PhraseQuery) query).add(term);
+            }
         } else {
-            query = new BooleanQuery();
-            for (String string : strings) {
-                String s = valueFormatter.guessTypeAndFormat(string);
-                Term term = new Term(FLD_ALL, s);
-                Query q = new PrefixQuery(term);
-                ((BooleanQuery) query).add(q, BooleanClause.Occur.SHOULD);
+            String[] strings = searchTerm.split("\\s");
+            if (strings.length == 1) {
+                query = createQuery(searchTerm, valueFormatter);
+            } else {
+                query = new BooleanQuery();
+                for (String string : strings) {
+                    Query q = createQuery(string, valueFormatter);
+                    ((BooleanQuery) query).add(q, BooleanClause.Occur.SHOULD);
+                }
             }
         }
         try {
@@ -77,6 +86,21 @@ public class LuceneSearcher extends Lucene {
             throw new RuntimeException(e);
         }
         return new ArrayList(set);
+    }
+
+    private Query createQuery(String searchStr, ValueFormatter valueFormatter) {
+        Query query;
+        String s = valueFormatter.guessTypeAndFormat(searchStr);
+        if (s.startsWith("*")) {
+            if (!s.endsWith("*"))
+                s = s + "*";
+            Term term = new Term(FLD_ALL, s);
+            query = new WildcardQuery(term);
+        } else {
+            Term term = new Term(FLD_ALL, s);
+            query = new PrefixQuery(term);
+        }
+        return query;
     }
 
     public List<EntityInfo> searchLinksField(UUID id, int maxResults) {
