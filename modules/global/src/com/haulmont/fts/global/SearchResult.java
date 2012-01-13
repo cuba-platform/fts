@@ -176,7 +176,7 @@ public class SearchResult implements Serializable {
             FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
             while (tokenizer.hasMoreTokens()) {
                 String word = tokenizer.nextToken();
-                int start, end = -1;
+                int start, end = fieldText.length();
                 if (word.equalsIgnoreCase(terms.get(0))) {
                     start = Math.max(tokenizer.getTokenStart() - FTS.HIT_CONTEXT_PAD, 0);
                     while (start > 0 && FTS.isTokenChar(fieldText.charAt(start)))
