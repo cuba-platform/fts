@@ -44,9 +44,6 @@ configure([globalModule, coreModule, webModule]) {
     apply(plugin: CubaPlugin)
 
     dependencies {
-        compile(group: 'com.haulmont.bali', name: 'bali', version: '3.1.2')
-        compile(group: 'com.haulmont.chile', name: 'chile-core', version: '3.1.2')
-        compile(group: 'com.haulmont.chile', name: 'chile-jpa', version: '3.1.2')
         compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: baseVersion)
         testCompile(group: 'junit', name: 'junit', version: '4.5')
     }
