@@ -50,7 +50,6 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
 
     private ReentrantLock writeLock = new ReentrantLock();
     private volatile boolean writing;
-    private volatile int writeCount;
 
     private volatile Directory directory;
 
@@ -201,12 +200,6 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
                         indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
                         count++;
                     }
-
-                    int period = config.getOptimizationPeriod();
-                    if (++writeCount > period) {
-                        indexer.optimize();
-                        writeCount = 0;
-                    }
                 } finally {
                     indexer.close();
                 }
@@ -247,23 +240,17 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         return count;
     }
 
-    public boolean showInResults(String entityName) {
-        EntityDescr descr = getDescrByName().get(entityName);
-        return descr != null && descr.isShow();
-    }
+    public String optimize() {
+        if (!AppContext.isStarted())
+            return "Application is not started";
 
-    public String jmxProcessQueue() {
-        try {
-            // login performed inside processQueue()
-            int count = processQueue();
-            return String.format("Done %d items", count);
-        } catch (Throwable e) {
-            log.error("Error", e);
-            return ExceptionUtils.getStackTrace(e);
-        }
-    }
+        if (!clusterManager.isMaster())
+            return "Cluster is not master";
 
-    public String jmxOptimize() {
+        if (!config.getEnabled())
+            return "Fts config disable";
+
+        log.debug("Start optimize");
         boolean locked = writeLock.tryLock();
         if (!locked) {
             return "Unable to optimize: writing at the moment";
@@ -284,6 +271,26 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             writeLock.unlock();
             writing = false;
         }
+    }
+
+    public boolean showInResults(String entityName) {
+        EntityDescr descr = getDescrByName().get(entityName);
+        return descr != null && descr.isShow();
+    }
+
+    public String jmxProcessQueue() {
+        try {
+            // login performed inside processQueue()
+            int count = processQueue();
+            return String.format("Done %d items", count);
+        } catch (Throwable e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        }
+    }
+
+    public String jmxOptimize() {
+        return optimize();
     }
 
     public String jmxReindexEntity(String entityName) {

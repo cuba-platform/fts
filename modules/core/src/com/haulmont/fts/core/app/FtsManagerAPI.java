@@ -25,5 +25,7 @@ public interface FtsManagerAPI {
 
     int processQueue();
 
+    String optimize();
+
     boolean showInResults(String entityName);
 }
