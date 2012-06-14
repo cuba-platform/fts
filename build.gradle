@@ -5,10 +5,10 @@
  */
 
 allprojects {
-    artifactGroup = 'com.haulmont.fts'
-    artifactVersion = '3.3.0'
-    isSnapshot = true
-    //tomcatDir = rootDir.absolutePath + '/../tomcat'
+    ext.artifactGroup = 'com.haulmont.fts'
+    ext.artifactVersion = '3.3.0'
+    ext.isSnapshot = true
+    //ext.tomcatDir = rootDir.absolutePath + '/../tomcat'
 }
 
 buildscript {
