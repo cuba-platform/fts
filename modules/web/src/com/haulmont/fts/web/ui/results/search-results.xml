@@ -7,10 +7,10 @@
     <dsContext/>
     
     <layout expand="scrollBox">
-        <scrollbox id="scrollBox">
+        <scrollBox id="scrollBox">
             <vbox id="contentBox" spacing="true">
 
             </vbox>
-        </scrollbox>
+        </scrollBox>
     </layout>
 </window>
