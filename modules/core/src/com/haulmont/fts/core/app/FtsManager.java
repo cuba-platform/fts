@@ -185,7 +185,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             Transaction tx = Locator.createTransaction();
             try {
                 EntityManager em = PersistenceProvider.getEntityManager();
-                Query query = em.createQuery("select q from core$FtsQueue q order by q.createTs");
+                Query query = em.createQuery("select q from sys$FtsQueue q order by q.createTs");
                 query.setMaxResults(maxSize);
                 list = query.getResultList();
                 tx.commit();

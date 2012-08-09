@@ -61,14 +61,14 @@ public class FtsSenderBean implements FtsSender {
 
     public void emptyQueue(String entityName) {
         EntityManager em = PersistenceProvider.getEntityManager();
-        Query q = em.createQuery("delete from core$FtsQueue q where q.entityName = ?1");
+        Query q = em.createQuery("delete from sys$FtsQueue q where q.entityName = ?1");
         q.setParameter(1, entityName);
         q.executeUpdate();
     }
 
     public void emptyQueue() {
         EntityManager em = PersistenceProvider.getEntityManager();
-        Query q = em.createQuery("delete from core$FtsQueue q");
+        Query q = em.createQuery("delete from sys$FtsQueue q");
         q.executeUpdate();
     }
 
