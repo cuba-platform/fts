@@ -10,6 +10,9 @@
  */
 package com.haulmont.fts.core.app;
 
+import org.springframework.jmx.export.annotation.ManagedOperationParameter;
+import org.springframework.jmx.export.annotation.ManagedOperationParameters;
+
 public interface FtsManagerMBean {
 
     boolean isEnabled();
@@ -21,6 +24,7 @@ public interface FtsManagerMBean {
 
     String jmxOptimize();
 
+    @ManagedOperationParameters({@ManagedOperationParameter(name = "entityName", description = "")})
     String jmxReindexEntity(String entityName);
 
     String jmxReindexAll();
