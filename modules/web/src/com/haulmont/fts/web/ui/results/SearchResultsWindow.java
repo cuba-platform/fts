@@ -17,10 +17,8 @@ import com.haulmont.chile.core.model.Session;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.global.*;
-import com.haulmont.cuba.gui.ServiceLocator;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.AbstractWindow;
-import com.haulmont.cuba.gui.components.IFrame;
 import com.haulmont.cuba.web.App;
 import com.haulmont.cuba.web.AppWindow;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
@@ -31,24 +29,28 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.themes.BaseTheme;
 import org.apache.commons.lang.StringUtils;
 
+import javax.inject.Inject;
 import java.util.*;
 
 public class SearchResultsWindow extends AbstractWindow {
 
     protected AbstractOrderedLayout contentLayout;
 
+    @Inject
     protected FtsService service;
+
+    @Inject
+    protected Metadata metadata;
+
+    @Inject
+    protected Messages messages;
 
     protected SearchResult searchResult;
 
-    protected Session metadata;
-
     protected MetaClass fileMetaClass;
 
-    public SearchResultsWindow(IFrame frame) {
-        super(frame);
-        metadata = MetadataProvider.getSession();
-        fileMetaClass = metadata.getClass(FileDescriptor.class);
+    public SearchResultsWindow() {
+        fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
     }
 
     @Override
@@ -66,8 +68,6 @@ public class SearchResultsWindow extends AbstractWindow {
             searchTerm = searchTerm.trim();
             setCaption(getMessage("caption") + ": " + searchTerm);
 
-            service = ServiceLocator.lookup(FtsService.NAME);
-
             searchResult = (SearchResult) params.get("searchResult");
             if (searchResult == null)
                 searchResult = service.search(searchTerm.toLowerCase());
@@ -84,7 +84,7 @@ public class SearchResultsWindow extends AbstractWindow {
                 for (String entityName : searchResult.getEntities()) {
                     entities.add(new Pair<String, String>(
                             entityName,
-                            MessageUtils.getEntityCaption(metadata.getClass(entityName))
+                            messages.getTools().getEntityCaption(metadata.getClass(entityName))
                     ));
                 }
                 Collections.sort(
@@ -178,7 +178,7 @@ public class SearchResultsWindow extends AbstractWindow {
     private String getHitPropertyCaption(String entityName, String hitProperty) {
         String[] parts = hitProperty.split("\\.");
         if (parts.length == 1) {
-            MetaClass metaClass = metadata.getClass(entityName);
+            MetaClass metaClass = metadata.getSession().getClass(entityName);
             if (metaClass == null)
                 return hitProperty;
 
@@ -186,10 +186,10 @@ public class SearchResultsWindow extends AbstractWindow {
             if (metaProperty == null)
                 return hitProperty;
 
-            return MessageUtils.getPropertyCaption(metaProperty);
+            return messages.getTools().getPropertyCaption(metaProperty);
         } else {
             String linkEntityName = parts[0];
-            MetaClass metaClass = metadata.getClass(linkEntityName);
+            MetaClass metaClass = metadata.getSession().getClass(linkEntityName);
             if (metaClass == null)
                 return hitProperty;
 
@@ -200,14 +200,15 @@ public class SearchResultsWindow extends AbstractWindow {
                     if (i < parts.length - 1)
                         sb.append(".");
                 }
-                return MessageProvider.formatMessage(getClass(), "fileContent", sb.toString());
+                return messages.formatMessage(getClass(), "fileContent", sb.toString());
             }
 
             MetaProperty metaProperty = metaClass.getProperty(parts[1]);
             if (metaProperty == null)
                 return hitProperty;
 
-            return MessageUtils.getEntityCaption(metaClass) + "." + MessageUtils.getPropertyCaption(metaProperty);
+            return messages.getTools().getEntityCaption(metaClass) + "."
+                    + messages.getTools().getPropertyCaption(metaProperty);
         }
     }
 
@@ -224,7 +225,7 @@ public class SearchResultsWindow extends AbstractWindow {
         public void buttonClick(Button.ClickEvent event) {
             String windowId = entityName + ".edit";
 
-            LoadContext lc = new LoadContext(MetadataProvider.getSession().getClass(entityName));
+            LoadContext lc = new LoadContext(metadata.getSession().getClass(entityName));
             lc.setView(View.MINIMAL);
             lc.setId(entityId);
             Entity entity = getDsContext().getDataService().load(lc);

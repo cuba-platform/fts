@@ -12,12 +12,14 @@ package com.haulmont.fts.global;
 
 import com.haulmont.chile.core.datatypes.Datatypes;
 import com.haulmont.chile.core.datatypes.FormatStrings;
-import com.haulmont.cuba.core.global.MessageUtils;
 import com.haulmont.cuba.core.global.UserSessionProvider;
 import org.apache.commons.lang.time.DateFormatUtils;
 
 import java.math.BigDecimal;
-import java.text.*;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class ValueFormatter {
