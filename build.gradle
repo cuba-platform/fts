@@ -23,7 +23,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath group: 'com.haulmont.gradle', name: 'cuba-plugin', version: '1.4.1'
+        classpath group: 'com.haulmont.gradle', name: 'cuba-plugin', version: '1.5.0'
     }
 }
 
