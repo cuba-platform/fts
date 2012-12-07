@@ -1,18 +1,17 @@
 /*
- * Copyright (c) 2010 Haulmont Technology Ltd. All Rights Reserved.
+ * Copyright (c) 2012 Haulmont Technology Ltd. All Rights Reserved.
  * Haulmont Technology proprietary and confidential.
  * Use is subject to license terms.
-
- * Author: Konstantin Krivopustov
- * Created: 25.06.2010 15:23:26
- *
- * $Id$
  */
-package com.haulmont.fts.core.app;
+package com.haulmont.fts.core.jmx;
 
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedOperationParameters;
 
+/**
+ * @author krivopustov
+ * @version $Id$
+ */
 public interface FtsManagerMBean {
 
     boolean isEnabled();
@@ -20,12 +19,12 @@ public interface FtsManagerMBean {
 
     boolean isWriting();
 
-    String jmxProcessQueue();
+    String processQueue();
 
-    String jmxOptimize();
+    String optimize();
 
     @ManagedOperationParameters({@ManagedOperationParameter(name = "entityName", description = "")})
-    String jmxReindexEntity(String entityName);
+    String reindexEntity(String entityName);
 
-    String jmxReindexAll();
+    String reindexAll();
 }

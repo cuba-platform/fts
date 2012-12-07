@@ -19,6 +19,7 @@ import com.haulmont.cuba.core.entity.BaseEntity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.MetadataProvider;
+import com.haulmont.fts.core.jmx.FtsManagerMBean;
 
 import javax.annotation.ManagedBean;
 import javax.inject.Inject;
@@ -75,7 +76,7 @@ public class FtsSenderBean implements FtsSender {
     public void initDefault() {
         FtsManagerMBean ftsMBean = (FtsManagerMBean) manager;
         ftsMBean.setEnabled(true);
-        ftsMBean.jmxReindexAll();
-        ftsMBean.jmxProcessQueue();
+        ftsMBean.reindexAll();
+        ftsMBean.processQueue();
     }
 }

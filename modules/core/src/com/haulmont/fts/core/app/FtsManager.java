@@ -1,12 +1,7 @@
 /*
- * Copyright (c) 2010 Haulmont Technology Ltd. All Rights Reserved.
+ * Copyright (c) 2012 Haulmont Technology Ltd. All Rights Reserved.
  * Haulmont Technology proprietary and confidential.
  * Use is subject to license terms.
-
- * Author: Konstantin Krivopustov
- * Created: 24.06.2010 18:18:38
- *
- * $Id$
  */
 package com.haulmont.fts.core.app;
 
@@ -14,13 +9,13 @@ import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.app.ClusterManagerAPI;
 import com.haulmont.cuba.core.app.FtsSender;
-import com.haulmont.cuba.core.app.ManagementBean;
 import com.haulmont.cuba.core.entity.BaseEntity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.core.sys.AppContext;
-import com.haulmont.cuba.security.global.LoginException;
+import com.haulmont.cuba.security.app.Authenticated;
+import com.haulmont.cuba.security.app.Authentication;
 import com.haulmont.fts.core.sys.ConfigLoader;
 import com.haulmont.fts.core.sys.EntityDescr;
 import com.haulmont.fts.core.sys.LuceneIndexer;
@@ -40,8 +35,12 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * @author krivopustov
+ * @version $Id$
+ */
 @ManagedBean(FtsManagerAPI.NAME)
-public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsManagerMBean {
+public class FtsManager implements FtsManagerAPI {
 
     private static Log log = LogFactory.getLog(FtsManager.class);
 
@@ -60,6 +59,9 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
     private ClusterManagerAPI clusterManager;
 
     @Inject
+    protected Authentication authentication;
+
+    @Inject
     public void setConfigProvider(Configuration configuration) {
         config = configuration.getConfig(FtsConfig.class);
     }
@@ -69,19 +71,18 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         this.clusterManager = clusterManager;
     }
 
+    @Override
     public boolean isEnabled() {
         return config.getEnabled();
     }
 
+    @Authenticated
+    @Override
     public void setEnabled(boolean value) {
-        try {
-            loginOnce();
-        } catch (LoginException e) {
-            throw new RuntimeException(e);
-        }
         config.setEnabled(value);
     }
 
+    @Override
     public boolean isWriting() {
         return writing;
     }
@@ -174,10 +175,10 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             log.warn("Unable to process queue: writing at the moment");
             return count;
         }
+
+        authentication.begin();
         try {
             writing = true;
-
-            loginOnce();
 
             int maxSize = config.getIndexingBatchSize();
             List<FtsQueue> list;
@@ -230,11 +231,10 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
                     tx.end();
                 }
             }
-        } catch (LoginException e) {
-            throw new RuntimeException(e);
         } finally {
             writeLock.unlock();
             writing = false;
+            authentication.end();
         }
         log.debug(count + " queue items succesfully processed");
         return count;
@@ -248,16 +248,17 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
             return "Cluster is not master";
 
         if (!config.getEnabled())
-            return "Fts config disable";
+            return "FTS is disabled";
 
         log.debug("Start optimize");
         boolean locked = writeLock.tryLock();
         if (!locked) {
             return "Unable to optimize: writing at the moment";
         }
+
+        authentication.begin();
         try {
             writing = true;
-            loginOnce();
 
             LuceneWriter luceneWriter = new LuceneWriter(getDirectory());
             luceneWriter.optimize();
@@ -270,6 +271,7 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         } finally {
             writeLock.unlock();
             writing = false;
+            authentication.end();
         }
     }
 
@@ -278,34 +280,8 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         return descr != null && descr.isShow();
     }
 
-    public String jmxProcessQueue() {
-        try {
-            // login performed inside processQueue()
-            int count = processQueue();
-            return String.format("Done %d items", count);
-        } catch (Throwable e) {
-            log.error("Error", e);
-            return ExceptionUtils.getStackTrace(e);
-        }
-    }
-
-    public String jmxOptimize() {
-        return optimize();
-    }
-
-    public String jmxReindexEntity(String entityName) {
-        try {
-            loginOnce();
-            deleteIndexForEntity(entityName);
-            int count = reindexEntity(entityName);
-            return String.format("Enqueued %d items. Reindexing will be performed on next processQueue invocation.", count);
-        } catch (Throwable e) {
-            log.error("Error", e);
-            return ExceptionUtils.getStackTrace(e);
-        }
-    }
-
-    private void deleteIndexForEntity(String entityName) {
+    @Override
+    public void deleteIndexForEntity(String entityName) {
         boolean locked = writeLock.tryLock();
         if (!locked) {
             throw new IllegalStateException("Unable to delete index: writing at the moment");
@@ -319,7 +295,8 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         }
     }
 
-    private void deleteIndex() {
+    @Override
+    public void deleteIndex() {
         boolean locked = writeLock.tryLock();
         if (!locked) {
             throw new IllegalStateException("Unable to delete index: writing at the moment");
@@ -336,7 +313,8 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         }
     }
 
-    private int reindexEntity(String entityName) {
+    @Override
+    public int reindexEntity(String entityName) {
         int count = 0;
 
         MetaClass metaClass = MetadataProvider.getSession().getClass(entityName);
@@ -380,21 +358,13 @@ public class FtsManager extends ManagementBean implements FtsManagerAPI, FtsMana
         return count;
     }
 
-    public String jmxReindexAll() {
-        try {
-            loginOnce();
-            deleteIndex();
-
-            int count = 0;
-            for (String entityName : getDescrByName().keySet()) {
-                count += reindexEntity(entityName);
-            }
-
-            return String.format("Enqueued %d items. Reindexing will be performed on next processQueue invocation.", count);
-        } catch (Throwable e) {
-            log.error("Error", e);
-            return ExceptionUtils.getStackTrace(e);
+    @Override
+    public int reindexAll() {
+        int count = 0;
+        for (String entityName : getDescrByName().keySet()) {
+            count += reindexEntity(entityName);
         }
+        return count;
     }
 
     public Directory getDirectory() {

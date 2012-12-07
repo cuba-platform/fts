@@ -1,12 +1,7 @@
 /*
- * Copyright (c) 2010 Haulmont Technology Ltd. All Rights Reserved.
+ * Copyright (c) 2012 Haulmont Technology Ltd. All Rights Reserved.
  * Haulmont Technology proprietary and confidential.
  * Use is subject to license terms.
-
- * Author: Konstantin Krivopustov
- * Created: 24.06.2010 18:06:59
- *
- * $Id$
  */
 package com.haulmont.fts.core.app;
 
@@ -15,6 +10,10 @@ import org.apache.lucene.store.Directory;
 
 import java.util.List;
 
+/**
+ * @author krivopustov
+ * @version $Id$
+ */
 public interface FtsManagerAPI {
 
     String NAME = "cuba_FtsManager";
@@ -28,4 +27,18 @@ public interface FtsManagerAPI {
     String optimize();
 
     boolean showInResults(String entityName);
+
+    boolean isEnabled();
+
+    void setEnabled(boolean value);
+
+    boolean isWriting();
+
+    void deleteIndexForEntity(String entityName);
+
+    void deleteIndex();
+
+    int reindexEntity(String entityName);
+
+    int reindexAll();
 }

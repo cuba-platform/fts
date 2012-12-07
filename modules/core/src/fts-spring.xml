@@ -20,7 +20,7 @@
     <bean id="fts_MBeanExporter" class="com.haulmont.cuba.jmxcontrol.export.MBeanExporter" lazy-init="false">
         <property name="beans">
             <map>
-                <entry key="${cuba.webContextName}.cuba:type=FtsManager" value-ref="cuba_FtsManager"/>
+                <entry key="${cuba.webContextName}.fts:type=FtsManager" value-ref="fts_FtsManagerMBean"/>
             </map>
         </property>
     </bean>
