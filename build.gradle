@@ -18,7 +18,7 @@ allprojects {
 }
 
 buildscript {
-	def cubaPluginVersion = '1.5.1-SNAPSHOT'	
+	def cubaPluginVersion = '1.5-SNAPSHOT'	
 	def CUBA_PLUGIN_VERSION = 'cubaPluginVersion'
 
 	cubaPluginVersion = rootProject.hasProperty(CUBA_PLUGIN_VERSION) ? rootProject[CUBA_PLUGIN_VERSION] : cubaPluginVersion
