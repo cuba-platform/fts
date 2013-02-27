@@ -76,10 +76,10 @@ configure(coreModule) {
         compile(globalModule)
         compile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion)
         compile(group: 'org.apache.lucene', name: 'lucene-core', version: '3.0.2')
-        compile(group: 'org.apache.tika', name: 'tika-core', version: '0.9')
         compile(group: 'org.apache.tika', name: 'tika-parsers', version: '0.9') {
             exclude(group: 'org.apache.poi', module: 'poi')
         }
+        compile(group: 'org.apache.pdfbox', name: 'pdfbox', version: '1.7.1')
 
         testCompile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion, classifier: 'tests')
     }
