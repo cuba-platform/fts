@@ -17,7 +17,7 @@
 
     <!-- MBeans registration -->
 
-    <bean id="fts_MBeanExporter" class="com.haulmont.cuba.jmxcontrol.export.MBeanExporter" lazy-init="false">
+    <bean id="fts_MBeanExporter" class="com.haulmont.cuba.core.sys.jmx.MBeanExporter" lazy-init="false">
         <property name="beans">
             <map>
                 <entry key="${cuba.webContextName}.fts:type=FtsManager" value-ref="fts_FtsManagerMBean"/>
