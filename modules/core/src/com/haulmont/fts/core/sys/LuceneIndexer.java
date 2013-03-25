@@ -65,6 +65,8 @@ public class LuceneIndexer extends LuceneWriter {
 
     private ValueFormatter valueFormatter;
 
+    private FileDescriptor fileDescriptor;
+
     public LuceneIndexer(Map<String, EntityDescr> descriptions, Directory directory, boolean storeContentInIndex) {
         super(directory);
         this.descriptions = descriptions;
@@ -158,7 +160,7 @@ public class LuceneIndexer extends LuceneWriter {
         }
     }
 
-    private String createAllFieldContent(Entity entity, EntityDescr descr) {
+    protected String createAllFieldContent(Entity entity, EntityDescr descr) {
         StringBuilder sb = new StringBuilder();
 
         for (String propName : descr.getLocalProperties()) {
@@ -175,7 +177,8 @@ public class LuceneIndexer extends LuceneWriter {
         if (entity instanceof FileDescriptor) {
             appendString(sb, makeFieldName(FTS.FILE_CONT_PROP));
             sb.append(FTS.FIELD_SEP).append(((FileDescriptor) entity).getName().replaceAll("\\s+", FTS.FIELD_SEP));
-            appendFileContent(sb, ((FileDescriptor) entity));
+            setFileDescriptor((FileDescriptor) entity);
+            appendFileContent(sb);
         }
 
         if (log.isTraceEnabled())
@@ -184,7 +187,17 @@ public class LuceneIndexer extends LuceneWriter {
         return sb.toString();
     }
 
-    private void appendFileContent(StringBuilder sb, FileDescriptor fileDescriptor) {
+    protected void setFileDescriptor(FileDescriptor fileDescriptor) {
+        this.fileDescriptor = fileDescriptor;
+    }
+
+    public FileDescriptor getFileDescriptor() {
+        return fileDescriptor;
+    }
+
+    protected void appendFileContent(StringBuilder sb) {
+        Parser parser = getParser(fileDescriptor);
+        if (parser == null) return;
         FileStorageAPI fs = Locator.lookup(FileStorageAPI.NAME);
         byte[] data;
         try {
@@ -194,24 +207,6 @@ public class LuceneIndexer extends LuceneWriter {
             return;
         }
         InputStream stream = new ByteArrayInputStream(data);
-        Parser parser;
-        String ext = fileDescriptor.getExtension();
-        if ("pdf".equals(ext))
-            parser = new PDFParser();
-        else if ("doc".equals(ext) || "xls".equals(ext))
-            parser = new OfficeParser();
-        else if ("docx".equals(ext) || "xlsx".equals(ext))
-            parser = new OOXMLParser();
-        else if ("odt".equals(ext) || "ods".equals(ext))
-            parser = new OpenDocumentParser();
-        else if ("rtf".equals(ext))
-            parser = new RTFParser();
-        else if ("txt".equals(ext))
-            parser = new TXTParser();
-        else {
-            log.warn("Unsupported file extension: " + ext);
-            return;
-        }
 
         StringWriter stringWriter = new StringWriter();
         try {
@@ -236,6 +231,28 @@ public class LuceneIndexer extends LuceneWriter {
             return;
         }
         appendString(sb, stringWriter.toString());
+    }
+
+    protected Parser getParser(FileDescriptor fileDescriptor) {
+        Parser parser;
+        String ext = fileDescriptor.getExtension();
+        if ("pdf".equals(ext))
+            parser = new PDFParser();
+        else if ("doc".equals(ext) || "xls".equals(ext))
+            parser = new OfficeParser();
+        else if ("docx".equals(ext) || "xlsx".equals(ext))
+            parser = new OOXMLParser();
+        else if ("odt".equals(ext) || "ods".equals(ext))
+            parser = new OpenDocumentParser();
+        else if ("rtf".equals(ext))
+            parser = new RTFParser();
+        else if ("txt".equals(ext))
+            parser = new TXTParser();
+        else {
+            log.warn("Unsupported file extension: " + ext);
+            return null;
+        }
+        return parser;
     }
 
     private String createLinksFieldContent(Entity entity, EntityDescr descr) {
@@ -278,7 +295,7 @@ public class LuceneIndexer extends LuceneWriter {
         }
     }
 
-    private void appendString(StringBuilder sb, Object obj) {
+    protected void appendString(StringBuilder sb, Object obj) {
         if (sb.length() > 0)
             sb.append(" ");
         sb.append(obj.toString());

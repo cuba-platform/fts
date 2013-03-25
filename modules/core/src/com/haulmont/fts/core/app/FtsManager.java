@@ -99,7 +99,7 @@ public class FtsManager implements FtsManagerAPI {
         return descrByClassName;
     }
 
-    private Map<String, EntityDescr> getDescrByName() {
+    protected Map<String, EntityDescr> getDescrByName() {
         if (descrByName == null) {
             synchronized (this) {
                 if (descrByName == null) {
@@ -195,15 +195,7 @@ public class FtsManager implements FtsManagerAPI {
             }
 
             if (!list.isEmpty()) {
-                LuceneIndexer indexer = new LuceneIndexer(getDescrByName(), getDirectory(), config.getStoreContentInIndex());
-                try {
-                    for (FtsQueue ftsQueue : list) {
-                        indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
-                        count++;
-                    }
-                } finally {
-                    indexer.close();
-                }
+                count = initIndexer(count, list);
 
                 tx = Locator.createTransaction();
                 try {
@@ -238,6 +230,27 @@ public class FtsManager implements FtsManagerAPI {
         }
         log.debug(count + " queue items succesfully processed");
         return count;
+    }
+
+    private int initIndexer(int count, List<FtsQueue> list) {
+        LuceneIndexer indexer = createLuceneIndexer();
+        try {
+            for (FtsQueue ftsQueue : list) {
+                indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
+                count++;
+            }
+        } finally {
+            indexer.close();
+        }
+        return count;
+    }
+
+    protected LuceneIndexer createLuceneIndexer() {
+        return new LuceneIndexer(getDescrByName(), getDirectory(), config.getStoreContentInIndex());
+    }
+
+    protected FtsConfig getConfig() {
+        return config;
     }
 
     public String optimize() {
