@@ -65,8 +65,6 @@ public class LuceneIndexer extends LuceneWriter {
 
     private ValueFormatter valueFormatter;
 
-    private FileDescriptor fileDescriptor;
-
     public LuceneIndexer(Map<String, EntityDescr> descriptions, Directory directory, boolean storeContentInIndex) {
         super(directory);
         this.descriptions = descriptions;
@@ -177,8 +175,7 @@ public class LuceneIndexer extends LuceneWriter {
         if (entity instanceof FileDescriptor) {
             appendString(sb, makeFieldName(FTS.FILE_CONT_PROP));
             sb.append(FTS.FIELD_SEP).append(((FileDescriptor) entity).getName().replaceAll("\\s+", FTS.FIELD_SEP));
-            setFileDescriptor((FileDescriptor) entity);
-            appendFileContent(sb);
+            appendFileContent(sb, (FileDescriptor) entity);
         }
 
         if (log.isTraceEnabled())
@@ -187,15 +184,7 @@ public class LuceneIndexer extends LuceneWriter {
         return sb.toString();
     }
 
-    protected void setFileDescriptor(FileDescriptor fileDescriptor) {
-        this.fileDescriptor = fileDescriptor;
-    }
-
-    public FileDescriptor getFileDescriptor() {
-        return fileDescriptor;
-    }
-
-    protected void appendFileContent(StringBuilder sb) {
+    protected void appendFileContent(StringBuilder sb, FileDescriptor fileDescriptor) {
         Parser parser = getParser(fileDescriptor);
         if (parser == null) return;
         FileStorageAPI fs = Locator.lookup(FileStorageAPI.NAME);
