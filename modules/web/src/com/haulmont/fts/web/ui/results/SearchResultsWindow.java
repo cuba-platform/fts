@@ -42,19 +42,17 @@ public class SearchResultsWindow extends AbstractWindow {
     @Inject
     protected Metadata metadata;
 
-    @Inject
-    protected Messages messages;
-
     protected SearchResult searchResult;
 
     protected MetaClass fileMetaClass;
 
     public SearchResultsWindow() {
-        fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
     }
 
     @Override
     public void init(Map<String, Object> params) {
+        fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
+
         contentLayout = (AbstractOrderedLayout) WebComponentsHelper.unwrap(getComponent("contentBox"));
 
         String searchTerm = (String) params.get("searchTerm");
