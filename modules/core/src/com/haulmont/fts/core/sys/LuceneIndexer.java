@@ -101,7 +101,7 @@ public class LuceneIndexer extends LuceneWriter {
                 return;
             }
 
-            Field idField, entityField, allField, linksField;
+            Field idField, entityField, allField, linksField, morphologyAllField;
             Transaction tx = Locator.createTransaction();
             try {
                 EntityManager em = PersistenceProvider.getEntityManager();
@@ -116,10 +116,19 @@ public class LuceneIndexer extends LuceneWriter {
 
                 entityField = new Field(FLD_ENTITY, entityName, Field.Store.YES, Field.Index.NOT_ANALYZED);
 
+                String allContent = createAllFieldContent(entity, descr);
+
                 allField = new Field(
                         FLD_ALL,
-                        createAllFieldContent(entity, descr),
+                        allContent,
                         storeContentInIndex ? Field.Store.YES : Field.Store.NO,
+                        Field.Index.ANALYZED
+                );
+
+                morphologyAllField = new Field(
+                        FLD_MORPHOLOGY_ALL,
+                        allContent,
+                        Field.Store.NO,
                         Field.Index.ANALYZED
                 );
 
@@ -140,6 +149,7 @@ public class LuceneIndexer extends LuceneWriter {
             doc.add(entityField);
             doc.add(allField);
             doc.add(linksField);
+            doc.add(morphologyAllField);
 
             if (FtsChangeType.UPDATE.equals(changeType)) {
                 log.debug("Updating document " + entityName + "-" + entityId);

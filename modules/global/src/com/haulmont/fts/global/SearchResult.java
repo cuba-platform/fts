@@ -76,6 +76,10 @@ public class SearchResult implements Serializable {
         private Map<String, String> hits = new HashMap<String, String>();
 
         public void init(String searchTerm, String text, String entityName) {
+            init(searchTerm, text, entityName, null);
+        }
+
+        public void init(String searchTerm, String text, String entityName, Normalizer normalizer) {
             boolean phraseSearch = searchTerm.startsWith("\"") && searchTerm.endsWith("\"");
             boolean likeSearch = searchTerm.startsWith("*");
 
@@ -97,6 +101,10 @@ public class SearchResult implements Serializable {
             FTS.Tokenizer termTokenizer = new FTS.Tokenizer(searchTerm.toLowerCase());
             while (termTokenizer.hasMoreTokens()) {
                 String term = termTokenizer.nextToken();
+                String normTerm = null;
+                if (normalizer != null) {
+                    normTerm = normalizer.getAnyNormalForm(term);
+                }
                 if (StringUtils.isBlank(term))
                     continue;
                 terms.add(term);
@@ -116,8 +124,18 @@ public class SearchResult implements Serializable {
                     String fieldText = field.substring(nameEnd);
 
                     FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
+                    outerWhile:
                     while (tokenizer.hasMoreTokens()) {
                         String word = tokenizer.nextToken().toLowerCase();
+                        if (!likeSearch && normalizer != null) {
+                            List<String> normalForms = normalizer.getAllNormalForms(word);
+                            for (String normalForm : normalForms) {
+                                if (normalForm.equals(normTerm)) {
+                                    fieldsMap.put(fieldName, fieldText);
+                                    break outerWhile;
+                                }
+                            }
+                        }
                         if (likeSearch ? word.contains(term) : word.startsWith(term)) {
                             fieldsMap.put(fieldName, fieldText);
                             break;
@@ -133,42 +151,64 @@ public class SearchResult implements Serializable {
                 if (phraseSearch) {
                     makeFieldPhraseText(terms, fieldName, fieldText);
                 } else {
-                    makeFieldText(terms, fieldName, fieldText, likeSearch);
+                    makeFieldText(terms, fieldName, fieldText, likeSearch, normalizer);
                 }
             }
         }
 
-        private void makeFieldText(List<String> terms, String fieldName, String fieldText, boolean likeSearch) {
+        private void makeFieldText(List<String> terms, String fieldName, String fieldText, boolean likeSearch,
+                                   Normalizer normalizer) {
             StringBuilder sb = new StringBuilder();
             FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
             while (tokenizer.hasMoreTokens()) {
                 String word = tokenizer.nextToken().toLowerCase();
+                List<String> normalForms = null;
+                if (normalizer != null) {
+                    normalForms = normalizer.getAllNormalForms(word);
+                }
                 for (String term : terms) {
+                    String normalTerm = null;
+                    if (normalizer != null) {
+                        normalTerm = normalizer.getAnyNormalForm(term);
+                    }
                     if (likeSearch ? word.contains(term) : word.startsWith(term)) {
-                        int start = Math.max(tokenizer.getTokenStart() - FTS.HIT_CONTEXT_PAD, 0);
-                        while (start > 0 && FTS.isTokenChar(fieldText.charAt(start)))
-                            start--;
-
-                        int end = Math.min(tokenizer.getTokenEnd() + FTS.HIT_CONTEXT_PAD, fieldText.length());
-                        while (end < fieldText.length() && FTS.isTokenChar(fieldText.charAt(end)))
-                            end++;
-
-                        if (start > 0 && !sb.toString().endsWith("..."))
-                            sb.append("...");
-                        sb.append(fieldText.substring(start, tokenizer.getTokenStart()));
-                        sb.append("<b>");
-                        sb.append(fieldText.substring(tokenizer.getTokenStart(), tokenizer.getTokenEnd()));
-                        sb.append("</b>");
-                        if (end <= fieldText.length()) {
-                            sb.append(fieldText.substring(tokenizer.getTokenEnd(), end));
-                            if (end < fieldText.length()) {
-                                sb.append("...");
+                        makePartTextField(tokenizer, fieldText, sb);
+                    } else {
+                        if (!likeSearch && normalizer != null) {
+                            for (String form : normalForms) {
+                                if (form.equals(normalTerm)) {
+                                    makePartTextField(tokenizer, fieldText, sb);
+                                    break;
+                                }
                             }
                         }
                     }
                 }
             }
             hits.put(fieldName, sb.toString());
+        }
+
+        protected void makePartTextField(FTS.Tokenizer tokenizer, String fieldText, StringBuilder sb) {
+            int start = Math.max(tokenizer.getTokenStart() - FTS.HIT_CONTEXT_PAD, 0);
+            while (start > 0 && FTS.isTokenChar(fieldText.charAt(start)))
+                start--;
+
+            int end = Math.min(tokenizer.getTokenEnd() + FTS.HIT_CONTEXT_PAD, fieldText.length());
+            while (end < fieldText.length() && FTS.isTokenChar(fieldText.charAt(end)))
+                end++;
+
+            if (start > 0 && !sb.toString().endsWith("..."))
+                sb.append("...");
+            sb.append(fieldText.substring(start, tokenizer.getTokenStart()));
+            sb.append("<b>");
+            sb.append(fieldText.substring(tokenizer.getTokenStart(), tokenizer.getTokenEnd()));
+            sb.append("</b>");
+            if (end <= fieldText.length()) {
+                sb.append(fieldText.substring(tokenizer.getTokenEnd(), end));
+                if (end < fieldText.length()) {
+                    sb.append("...");
+                }
+            }
         }
 
         private void makeFieldPhraseText(List<String> terms, String fieldName, String fieldText) {
@@ -269,12 +309,16 @@ public class SearchResult implements Serializable {
     }
 
     public void addHit(UUID id, String text, String linkedEntityName) {
+        addHit(id, text, linkedEntityName, null);
+    }
+
+    public void addHit(UUID id, String text, String linkedEntityName, Normalizer normalizer) {
         HitInfo hi = hitInfos.get(id);
         if (hi == null) {
             hi = new HitInfo();
             hitInfos.put(id, hi);
         }
-        hi.init(searchTerm, text, linkedEntityName);
+        hi.init(searchTerm, text, linkedEntityName, normalizer);
     }
 
     public List<UUID> getIds(String entityName) {

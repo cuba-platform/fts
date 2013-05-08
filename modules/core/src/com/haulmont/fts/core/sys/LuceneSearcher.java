@@ -10,6 +10,7 @@
  */
 package com.haulmont.fts.core.sys;
 
+import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
 import org.apache.commons.lang.StringUtils;
@@ -97,8 +98,13 @@ public class LuceneSearcher extends Lucene {
             Term term = new Term(FLD_ALL, s);
             query = new WildcardQuery(term);
         } else {
+            BooleanQuery booleanQuery = new BooleanQuery();
             Term term = new Term(FLD_ALL, s);
-            query = new PrefixQuery(term);
+            MorphologyNormalizer morphologyNormalizer = new MorphologyNormalizer();
+            Term morphologyTerm = new Term(FLD_MORPHOLOGY_ALL, morphologyNormalizer.getAnyNormalForm(s));
+            booleanQuery.add(new PrefixQuery(term), BooleanClause.Occur.SHOULD);
+            booleanQuery.add(new TermQuery(morphologyTerm), BooleanClause.Occur.SHOULD);
+            query = booleanQuery;
         }
         return query;
     }

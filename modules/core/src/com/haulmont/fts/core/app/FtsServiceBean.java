@@ -22,6 +22,7 @@ import com.haulmont.cuba.security.entity.EntityOp;
 import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.core.sys.EntityInfo;
 import com.haulmont.fts.core.sys.LuceneSearcher;
+import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.SearchResult;
 import org.springframework.stereotype.Service;
 
@@ -83,7 +84,8 @@ public class FtsServiceBean implements FtsService {
                             result.addId(entityInfo.getName(), entityInfo.getId());
                         }
                     }
-                    result.addHit(entityInfo.getId(), entityInfo.getText(), null);
+                    result.addHit(entityInfo.getId(), entityInfo.getText(), null,
+                            new MorphologyNormalizer());
                 }
                 tx.commit();
             } finally {
@@ -109,7 +111,8 @@ public class FtsServiceBean implements FtsService {
                                     result.addId(linkEntityInfo.getName(), linkEntityInfo.getId());
                                 }
                             }
-                            result.addHit(linkEntityInfo.getId(), entityInfo.getText(), entityInfo.getName());
+                            result.addHit(linkEntityInfo.getId(), entityInfo.getText(), entityInfo.getName(),
+                                    new MorphologyNormalizer());
                         }
                         tx.commit();
                     } finally {

@@ -18,6 +18,7 @@ public class Lucene {
     protected static final String FLD_ID = "id";
     protected static final String FLD_ALL = "all";
     protected static final String FLD_LINKS = "links";
+    protected static final String FLD_MORPHOLOGY_ALL = "morphologyAll";
 
     protected Directory directory;
 
