@@ -226,7 +226,7 @@ public class SearchResultsWindow extends AbstractWindow {
             LoadContext lc = new LoadContext(metadata.getSession().getClass(entityName));
             lc.setView(View.MINIMAL);
             lc.setId(entityId);
-            Entity entity = getDsContext().getDataService().load(lc);
+            Entity entity = getDsContext().getDataSupplier().load(lc);
 
             WindowManager.OpenType openType = AppWindow.Mode.TABBED.equals(App.getInstance().getAppWindow().getMode()) ?
                     WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
