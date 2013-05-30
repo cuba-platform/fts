@@ -202,7 +202,7 @@ public class LuceneIndexer extends LuceneWriter {
         try {
             data = fs.loadFile(fileDescriptor);
         } catch (FileStorageException e) {
-            log.error("Error indexing file " + fileDescriptor.getFileName() + ": " + e.getMessage());
+            log.error("Error indexing file " + fileDescriptor.getId() + ": " + e.getMessage());
             return;
         }
         InputStream stream = new ByteArrayInputStream(data);
@@ -218,15 +218,15 @@ public class LuceneIndexer extends LuceneWriter {
                     stringWriter = new StringWriter();
                     parser.parse(stream, new BodyContentHandler(stringWriter), new Metadata(), new ParseContext());
                 } catch (Exception e1) {
-                    log.error("Error indexing file " + fileDescriptor.getFileName(), e1);
+                    log.error("Error indexing file " + fileDescriptor.getId(), e1);
                     return;
                 }
             } else {
-                log.error("Error indexing file " + fileDescriptor.getFileName(), e);
+                log.error("Error indexing file " + fileDescriptor.getId(), e);
                 return;
             }
         } catch (Exception e) {
-            log.error("Error indexing file " + fileDescriptor.getFileName(), e);
+            log.error("Error indexing file " + fileDescriptor.getId(), e);
             return;
         }
         appendString(sb, stringWriter.toString());
