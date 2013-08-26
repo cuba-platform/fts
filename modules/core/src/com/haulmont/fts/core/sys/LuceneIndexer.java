@@ -14,14 +14,12 @@ import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.chile.core.model.Instance;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.utils.InstanceUtils;
-import com.haulmont.cuba.core.EntityManager;
-import com.haulmont.cuba.core.Locator;
-import com.haulmont.cuba.core.PersistenceProvider;
-import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.app.FileStorageAPI;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.entity.FtsChangeType;
+import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.FileStorageException;
 import com.haulmont.cuba.core.global.MetadataProvider;
 import com.haulmont.fts.global.FTS;
@@ -61,9 +59,13 @@ public class LuceneIndexer extends LuceneWriter {
 
     private boolean storeContentInIndex;
 
-    private List<Pair<String, UUID>> deleteQueue = new ArrayList<Pair<String, UUID>>();
+    private List<Pair<String, UUID>> deleteQueue = new ArrayList<>();
 
     private ValueFormatter valueFormatter;
+
+    protected Persistence persistence;
+
+    protected com.haulmont.cuba.core.global.Metadata metadata;
 
     public LuceneIndexer(Map<String, EntityDescr> descriptions, Directory directory, boolean storeContentInIndex) {
         super(directory);
@@ -71,6 +73,8 @@ public class LuceneIndexer extends LuceneWriter {
         this.storeContentInIndex = storeContentInIndex;
 
         valueFormatter = new ValueFormatter();
+        persistence = AppBeans.get(Persistence.NAME);
+        metadata = AppBeans.get(com.haulmont.cuba.core.global.Metadata.NAME);
     }
 
     public void close() {
@@ -102,10 +106,10 @@ public class LuceneIndexer extends LuceneWriter {
             }
 
             Field idField, entityField, allField, linksField, morphologyAllField;
-            Transaction tx = Locator.createTransaction();
+            Transaction tx = persistence.createTransaction();
             try {
-                EntityManager em = PersistenceProvider.getEntityManager();
-                MetaClass metaClass = MetadataProvider.getSession().getClass(entityName);
+                EntityManager em = persistence.getEntityManager();
+                MetaClass metaClass = metadata.getSession().getClass(entityName);
                 Entity entity = em.find(metaClass.getJavaClass(), entityId);
                 if (entity == null) {
                     log.error("Entity instance not found: " + entityName + "-" + entityId);
@@ -160,10 +164,10 @@ public class LuceneIndexer extends LuceneWriter {
             }
 
         } catch (IOException e) {
-            log.error("Error indexing "  + entityName + "-" + entityId);
+            log.error("Error indexing " + entityName + "-" + entityId);
             throw new RuntimeException(e);
         } catch (RuntimeException e) {
-            log.error("Error indexing "  + entityName + "-" + entityId);
+            log.error("Error indexing " + entityName + "-" + entityId);
             throw e;
         }
     }

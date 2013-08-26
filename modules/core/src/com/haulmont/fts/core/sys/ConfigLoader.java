@@ -174,11 +174,11 @@ public class ConfigLoader {
 
         if (metaProperty.getRange().isDatatype()) {
             Datatype dt = metaProperty.getRange().asDatatype();
-            return (Datatypes.getInstance().get(StringDatatype.NAME).equals(dt)
-                    || Datatypes.getInstance().get(DateDatatype.NAME).equals(dt)
-                    || Datatypes.getInstance().get(BigDecimalDatatype.NAME).equals(dt)
-                    || Datatypes.getInstance().get(IntegerDatatype.NAME).equals(dt)
-                    || Datatypes.getInstance().get(DoubleDatatype.NAME).equals(dt));
+            return (Datatypes.get(StringDatatype.NAME).equals(dt)
+                    || Datatypes.get(DateDatatype.NAME).equals(dt)
+                    || Datatypes.get(BigDecimalDatatype.NAME).equals(dt)
+                    || Datatypes.get(IntegerDatatype.NAME).equals(dt)
+                    || Datatypes.get(DoubleDatatype.NAME).equals(dt));
 
         } else if (metaProperty.getRange().isEnum() || metaProperty.getRange().isClass()) {
             return true;

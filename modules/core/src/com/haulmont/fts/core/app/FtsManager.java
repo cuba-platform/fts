@@ -62,6 +62,15 @@ public class FtsManager implements FtsManagerAPI {
     protected Authentication authentication;
 
     @Inject
+    protected Persistence persistence;
+
+    @Inject
+    protected Scripting scripting;
+
+    @Inject
+    protected Metadata metadata;
+
+    @Inject
     public void setConfigProvider(Configuration configuration) {
         config = configuration.getConfig(FtsConfig.class);
     }
@@ -99,7 +108,7 @@ public class FtsManager implements FtsManagerAPI {
         return descrByClassName;
     }
 
-    protected Map<String, EntityDescr> getDescrByName() {
+    public Map<String, EntityDescr> getDescrByName() {
         if (descrByName == null) {
             synchronized (this) {
                 if (descrByName == null) {
@@ -129,7 +138,7 @@ public class FtsManager implements FtsManagerAPI {
             ownProperties.add(p);
         }
 
-        Set<String> dirty = PersistenceProvider.getDirtyFields(entity);
+        Set<String> dirty = persistence.getTools().getDirtyFields(entity);
         for (String s : dirty) {
             if (ownProperties.contains(s)) {
                 if (StringUtils.isBlank(descr.getSearchableIfScript())) {
@@ -140,12 +149,12 @@ public class FtsManager implements FtsManagerAPI {
                 break;
             }
         }
-        
+
         if (!StringUtils.isBlank(descr.getSearchablesScript())) {
             Map<String, Object> params = new HashMap<String, Object>();
             params.put("entity", entity);
             params.put("searchables", list);
-            ScriptingProvider.evaluateGroovy(descr.getSearchablesScript(), params);
+            scripting.evaluateGroovy(descr.getSearchablesScript(), params);
         }
 
         return list;
@@ -154,7 +163,7 @@ public class FtsManager implements FtsManagerAPI {
     private boolean runSearchableIf(BaseEntity entity, EntityDescr descr) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("entity", entity);
-        Boolean value = ScriptingProvider.evaluateGroovy(descr.getSearchableIfScript(), params);
+        Boolean value = scripting.evaluateGroovy(descr.getSearchableIfScript(), params);
         return BooleanUtils.isTrue(value);
     }
 
@@ -183,9 +192,9 @@ public class FtsManager implements FtsManagerAPI {
             int maxSize = config.getIndexingBatchSize();
             List<FtsQueue> list;
 
-            Transaction tx = Locator.createTransaction();
+            Transaction tx = persistence.createTransaction();
             try {
-                EntityManager em = PersistenceProvider.getEntityManager();
+                EntityManager em = persistence.getEntityManager();
                 Query query = em.createQuery("select q from sys$FtsQueue q order by q.createTs");
                 query.setMaxResults(maxSize);
                 list = query.getResultList();
@@ -197,9 +206,9 @@ public class FtsManager implements FtsManagerAPI {
             if (!list.isEmpty()) {
                 count = initIndexer(count, list);
 
-                tx = Locator.createTransaction();
+                tx = persistence.createTransaction();
                 try {
-                    EntityManager em = PersistenceProvider.getEntityManager();
+                    EntityManager em = persistence.getEntityManager();
 
                     for (int i = 0; i < list.size(); i += DEL_CHUNK) {
                         StringBuilder sb = new StringBuilder("delete from SYS_FTS_QUEUE where ID in (");
@@ -330,13 +339,13 @@ public class FtsManager implements FtsManagerAPI {
     public int reindexEntity(String entityName) {
         int count = 0;
 
-        MetaClass metaClass = MetadataProvider.getSession().getClass(entityName);
+        MetaClass metaClass = metadata.getSession().getClass(entityName);
         if (metaClass == null)
             throw new IllegalArgumentException("MetaClass not found for " + entityName);
 
-        Transaction tx = Locator.createTransaction();
+        Transaction tx = persistence.createTransaction();
         try {
-            FtsSender sender = Locator.lookup(FtsSender.NAME);
+            FtsSender sender = AppBeans.get(FtsSender.NAME);
 
             sender.emptyQueue(entityName);
             tx.commitRetaining();
@@ -345,7 +354,7 @@ public class FtsManager implements FtsManagerAPI {
             if (descr == null)
                 return count;
 
-            EntityManager em = PersistenceProvider.getEntityManager();
+            EntityManager em = persistence.getEntityManager();
 
             if (StringUtils.isBlank(descr.getSearchableIfScript())) {
                 Query q = em.createQuery("select e.id from " + entityName + " e");
@@ -385,8 +394,10 @@ public class FtsManager implements FtsManagerAPI {
             synchronized (this) {
                 if (directory == null) {
                     String dir = config.getIndexDir();
-                    if (StringUtils.isBlank(dir))
-                        dir = ConfigProvider.getConfig(GlobalConfig.class).getDataDir() + "/ftsindex";
+                    if (StringUtils.isBlank(dir)){
+                        Configuration configuration = AppBeans.get(Configuration.NAME);
+                        dir = configuration.getConfig(GlobalConfig.class).getDataDir() + "/ftsindex";
+                    }
                     File file = new File(dir);
                     if (!file.exists()) {
                         boolean b = file.mkdirs();

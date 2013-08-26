@@ -6,9 +6,11 @@
 package com.haulmont.fts.core.app;
 
 import com.haulmont.cuba.core.entity.BaseEntity;
+import com.haulmont.fts.core.sys.EntityDescr;
 import org.apache.lucene.store.Directory;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author krivopustov
@@ -21,6 +23,8 @@ public interface FtsManagerAPI {
     Directory getDirectory();
 
     List<BaseEntity> getSearchableEntities(BaseEntity entity);
+
+    public Map<String, EntityDescr> getDescrByName();
 
     int processQueue();
 

@@ -13,7 +13,6 @@ package com.haulmont.fts.core.sys;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
-import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;

@@ -12,6 +12,7 @@ package com.haulmont.fts.web.ui.results;
 
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.MessageProvider;
+import com.haulmont.cuba.core.global.Messages;
 import com.haulmont.cuba.gui.ServiceLocator;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.IFrame;
@@ -23,6 +24,7 @@ import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.global.SearchResult;
 import org.apache.commons.lang.StringUtils;
 
+import javax.inject.Inject;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -38,10 +40,11 @@ public class SearchLauncher implements Callable<Window> {
         if (params == null)
             throw new IllegalStateException("params is null");
 
+        Messages messages = AppBeans.get(Messages.NAME);
         String searchTerm = (String) params.get("searchTerm");
         if (StringUtils.isBlank(searchTerm)) {
             App.getInstance().getWindowManager().showNotification(
-                    MessageProvider.getMessage(getClass(), "noSearchTerm"), IFrame.NotificationType.HUMANIZED);
+                    messages.getMessage(getClass(), "noSearchTerm"), IFrame.NotificationType.HUMANIZED);
             return null;
         } else {
             searchTerm = searchTerm.trim();
@@ -52,7 +55,7 @@ public class SearchLauncher implements Callable<Window> {
 
             if (searchResult.isEmpty()) {
                 windowManager.showNotification(
-                        MessageProvider.getMessage(getClass(), "notFound"), IFrame.NotificationType.HUMANIZED);
+                        messages.getMessage(getClass(), "notFound"), IFrame.NotificationType.HUMANIZED);
                 return null;
             } else {
                 params.put("searchResult", searchResult);

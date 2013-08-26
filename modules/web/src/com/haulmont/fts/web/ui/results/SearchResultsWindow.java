@@ -25,6 +25,8 @@ import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
 import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.SearchResult;
+import com.vaadin.server.Sizeable;
+import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.BaseTheme;
 import org.apache.commons.lang.StringUtils;
@@ -76,13 +78,13 @@ public class SearchResultsWindow extends AbstractWindow {
                 contentLayout.addComponent(label);
 
             } else {
-                Session metadata = MetadataProvider.getSession();
+                Session session = metadata.getSession();
 
                 List<Pair<String, String>> entities = new ArrayList<Pair<String, String>>();
                 for (String entityName : searchResult.getEntities()) {
                     entities.add(new Pair<String, String>(
                             entityName,
-                            messages.getTools().getEntityCaption(metadata.getClass(entityName))
+                            messages.getTools().getEntityCaption(session.getClass(entityName))
                     ));
                 }
                 Collections.sort(
@@ -96,7 +98,7 @@ public class SearchResultsWindow extends AbstractWindow {
 
                 for (Pair<String, String> entityPair : entities) {
                     Label separator = new Label("<hr/>");
-                    separator.setContentMode(Label.CONTENT_XHTML);
+                    separator.setContentMode(ContentMode.HTML);
 
                     contentLayout.addComponent(separator);
 
@@ -104,7 +106,7 @@ public class SearchResultsWindow extends AbstractWindow {
 
                     Label entityLabel = new Label(entityPair.getSecond());
                     entityLabel.setStyleName("h2");
-                    entityLabel.setWidth(200, Label.UNITS_PIXELS);
+                    entityLabel.setWidth(200, Sizeable.Unit.PIXELS);
                     grid.addComponent(entityLabel, 0, 0);
 
                     VerticalLayout instancesLayout = new VerticalLayout();
@@ -127,7 +129,7 @@ public class SearchResultsWindow extends AbstractWindow {
             Button instanceBtn = new Button(entry.getCaption());
             instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
             instanceBtn.addStyleName("fts-found-instance");
-            instanceBtn.addListener(new InstanceClickListener(entityName, entry.getId()));
+            instanceBtn.addClickListener(new InstanceClickListener(entityName, entry.getId()));
 
             instanceLayout.addComponent(instanceBtn);
             instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
@@ -148,7 +150,7 @@ public class SearchResultsWindow extends AbstractWindow {
                     hitLayout.addStyleName("fts-hit");
 
                     Label hitLabel = new Label(caption);
-                    hitLabel.setContentMode(Label.CONTENT_XHTML);
+                    hitLabel.setContentMode(ContentMode.HTML);
                     hitLabel.addStyleName("fts-hit");
 
                     hitLayout.addComponent(hitLabel);
@@ -159,18 +161,22 @@ public class SearchResultsWindow extends AbstractWindow {
             }
         }
         if (!searchResult.getIds(entityName).isEmpty()) {
-            HorizontalLayout instanceLayout = new HorizontalLayout();
-
-            Button instanceBtn = new Button(getMessage("more"));
-            instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
-            instanceBtn.addStyleName("fts-found-instance");
-            instanceBtn.addListener(new MoreClickListener(entityName, instancesLayout));
-
-            instanceLayout.addComponent(instanceBtn);
-            instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
-
-            instancesLayout.addComponent(instanceLayout);
+            displayMore(entityName, instancesLayout);
         }
+    }
+
+    protected void displayMore(String entityName, VerticalLayout instancesLayout) {
+        HorizontalLayout instanceLayout = new HorizontalLayout();
+
+        Button instanceBtn = new Button(getMessage("more"));
+        instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
+        instanceBtn.addStyleName("fts-found-instance");
+        instanceBtn.addClickListener(new MoreClickListener(entityName, instancesLayout));
+
+        instanceLayout.addComponent(instanceBtn);
+        instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
+
+        instancesLayout.addComponent(instanceLayout);
     }
 
     private String getHitPropertyCaption(String entityName, String hitProperty) {
@@ -234,7 +240,7 @@ public class SearchResultsWindow extends AbstractWindow {
         }
     }
 
-    private class MoreClickListener implements Button.ClickListener {
+    protected class MoreClickListener implements Button.ClickListener {
 
         private String entityName;
         private VerticalLayout instancesLayout;
