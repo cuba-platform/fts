@@ -39,7 +39,7 @@ public class MultiMorphologyAnalyzer extends Analyzer {
                         addMorphologyFilter(analyzer.tokenStream(fieldName, reader)));
             }
         } catch (IOException e) {
-            log.error(e);
+            log.error("Error", e);
         }
         return null;
     }
