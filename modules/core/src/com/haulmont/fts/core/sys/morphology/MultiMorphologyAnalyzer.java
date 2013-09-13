@@ -2,6 +2,7 @@ package com.haulmont.fts.core.sys.morphology;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.analyzer.MorphologyFilter;
 
@@ -26,13 +27,17 @@ public class MultiMorphologyAnalyzer extends Analyzer {
     }
 
     @Override
-    public TokenStream tokenStream(String fieldName, Reader reader) {
-        return addMorphologyFilter(analyzer.tokenStream(fieldName, reader));
-    }
-
-    @Override
-    public TokenStream reusableTokenStream(String fieldName, Reader reader) throws IOException {
-        return addMorphologyFilter(analyzer.reusableTokenStream(fieldName, reader));
+    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+        try {
+            if (analyzer.tokenStream(fieldName, reader) instanceof Tokenizer) {
+                Tokenizer analyzerTokenizer = (Tokenizer) analyzer.tokenStream(fieldName, reader);
+                return new TokenStreamComponents(analyzerTokenizer,
+                        addMorphologyFilter(analyzer.tokenStream(fieldName, reader)));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     protected TokenStream addMorphologyFilter(TokenStream token) {
@@ -41,5 +46,4 @@ public class MultiMorphologyAnalyzer extends Analyzer {
         }
         return token;
     }
-
 }

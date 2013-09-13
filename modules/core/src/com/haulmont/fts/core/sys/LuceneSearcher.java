@@ -14,6 +14,7 @@ import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
@@ -31,7 +32,7 @@ public class LuceneSearcher extends Lucene {
         super(directory);
         this.storeContentInIndex = storeContentInIndex;
         try {
-            searcher = new IndexSearcher(directory, true);
+            searcher = new IndexSearcher(DirectoryReader.open(directory));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -39,14 +40,14 @@ public class LuceneSearcher extends Lucene {
 
     public boolean isCurrent() {
         try {
-            return searcher.getIndexReader().isCurrent();
+            return ((DirectoryReader) searcher.getIndexReader()).isCurrent();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public List<EntityInfo> searchAllField(String searchTerm, int maxResults) {
-        Set<EntityInfo> set = new LinkedHashSet<EntityInfo>();
+        Set<EntityInfo> set = new LinkedHashSet<>();
 
         ValueFormatter valueFormatter = new ValueFormatter();
 
@@ -109,7 +110,7 @@ public class LuceneSearcher extends Lucene {
     }
 
     public List<EntityInfo> searchLinksField(UUID id, int maxResults) {
-        Set<EntityInfo> set = new LinkedHashSet<EntityInfo>();
+        Set<EntityInfo> set = new LinkedHashSet<>();
         Term term = new Term(FLD_LINKS, id.toString());
         Query termQuery = new TermQuery(term);
         try {

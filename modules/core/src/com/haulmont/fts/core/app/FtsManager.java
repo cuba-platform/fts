@@ -6,7 +6,10 @@
 package com.haulmont.fts.core.app;
 
 import com.haulmont.chile.core.model.MetaClass;
-import com.haulmont.cuba.core.*;
+import com.haulmont.cuba.core.EntityManager;
+import com.haulmont.cuba.core.Persistence;
+import com.haulmont.cuba.core.Query;
+import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.app.ClusterManagerAPI;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.entity.BaseEntity;
@@ -25,8 +28,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.lucene.index.IndexUpgrader;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
 
 import javax.annotation.ManagedBean;
 import javax.inject.Inject;
@@ -112,7 +117,7 @@ public class FtsManager implements FtsManagerAPI {
         if (descrByName == null) {
             synchronized (this) {
                 if (descrByName == null) {
-                    descrByName = new HashMap<String, EntityDescr>(getDescrByClassName().size());
+                    descrByName = new HashMap<>(getDescrByClassName().size());
                     for (EntityDescr descr : getDescrByClassName().values()) {
                         String name = descr.getMetaClass().getName();
                         descrByName.put(name, descr);
@@ -124,7 +129,7 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     public List<BaseEntity> getSearchableEntities(BaseEntity entity) {
-        List<BaseEntity> list = new ArrayList<BaseEntity>();
+        List<BaseEntity> list = new ArrayList<>();
 
         EntityDescr descr = getDescrByClassName().get(entity.getClass().getName());
         if (descr == null)
@@ -132,7 +137,7 @@ public class FtsManager implements FtsManagerAPI {
 
         Set<String> properties = descr.getPropertyNames();
 
-        Set<String> ownProperties = new HashSet<String>(properties.size());
+        Set<String> ownProperties = new HashSet<>(properties.size());
         for (String property : properties) {
             String p = property.indexOf(".") < 0 ? property : property.substring(0, property.indexOf("."));
             ownProperties.add(p);
@@ -151,7 +156,7 @@ public class FtsManager implements FtsManagerAPI {
         }
 
         if (!StringUtils.isBlank(descr.getSearchablesScript())) {
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("entity", entity);
             params.put("searchables", list);
             scripting.evaluateGroovy(descr.getSearchablesScript(), params);
@@ -161,7 +166,7 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     private boolean runSearchableIf(BaseEntity entity, EntityDescr descr) {
-        Map<String, Object> params = new HashMap<String, Object>();
+        Map<String, Object> params = new HashMap<>();
         params.put("entity", entity);
         Boolean value = scripting.evaluateGroovy(descr.getSearchableIfScript(), params);
         return BooleanUtils.isTrue(value);
@@ -297,6 +302,18 @@ public class FtsManager implements FtsManagerAPI {
         }
     }
 
+    @Override
+    public String upgradeIndexes() {
+        IndexUpgrader upgrader = new IndexUpgrader(getDirectory(), Version.LUCENE_44);
+        try {
+            upgrader.upgrade();
+        } catch (IOException e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        }
+        return "successful";
+    }
+
     public boolean showInResults(String entityName) {
         EntityDescr descr = getDescrByName().get(entityName);
         return descr != null && descr.isShow();
@@ -310,7 +327,9 @@ public class FtsManager implements FtsManagerAPI {
         }
         try {
             writing = true;
-            LuceneWriter.deleteIndexForEntity(getDirectory(), entityName);
+            LuceneWriter writer = new LuceneWriter(getDirectory());
+            writer.deleteIndexForEntity(entityName);
+            writer.close();
         } finally {
             writeLock.unlock();
             writing = false;

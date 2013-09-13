@@ -22,7 +22,7 @@ public class FTS {
 
     public static final int HIT_CONTEXT_PAD = 10;
 
-    public static boolean isTokenChar(char c) {
+    public static boolean isTokenChar(int c) {
         return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '/' || c == '\\' || c == '$' || c == '^';
     }
 

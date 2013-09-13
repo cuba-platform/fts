@@ -14,14 +14,15 @@ import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.chile.core.model.Instance;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.utils.InstanceUtils;
-import com.haulmont.cuba.core.*;
+import com.haulmont.cuba.core.EntityManager;
+import com.haulmont.cuba.core.Persistence;
+import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.app.FileStorageAPI;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.FileStorageException;
-import com.haulmont.cuba.core.global.MetadataProvider;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
 import org.apache.commons.lang.ArrayUtils;
@@ -30,7 +31,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
@@ -78,24 +80,23 @@ public class LuceneIndexer extends LuceneWriter {
     }
 
     public void close() {
-        super.close();
         try {
             if (!deleteQueue.isEmpty()) {
                 log.debug("Deleting documents " + deleteQueue);
-                IndexReader indexReader = IndexReader.open(directory, false);
                 for (Pair<String, UUID> pair : deleteQueue) {
-                    indexReader.deleteDocuments(new Term(FLD_ID, pair.getSecond().toString()));
+                    writer.deleteDocuments(new Term(FLD_ID, pair.getSecond().toString()));
                 }
-                indexReader.close();
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            super.close();
         }
     }
 
     public void indexEntity(String entityName, UUID entityId, FtsChangeType changeType) {
         if (FtsChangeType.DELETE.equals(changeType)) {
-            deleteQueue.add(new Pair<String, UUID>(entityName, entityId));
+            deleteQueue.add(new Pair<>(entityName, entityId));
             return;
         }
         try {
@@ -116,31 +117,28 @@ public class LuceneIndexer extends LuceneWriter {
                     return;
                 }
 
-                idField = new Field(FLD_ID, entityId.toString(), Field.Store.YES, Field.Index.NOT_ANALYZED);
+                idField = new StringField(FLD_ID, entityId.toString(), Field.Store.YES);
 
-                entityField = new Field(FLD_ENTITY, entityName, Field.Store.YES, Field.Index.NOT_ANALYZED);
+                entityField = new StringField(FLD_ENTITY, entityName, Field.Store.YES);
 
                 String allContent = createAllFieldContent(entity, descr);
 
-                allField = new Field(
+                allField = new TextField(
                         FLD_ALL,
                         allContent,
-                        storeContentInIndex ? Field.Store.YES : Field.Store.NO,
-                        Field.Index.ANALYZED
+                        storeContentInIndex ? Field.Store.YES : Field.Store.NO
                 );
 
-                morphologyAllField = new Field(
+                morphologyAllField = new TextField(
                         FLD_MORPHOLOGY_ALL,
                         allContent,
-                        Field.Store.NO,
-                        Field.Index.ANALYZED
+                        Field.Store.NO
                 );
 
-                linksField = new Field(
+                linksField = new TextField(
                         FLD_LINKS,
                         createLinksFieldContent(entity, descr),
-                        Field.Store.YES,
-                        Field.Index.ANALYZED
+                        Field.Store.YES
                 );
 
                 tx.commit();
@@ -176,7 +174,7 @@ public class LuceneIndexer extends LuceneWriter {
         StringBuilder sb = new StringBuilder();
 
         for (String propName : descr.getLocalProperties()) {
-            Object value = ((Instance) entity).getValue(propName);
+            Object value = entity.getValue(propName);
 
             String str = valueFormatter.format(value);
             if (str != null && !StringUtils.isBlank(str)) {
@@ -201,7 +199,7 @@ public class LuceneIndexer extends LuceneWriter {
     protected void appendFileContent(StringBuilder sb, FileDescriptor fileDescriptor) {
         Parser parser = getParser(fileDescriptor);
         if (parser == null) return;
-        FileStorageAPI fs = Locator.lookup(FileStorageAPI.NAME);
+        FileStorageAPI fs = AppBeans.get(FileStorageAPI.class);
         byte[] data;
         try {
             data = fs.loadFile(fileDescriptor);
@@ -239,21 +237,31 @@ public class LuceneIndexer extends LuceneWriter {
     protected Parser getParser(FileDescriptor fileDescriptor) {
         Parser parser;
         String ext = fileDescriptor.getExtension();
-        if ("pdf".equals(ext))
-            parser = new PDFParser();
-        else if ("doc".equals(ext) || "xls".equals(ext))
-            parser = new OfficeParser();
-        else if ("docx".equals(ext) || "xlsx".equals(ext))
-            parser = new OOXMLParser();
-        else if ("odt".equals(ext) || "ods".equals(ext))
-            parser = new OpenDocumentParser();
-        else if ("rtf".equals(ext))
-            parser = new RTFParser();
-        else if ("txt".equals(ext))
-            parser = new TXTParser();
-        else {
-            log.warn("Unsupported file extension: " + ext);
-            return null;
+        switch (ext) {
+            case "pdf":
+                parser = new PDFParser();
+                break;
+            case "doc":
+            case "xls":
+                parser = new OfficeParser();
+                break;
+            case "docx":
+            case "xlsx":
+                parser = new OOXMLParser();
+                break;
+            case "odt":
+            case "ods":
+                parser = new OpenDocumentParser();
+                break;
+            case "rtf":
+                parser = new RTFParser();
+                break;
+            case "txt":
+                parser = new TXTParser();
+                break;
+            default:
+                log.warn("Unsupported file extension: " + ext);
+                return null;
         }
         return parser;
     }
@@ -265,7 +273,7 @@ public class LuceneIndexer extends LuceneWriter {
             if (storeContentInIndex) {
                 appendString(sb, makeFieldName(propName));
             }
-            addLinkedPropertyEx(sb, (Instance) entity, InstanceUtils.parseValuePath(propName));
+            addLinkedPropertyEx(sb, entity, InstanceUtils.parseValuePath(propName));
         }
         if (log.isTraceEnabled())
             log.trace("Entity " + entity + " links field: " + sb.toString());

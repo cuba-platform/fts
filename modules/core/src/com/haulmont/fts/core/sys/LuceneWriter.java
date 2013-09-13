@@ -2,17 +2,21 @@ package com.haulmont.fts.core.sys;
 
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.core.sys.morphology.MultiMorphologyAnalyzer;
-import org.apache.lucene.analysis.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.WhitespaceAnalyzer;
-import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.Version;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class LuceneWriter extends Lucene {
 
@@ -22,15 +26,16 @@ public class LuceneWriter extends Lucene {
     public LuceneWriter(Directory directory) {
         super(directory);
 
-        List<LuceneMorphology> morphologies =
-                MorphologyNormalizer.getAvailableMorphologies();
-        analyzer = new PerFieldAnalyzerWrapper(new EntityAttributeAnalyzer());
-        analyzer.addAnalyzer(FLD_LINKS, new WhitespaceAnalyzer());
+        List<LuceneMorphology> morphologies = MorphologyNormalizer.getAvailableMorphologies();
 
-        analyzer.addAnalyzer(FLD_MORPHOLOGY_ALL, new MultiMorphologyAnalyzer(morphologies,
-                new EntityAttributeAnalyzer()));
+        Map<String,Analyzer> analyzerPerField = new HashMap<>();
+        analyzerPerField.put(FLD_LINKS, new WhitespaceAnalyzer(Version.LUCENE_44));
+        analyzerPerField.put(FLD_MORPHOLOGY_ALL, new MultiMorphologyAnalyzer(morphologies, new EntityAttributeAnalyzer()));
+        analyzer = new PerFieldAnalyzerWrapper(new EntityAttributeAnalyzer(), analyzerPerField);
         try {
-            writer = new IndexWriter(directory, analyzer, new KeepOnlyLastCommitDeletionPolicy(), IndexWriter.MaxFieldLength.UNLIMITED);
+            IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_44, analyzer);
+            config.setIndexDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy());
+            writer = new IndexWriter(directory, config);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -46,7 +51,7 @@ public class LuceneWriter extends Lucene {
 
     public void optimize() {
         try {
-            writer.optimize();
+            writer.forceMerge(1);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -60,11 +65,9 @@ public class LuceneWriter extends Lucene {
         }
     }
 
-    public static void deleteIndexForEntity(Directory directory, String entityName) {
+    public void deleteIndexForEntity(String entityName) {
         try {
-            IndexReader indexReader = IndexReader.open(directory, false);
-            indexReader.deleteDocuments(new Term(FLD_ENTITY, entityName));
-            indexReader.close();
+            writer.deleteDocuments(new Term(FLD_ENTITY, entityName));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

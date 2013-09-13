@@ -59,6 +59,11 @@ public class FtsManager implements FtsManagerMBean {
         return manager.optimize();
     }
 
+    @Override
+    public String upgradeIndexes() {
+        return manager.upgradeIndexes();
+    }
+
     @Authenticated
     @Override
     public String reindexEntity(String entityName) {

@@ -23,6 +23,8 @@ public interface FtsManagerMBean {
 
     String optimize();
 
+    String upgradeIndexes();
+
     @ManagedOperationParameters({@ManagedOperationParameter(name = "entityName", description = "")})
     String reindexEntity(String entityName);
 

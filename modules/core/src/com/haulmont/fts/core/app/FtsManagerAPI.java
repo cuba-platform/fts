@@ -30,6 +30,8 @@ public interface FtsManagerAPI {
 
     String optimize();
 
+    String upgradeIndexes();
+
     boolean showInResults(String entityName);
 
     boolean isEnabled();

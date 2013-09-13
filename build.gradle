@@ -11,19 +11,19 @@ def BUILD_VCS_NUMBER = 'buildVcsNumber'
 
 allprojects {
     ext.artifactGroup = 'com.haulmont.fts'
-    ext.artifactVersion = rootProject.hasProperty(BUILD_VERSION) ? 
-                                    rootProject[BUILD_VERSION].replace('-SNAPSHOT', '') : defaultVersion
+    ext.artifactVersion = rootProject.hasProperty(BUILD_VERSION) ?
+        rootProject[BUILD_VERSION].replace('-SNAPSHOT', '') : defaultVersion
     ext.isSnapshot = !rootProject.hasProperty(BUILD_VERSION) || rootProject[BUILD_VERSION].endsWith('-SNAPSHOT')
     ext.vcs = 'svn'
     //ext.tomcatDir = rootDir.absolutePath + '/../tomcat'
 }
 
 buildscript {
-	def cubaPluginVersion = '4.1-SNAPSHOT'	
-	def CUBA_PLUGIN_VERSION = 'cubaPluginVersion'
+    def cubaPluginVersion = '4.1-SNAPSHOT'
+    def CUBA_PLUGIN_VERSION = 'cubaPluginVersion'
 
-	cubaPluginVersion = rootProject.hasProperty(CUBA_PLUGIN_VERSION) ? rootProject[CUBA_PLUGIN_VERSION] : cubaPluginVersion
-		
+    cubaPluginVersion = rootProject.hasProperty(CUBA_PLUGIN_VERSION) ? rootProject[CUBA_PLUGIN_VERSION] : cubaPluginVersion
+
     repositories {
         mavenLocal()
         maven {
@@ -33,6 +33,10 @@ buildscript {
             }
             url "http://repository.haulmont.com:8587/nexus/content/groups/work"
         }
+        maven {
+            url "https://repository.apache.org/content/groups/snapshots"
+        }
+
     }
     dependencies {
         classpath group: 'com.haulmont.gradle', name: 'cuba-plugin', version: cubaPluginVersion
@@ -63,7 +67,7 @@ configure([globalModule, coreModule, webModule]) {
     task sourceJar(type: Jar) {
         from file('src')
         classifier = 'sources'
-    } 
+    }
 
     artifacts {
         archives sourceJar
@@ -74,10 +78,11 @@ configure(coreModule) {
     dependencies {
         compile(globalModule)
         compile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion)
-        compile(group: 'org.apache.lucene', name: 'lucene-core', version: '3.0.2')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'russian', version: '1.0')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'english', version: '1.0')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morph', version: '1.0')
+        compile(group: 'org.apache.lucene', name: 'lucene-core', version: '4.4.0')
+        compile(group: 'org.apache.lucene', name: 'lucene-analyzers-common', version: '4.4.0')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'russian', version: '1.2.h')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'english', version: '1.2.h')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morph', version: '1.2.h')
         compile(group: 'org.apache.tika', name: 'tika-parsers', version: '0.9') {
             exclude(group: 'org.apache.poi', module: 'poi')
         }

@@ -11,27 +11,13 @@
 package com.haulmont.fts.core.sys;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.Tokenizer;
 
-import java.io.IOException;
 import java.io.Reader;
 
 public class EntityAttributeAnalyzer extends Analyzer {
 
     @Override
-    public TokenStream tokenStream(String fieldName, Reader reader) {
-        return new EntityAttributeTokenizer(reader);
-    }
-
-    @Override
-    public TokenStream reusableTokenStream(String fieldName, Reader reader) throws IOException {
-        Tokenizer tokenizer = (Tokenizer) getPreviousTokenStream();
-        if (tokenizer == null) {
-            tokenizer = new EntityAttributeTokenizer(reader);
-            setPreviousTokenStream(tokenizer);
-        } else
-            tokenizer.reset(reader);
-        return tokenizer;
+    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+        return new TokenStreamComponents(new EntityAttributeTokenizer(reader));
     }
 }

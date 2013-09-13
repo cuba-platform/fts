@@ -10,13 +10,12 @@
  */
 package com.haulmont.fts.core.app;
 
-import com.haulmont.chile.core.model.Instance;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.global.Configuration;
 import com.haulmont.cuba.core.global.FtsConfig;
-import com.haulmont.cuba.core.global.MetadataProvider;
+import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.View;
 import com.haulmont.cuba.security.entity.EntityOp;
 import com.haulmont.fts.app.FtsService;
@@ -40,6 +39,12 @@ public class FtsServiceBean implements FtsService {
 
     @Inject
     private PersistenceSecurity security;
+
+    @Inject
+    private Persistence persistence;
+
+    @Inject
+    private Metadata metadata;
 
     private FtsConfig config;
 
@@ -68,7 +73,7 @@ public class FtsServiceBean implements FtsService {
 
         List<EntityInfo> allFieldResults = getSearcher().searchAllField(searchTerm, maxResults);
         if (!allFieldResults.isEmpty()) {
-            Transaction tx = Locator.createTransaction();
+            Transaction tx = persistence.createTransaction();
             try {
                 for (EntityInfo entityInfo : allFieldResults) {
                     if (!manager.showInResults(entityInfo.getName()))
@@ -95,7 +100,7 @@ public class FtsServiceBean implements FtsService {
             for (EntityInfo entityInfo : allFieldResults) {
                 List<EntityInfo> linksFieldResults = getSearcher().searchLinksField(entityInfo.getId(), maxResults);
                 if (!linksFieldResults.isEmpty()) {
-                    tx = Locator.createTransaction();
+                    tx = persistence.createTransaction();
                     try {
                         for (EntityInfo linkEntityInfo : linksFieldResults) {
                             if (!manager.showInResults(linkEntityInfo.getName()))
@@ -128,7 +133,7 @@ public class FtsServiceBean implements FtsService {
     public SearchResult expandResult(SearchResult result, String entityName) {
         int max = result.getEntriesCount(entityName) + config.getSearchResultsBatchSize();
 
-        Transaction tx = Locator.createTransaction();
+        Transaction tx = persistence.createTransaction();
         try {
             for (UUID id : result.getIds(entityName)) {
                 if (result.getEntriesCount(entityName) > max)
@@ -149,25 +154,25 @@ public class FtsServiceBean implements FtsService {
     }
 
     private SearchResult.Entry createEntry(String entityName, UUID entityId) {
-        MetaClass metaClass = MetadataProvider.getSession().getClass(entityName);
+        MetaClass metaClass = metadata.getSession().getClass(entityName);
 
         if (!security.isEntityOpPermitted(metaClass, EntityOp.READ))
             return null;
 
-        EntityManager em = PersistenceProvider.getEntityManager();
+        EntityManager em = persistence.getEntityManager();
 
         Query query = em.createQuery("select e from " + entityName + " e where e.id = :id");
         security.applyConstraints(query, entityName);
 
         query.setParameter("id", entityId);
 
-        query.setView(MetadataProvider.getViewRepository().getView(metaClass.getJavaClass(), View.MINIMAL));
+        query.setView(metadata.getViewRepository().getView(metaClass.getJavaClass(), View.MINIMAL));
 
         List<Entity> list = query.getResultList();
         if (list.isEmpty())
             return null;
 
-        String entityCaption = ((Instance) list.get(0)).getInstanceName();
+        String entityCaption = list.get(0).getInstanceName();
         return new SearchResult.Entry(entityId, entityCaption);
     }
 }
