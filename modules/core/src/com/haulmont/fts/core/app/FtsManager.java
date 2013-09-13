@@ -303,7 +303,7 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     @Override
-    public String upgradeIndexes() {
+    public String upgrade() {
         IndexUpgrader upgrader = new IndexUpgrader(getDirectory(), Version.LUCENE_44);
         try {
             upgrader.upgrade();

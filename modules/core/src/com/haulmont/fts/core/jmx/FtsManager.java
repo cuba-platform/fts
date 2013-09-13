@@ -60,8 +60,8 @@ public class FtsManager implements FtsManagerMBean {
     }
 
     @Override
-    public String upgradeIndexes() {
-        return manager.upgradeIndexes();
+    public String upgrade() {
+        return manager.upgrade();
     }
 
     @Authenticated

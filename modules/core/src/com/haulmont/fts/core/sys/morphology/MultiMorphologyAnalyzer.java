@@ -1,5 +1,7 @@
 package com.haulmont.fts.core.sys.morphology;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
@@ -15,6 +17,8 @@ import java.util.List;
  * @version $Id$
  */
 public class MultiMorphologyAnalyzer extends Analyzer {
+
+    private static Log log = LogFactory.getLog(MultiMorphologyAnalyzer.class);
 
     protected List<LuceneMorphology> morphologies;
 
@@ -35,7 +39,7 @@ public class MultiMorphologyAnalyzer extends Analyzer {
                         addMorphologyFilter(analyzer.tokenStream(fieldName, reader)));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
         return null;
     }

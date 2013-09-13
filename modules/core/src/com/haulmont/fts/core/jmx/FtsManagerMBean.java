@@ -15,6 +15,7 @@ import org.springframework.jmx.export.annotation.ManagedOperationParameters;
 public interface FtsManagerMBean {
 
     boolean isEnabled();
+
     void setEnabled(boolean value);
 
     boolean isWriting();
@@ -23,7 +24,7 @@ public interface FtsManagerMBean {
 
     String optimize();
 
-    String upgradeIndexes();
+    String upgrade();
 
     @ManagedOperationParameters({@ManagedOperationParameter(name = "entityName", description = "")})
     String reindexEntity(String entityName);
