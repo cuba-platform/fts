@@ -33,10 +33,6 @@ buildscript {
             }
             url "http://repository.haulmont.com:8587/nexus/content/groups/work"
         }
-        maven {
-            url "https://repository.apache.org/content/groups/snapshots"
-        }
-
     }
     dependencies {
         classpath group: 'com.haulmont.gradle', name: 'cuba-plugin', version: cubaPluginVersion
