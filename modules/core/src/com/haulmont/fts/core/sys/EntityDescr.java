@@ -1,12 +1,6 @@
 /*
- * Copyright (c) 2010 Haulmont Technology Ltd. All Rights Reserved.
- * Haulmont Technology proprietary and confidential.
- * Use is subject to license terms.
-
- * Author: Konstantin Krivopustov
- * Created: 20.07.2010 16:26:08
- *
- * $Id$
+ * Copyright (c) 2008-2013 Haulmont. All rights reserved.
+ * Use is subject to license terms, see http://www.cuba-platform.com/license for details.
  */
 package com.haulmont.fts.core.sys;
 
