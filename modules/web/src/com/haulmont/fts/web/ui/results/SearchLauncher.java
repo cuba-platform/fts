@@ -50,7 +50,7 @@ public class SearchLauncher implements Callable<Window> {
                 return null;
             } else {
                 params.put("searchResult", searchResult);
-                WindowInfo windowInfo = AppBeans.get(WindowConfig.class).getWindowInfo("fts$SearchResults");
+                WindowInfo windowInfo = AppBeans.get(WindowConfig.class).getWindowInfo("ftsSearchResults");
 
                 return windowManager.openWindow(windowInfo, WindowManager.OpenType.NEW_TAB, params);
             }
