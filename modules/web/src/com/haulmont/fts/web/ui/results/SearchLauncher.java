@@ -21,7 +21,7 @@ import java.util.concurrent.Callable;
 
 public class SearchLauncher implements Callable<Window> {
 
-    private Map<String, Object> params;
+    protected Map<String, Object> params;
 
     public SearchLauncher(Map<String, Object> params) {
         this.params = params;
