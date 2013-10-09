@@ -7,6 +7,7 @@ package com.haulmont.fts.core.sys;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
+import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
@@ -62,8 +63,10 @@ public class LuceneSearcher extends Lucene {
             } else {
                 query = new BooleanQuery();
                 for (String string : strings) {
-                    Query q = createQuery(string, valueFormatter);
-                    ((BooleanQuery) query).add(q, BooleanClause.Occur.SHOULD);
+                    if (StringUtils.isNotEmpty(string)) {
+                        Query q = createQuery(string, valueFormatter);
+                        ((BooleanQuery) query).add(q, BooleanClause.Occur.SHOULD);
+                    }
                 }
             }
         }
