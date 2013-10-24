@@ -40,11 +40,11 @@ apply(plugin: 'cuba')
 def globalModule = project(':fts-global')
 def coreModule = project(':fts-core')
 def webModule = project(':fts-web')
-def web6Module = project(':fts-web6')
+def webLegacyModule = project(':fts-web6')
 
 def baseVersion = artifactVersion + (isSnapshot ? '-SNAPSHOT' : '')
 
-configure([globalModule, coreModule, webModule, web6Module]) {
+configure([globalModule, coreModule, webModule, webLegacyModule]) {
     apply(plugin: 'java')
     apply(plugin: 'idea')
     apply(plugin: 'maven')
@@ -90,7 +90,7 @@ configure(webModule) {
     }
 }
 
-configure(web6Module) {
+configure(webLegacyModule) {
     dependencies {
         compile(globalModule)
         compile(group: 'com.haulmont.cuba', name: 'cuba-web6', version: baseVersion)
