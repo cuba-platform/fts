@@ -6,8 +6,9 @@
 
 rootProject.name = 'fts'
 
-include(':fts-global', ':fts-core', ':fts-web')
+include(':fts-global', ':fts-core', ':fts-web', ':fts-web6')
 
 project(':fts-global').projectDir = new File(settingsDir, 'modules/global')
 project(':fts-core').projectDir = new File(settingsDir, 'modules/core')
 project(':fts-web').projectDir = new File(settingsDir, 'modules/web')
+project(':fts-web6').projectDir = new File(settingsDir, 'modules/web6')
