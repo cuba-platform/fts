@@ -71,9 +71,9 @@ configure(coreModule) {
         compile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion)
         compile(group: 'org.apache.lucene', name: 'lucene-core', version: '4.4.0')
         compile(group: 'org.apache.lucene', name: 'lucene-analyzers-common', version: '4.4.0')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'russian', version: '1.2.h')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'english', version: '1.2.h')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morph', version: '1.2.h')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'russian', version: '1.3.h')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'english', version: '1.3.h')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morph', version: '1.3.h')
         compile(group: 'org.apache.tika', name: 'tika-parsers', version: '1.3') {
             exclude(group: 'org.apache.poi', module: 'poi')
         }
