@@ -6,13 +6,13 @@ package com.haulmont.fts.core.app;
 
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.cuba.core.EntityManager;
-import com.haulmont.cuba.core.PersistenceProvider;
+import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.entity.BaseEntity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
-import com.haulmont.cuba.core.global.MetadataProvider;
+import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.fts.core.jmx.FtsManagerMBean;
 
 import javax.annotation.ManagedBean;
@@ -20,10 +20,20 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * @author krivopustov
+ * @version $Id$
+ */
 @ManagedBean(FtsSender.NAME)
 public class FtsSenderBean implements FtsSender {
 
-    private FtsManagerAPI manager;
+    protected FtsManagerAPI manager;
+
+    @Inject
+    protected Metadata metadata;
+
+    @Inject
+    protected Persistence persistence;
 
     @Inject
     public void setManager(FtsManagerAPI manager) {
@@ -34,13 +44,13 @@ public class FtsSenderBean implements FtsSender {
         List<BaseEntity> list = manager.getSearchableEntities(entity);
         if (!list.isEmpty()) {
             if (changeType.equals(FtsChangeType.DELETE)) {
-                MetaClass metaClass = MetadataProvider.getSession().getClass(entity.getClass());
+                MetaClass metaClass = metadata.getSession().getClassNN(entity.getClass());
                 enqueue(metaClass.getName(), entity.getId(), FtsChangeType.DELETE);
             }
 
-            for (BaseEntity<UUID> e : list) {
-                MetaClass metaClass = MetadataProvider.getSession().getClass(e.getClass());
-                enqueue(metaClass.getName(), e.getId(), FtsChangeType.UPDATE);
+            for (BaseEntity e : list) {
+                MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
+                enqueue(metaClass.getName(), (UUID) e.getId(), FtsChangeType.UPDATE);
             }
         }
     }
@@ -51,18 +61,18 @@ public class FtsSenderBean implements FtsSender {
         q.setEntityName(entityName);
         q.setChangeType(changeType);
 
-        PersistenceProvider.getEntityManager().persist(q);
+        persistence.getEntityManager().persist(q);
     }
 
     public void emptyQueue(String entityName) {
-        EntityManager em = PersistenceProvider.getEntityManager();
+        EntityManager em = persistence.getEntityManager();
         Query q = em.createQuery("delete from sys$FtsQueue q where q.entityName = ?1");
         q.setParameter(1, entityName);
         q.executeUpdate();
     }
 
     public void emptyQueue() {
-        EntityManager em = PersistenceProvider.getEntityManager();
+        EntityManager em = persistence.getEntityManager();
         Query q = em.createQuery("delete from sys$FtsQueue q");
         q.executeUpdate();
     }

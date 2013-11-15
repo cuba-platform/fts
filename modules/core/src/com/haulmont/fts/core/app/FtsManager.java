@@ -16,6 +16,7 @@ import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.core.sys.AppContext;
+import com.haulmont.cuba.core.sys.persistence.DbTypeConverter;
 import com.haulmont.cuba.security.app.Authenticated;
 import com.haulmont.cuba.security.app.Authentication;
 import com.haulmont.fts.core.sys.ConfigLoader;
@@ -36,6 +37,7 @@ import javax.annotation.ManagedBean;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -224,9 +226,15 @@ public class FtsManager implements FtsManagerAPI {
                         }
                         sb.append(")");
 
+                        DbTypeConverter converter = persistence.getDbTypeConverter();
+
                         Query query = em.createNativeQuery(sb.toString());
                         for (int idx = 0; idx < sublist.size(); idx++) {
-                            query.setParameter(idx + 1, sublist.get(idx).getId());
+                            try {
+                                query.setParameter(idx + 1, converter.getSqlObject(sublist.get(idx).getId()));
+                            } catch (SQLException e) {
+                                throw new RuntimeException("Unable to set query parameter", e);
+                            }
                         }
                         query.executeUpdate();
                     }
@@ -271,7 +279,7 @@ public class FtsManager implements FtsManagerAPI {
             return "Application is not started";
 
         if (!clusterManager.isMaster())
-            return "Cluster is not master";
+            return "Server is not master in cluster";
 
         if (!config.getEnabled())
             return "FTS is disabled";
