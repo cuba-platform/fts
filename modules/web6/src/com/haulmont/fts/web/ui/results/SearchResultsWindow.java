@@ -71,49 +71,53 @@ public class SearchResultsWindow extends AbstractWindow {
             if (searchResult == null)
                 searchResult = service.search(searchTerm.toLowerCase());
 
-            if (searchResult.isEmpty()) {
-                Label label = new Label(getMessage("notFound"));
-                label.setStyleName("h2");
-                contentLayout.addComponent(label);
+            paintResult(searchResult);
+        }
+    }
 
-            } else {
-                Session session = metadata.getSession();
+    protected void paintResult(SearchResult searchResult) {
+        if (searchResult.isEmpty()) {
+            Label label = new Label(getMessage("notFound"));
+            label.setStyleName("h2");
+            contentLayout.addComponent(label);
 
-                List<Pair<String, String>> entities = new ArrayList<>();
-                for (String entityName : searchResult.getEntities()) {
-                    entities.add(new Pair<>(
-                            entityName,
-                            messages.getTools().getEntityCaption(session.getClass(entityName))
-                    ));
-                }
-                Collections.sort(
-                        entities,
-                        new Comparator<Pair<String, String>>() {
-                            public int compare(Pair<String, String> o1, Pair<String, String> o2) {
-                                return o1.getSecond().compareTo(o2.getSecond());
-                            }
+        } else {
+            Session session = metadata.getSession();
+
+            List<Pair<String, String>> entities = new ArrayList<>();
+            for (String entityName : searchResult.getEntities()) {
+                entities.add(new Pair<>(
+                        entityName,
+                        messages.getTools().getEntityCaption(session.getClass(entityName))
+                ));
+            }
+            Collections.sort(
+                    entities,
+                    new Comparator<Pair<String, String>>() {
+                        public int compare(Pair<String, String> o1, Pair<String, String> o2) {
+                            return o1.getSecond().compareTo(o2.getSecond());
                         }
-                );
+                    }
+            );
 
-                for (Pair<String, String> entityPair : entities) {
-                    Label separator = new Label("<hr/>");
-                    separator.setContentMode(Label.CONTENT_XHTML);
+            for (Pair<String, String> entityPair : entities) {
+                Label separator = new Label("<hr/>");
+                separator.setContentMode(Label.CONTENT_XHTML);
 
-                    contentLayout.addComponent(separator);
+                contentLayout.addComponent(separator);
 
-                    GridLayout grid = new GridLayout(2, 1);
+                GridLayout grid = new GridLayout(2, 1);
 
-                    Label entityLabel = new Label(entityPair.getSecond());
-                    entityLabel.setStyleName("h2");
-                    entityLabel.setWidth(200, Sizeable.UNITS_PIXELS);
-                    grid.addComponent(entityLabel, 0, 0);
+                Label entityLabel = new Label(entityPair.getSecond());
+                entityLabel.setStyleName("h2");
+                entityLabel.setWidth(200, Sizeable.UNITS_PIXELS);
+                grid.addComponent(entityLabel, 0, 0);
 
-                    VerticalLayout instancesLayout = new VerticalLayout();
-                    displayInstances(entityPair.getFirst(), instancesLayout);
-                    grid.addComponent(instancesLayout, 1, 0);
+                VerticalLayout instancesLayout = new VerticalLayout();
+                displayInstances(entityPair.getFirst(), instancesLayout);
+                grid.addComponent(instancesLayout, 1, 0);
 
-                    contentLayout.addComponent(grid);
-                }
+                contentLayout.addComponent(grid);
             }
         }
     }
