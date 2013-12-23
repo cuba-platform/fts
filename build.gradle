@@ -48,6 +48,7 @@ configure([globalModule, coreModule, webModule, webLegacyModule]) {
     apply(plugin: 'java')
     apply(plugin: 'idea')
     apply(plugin: 'maven')
+    apply(plugin: 'checkstyle')
     apply(plugin: CubaPlugin)
 
     dependencies {
@@ -62,6 +63,22 @@ configure([globalModule, coreModule, webModule, webLegacyModule]) {
 
     artifacts {
         archives sourceJar
+    }
+
+    String checkstyleConfigDir = "${rootProject.projectDir}/config/checkstyle"
+    checkstyle {
+        configFile = new File("${checkstyleConfigDir}/checkstyle.xml".toString())
+        configProperties = [
+                'checkstyleConfigDir' : checkstyleConfigDir
+        ]
+        reportsDir = new File("${buildDir}/checkstyle".toString())
+    }
+
+    checkstyleMain << {
+        def checkstyleDir = "${project.buildDir}/checkstyle".toString()
+        ant.xslt('in': "$checkstyleDir/main.xml",
+                out: "$checkstyleDir/$project.name-checkstyle.html",
+                style: "$checkstyleConfigDir/checkstyle.xsl")
     }
 }
 
