@@ -148,7 +148,7 @@ public class FtsServiceBean implements FtsService {
     }
 
     private SearchResult.Entry createEntry(String entityName, UUID entityId) {
-        MetaClass metaClass = metadata.getSession().getClass(entityName);
+        MetaClass metaClass = metadata.getSession().getClassNN(entityName);
 
         if (!security.isEntityOpPermitted(metaClass, EntityOp.READ))
             return null;
@@ -156,7 +156,7 @@ public class FtsServiceBean implements FtsService {
         EntityManager em = persistence.getEntityManager();
 
         Query query = em.createQuery("select e from " + entityName + " e where e.id = :id");
-        security.applyConstraints(query, entityName);
+        security.applyConstraints(query);
 
         query.setParameter("id", entityId);
 
