@@ -9,7 +9,6 @@ import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.Transaction;
-import com.haulmont.cuba.core.app.ClusterManagerAPI;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.entity.BaseEntity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
@@ -62,8 +61,6 @@ public class FtsManager implements FtsManagerAPI {
 
     private FtsConfig config;
 
-    private ClusterManagerAPI clusterManager;
-
     @Inject
     protected Authentication authentication;
 
@@ -79,11 +76,6 @@ public class FtsManager implements FtsManagerAPI {
     @Inject
     public void setConfigProvider(Configuration configuration) {
         config = configuration.getConfig(FtsConfig.class);
-    }
-
-    @Inject
-    public void setClusterManager(ClusterManagerAPI clusterManager) {
-        this.clusterManager = clusterManager;
     }
 
     @Override
@@ -175,9 +167,6 @@ public class FtsManager implements FtsManagerAPI {
 
     public int processQueue() {
         if (!AppContext.isStarted())
-            return 0;
-
-        if (!clusterManager.isMaster())
             return 0;
 
         if (!config.getEnabled())
@@ -277,9 +266,6 @@ public class FtsManager implements FtsManagerAPI {
     public String optimize() {
         if (!AppContext.isStarted())
             return "Application is not started";
-
-        if (!clusterManager.isMaster())
-            return "Server is not master in cluster";
 
         if (!config.getEnabled())
             return "FTS is disabled";
