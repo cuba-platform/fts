@@ -168,7 +168,7 @@ public class LuceneIndexer extends LuceneWriter {
         StringBuilder sb = new StringBuilder();
 
         for (String propName : descr.getLocalProperties()) {
-            Object value = entity.getValue(propName);
+            Object value = entity.getValueEx(propName); // using getValueEx() to support embedded entities
 
             String str = valueFormatter.format(value);
             if (str != null && !StringUtils.isBlank(str)) {

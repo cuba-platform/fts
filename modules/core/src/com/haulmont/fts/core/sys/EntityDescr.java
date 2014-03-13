@@ -6,6 +6,8 @@ package com.haulmont.fts.core.sys;
 
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaPropertyPath;
+import com.haulmont.cuba.core.global.AppBeans;
+import com.haulmont.cuba.core.global.MetadataTools;
 
 import java.util.*;
 
@@ -41,15 +43,17 @@ public class EntityDescr {
     }
 
     public void addProperty(String name) {
-        MetaPropertyPath property = metaClass.getPropertyEx(name);
+        MetaPropertyPath propertyPath = metaClass.getPropertyPath(name);
 
-        if (property == null)
+        if (propertyPath == null)
             throw new RuntimeException("Property " + name + " doesn't exist for entity " + metaClass.getName());
 
-        if (property.getMetaProperties().length > 1 && !property.getRange().isClass())
-            throw new RuntimeException("PropertyEx " + name + " must be an entity (" + metaClass.getName() + ")");
+        if (propertyPath.getMetaProperties().length > 1
+                && !propertyPath.getRange().isClass()
+                && !AppBeans.get(MetadataTools.class).isEmbedded(propertyPath.getMetaProperties()[0]))
+            throw new RuntimeException("Property " + name + " must be an entity (" + metaClass.getName() + ")");
 
-        properties.put(name, property.getRange().isClass());
+        properties.put(name, propertyPath.getRange().isClass());
     }
 
     public void removeProperty(String name) {
