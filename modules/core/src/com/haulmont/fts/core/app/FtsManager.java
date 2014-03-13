@@ -10,6 +10,7 @@ import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.app.FtsSender;
+import com.haulmont.cuba.core.app.ServerInfoAPI;
 import com.haulmont.cuba.core.entity.BaseEntity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
@@ -47,7 +48,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @ManagedBean(FtsManagerAPI.NAME)
 public class FtsManager implements FtsManagerAPI {
 
-    private static Log log = LogFactory.getLog(FtsManager.class);
+    private Log log = LogFactory.getLog(FtsManager.class);
 
     private volatile Map<String, EntityDescr> descrByClassName;
     private volatile Map<String, EntityDescr> descrByName;
@@ -60,6 +61,8 @@ public class FtsManager implements FtsManagerAPI {
     private static final int DEL_CHUNK = 10;
 
     private FtsConfig config;
+
+    private String serverId;
 
     @Inject
     protected Authentication authentication;
@@ -74,8 +77,13 @@ public class FtsManager implements FtsManagerAPI {
     protected Metadata metadata;
 
     @Inject
-    public void setConfigProvider(Configuration configuration) {
+    public void setConfiguration(Configuration configuration) {
         config = configuration.getConfig(FtsConfig.class);
+    }
+
+    @Inject
+    public void setServerInfo(ServerInfoAPI serverInfo) {
+        serverId = serverInfo.getServerId();
     }
 
     @Override
@@ -184,13 +192,19 @@ public class FtsManager implements FtsManagerAPI {
         try {
             writing = true;
 
+            boolean useServerId = !config.getIndexingHosts().isEmpty();
+
             int maxSize = config.getIndexingBatchSize();
             List<FtsQueue> list;
 
             Transaction tx = persistence.createTransaction();
             try {
                 EntityManager em = persistence.getEntityManager();
-                Query query = em.createQuery("select q from sys$FtsQueue q order by q.createTs");
+                String queryString = String.format("select q from sys$FtsQueue q where %s order by q.createTs",
+                        (useServerId ? "q.indexingHost = ?1" : "q.indexingHost is null"));
+                Query query = em.createQuery(queryString);
+                if (useServerId)
+                    query.setParameter(1, serverId);
                 query.setMaxResults(maxSize);
                 list = query.getResultList();
                 tx.commit();
