@@ -53,16 +53,16 @@ public class FtsManager implements FtsManagerAPI {
     private volatile Map<String, EntityDescr> descrByClassName;
     private volatile Map<String, EntityDescr> descrByName;
 
-    private ReentrantLock writeLock = new ReentrantLock();
-    private volatile boolean writing;
+    protected final ReentrantLock writeLock = new ReentrantLock();
+    protected volatile boolean writing;
 
-    private volatile Directory directory;
+    protected volatile Directory directory;
 
-    private static final int DEL_CHUNK = 10;
+    protected static final int DEL_CHUNK = 10;
 
-    private FtsConfig config;
+    protected FtsConfig config;
 
-    private String serverId;
+    protected String serverId;
 
     @Inject
     protected Authentication authentication;
@@ -102,7 +102,7 @@ public class FtsManager implements FtsManagerAPI {
         return writing;
     }
 
-    private Map<String, EntityDescr> getDescrByClassName() {
+    protected Map<String, EntityDescr> getDescrByClassName() {
         if (descrByClassName == null) {
             synchronized (this) {
                 if (descrByClassName == null) {
@@ -166,7 +166,7 @@ public class FtsManager implements FtsManagerAPI {
         return list;
     }
 
-    private boolean runSearchableIf(BaseEntity entity, EntityDescr descr) {
+    protected boolean runSearchableIf(BaseEntity entity, EntityDescr descr) {
         Map<String, Object> params = new HashMap<>();
         params.put("entity", entity);
         Boolean value = scripting.evaluateGroovy(descr.getSearchableIfScript(), params);
@@ -192,60 +192,11 @@ public class FtsManager implements FtsManagerAPI {
         try {
             writing = true;
 
-            boolean useServerId = !config.getIndexingHosts().isEmpty();
-
-            int maxSize = config.getIndexingBatchSize();
-            List<FtsQueue> list;
-
-            Transaction tx = persistence.createTransaction();
-            try {
-                EntityManager em = persistence.getEntityManager();
-                String queryString = String.format("select q from sys$FtsQueue q where %s order by q.createTs",
-                        (useServerId ? "q.indexingHost = ?1" : "q.indexingHost is null"));
-                Query query = em.createQuery(queryString);
-                if (useServerId)
-                    query.setParameter(1, serverId);
-                query.setMaxResults(maxSize);
-                list = query.getResultList();
-                tx.commit();
-            } finally {
-                tx.end();
-            }
+            List<FtsQueue> list = loadQueuedItems();
 
             if (!list.isEmpty()) {
                 count = initIndexer(count, list);
-
-                tx = persistence.createTransaction();
-                try {
-                    EntityManager em = persistence.getEntityManager();
-
-                    for (int i = 0; i < list.size(); i += DEL_CHUNK) {
-                        StringBuilder sb = new StringBuilder("delete from SYS_FTS_QUEUE where ID in (");
-                        List<FtsQueue> sublist = list.subList(i, Math.min(i + DEL_CHUNK, list.size()));
-                        for (int idx = 0; idx < sublist.size(); idx++) {
-                            sb.append("?");
-                            if (idx < sublist.size() - 1)
-                                sb.append(", ");
-                        }
-                        sb.append(")");
-
-                        DbTypeConverter converter = persistence.getDbTypeConverter();
-
-                        Query query = em.createNativeQuery(sb.toString());
-                        for (int idx = 0; idx < sublist.size(); idx++) {
-                            try {
-                                query.setParameter(idx + 1, converter.getSqlObject(sublist.get(idx).getId()));
-                            } catch (SQLException e) {
-                                throw new RuntimeException("Unable to set query parameter", e);
-                            }
-                        }
-                        query.executeUpdate();
-                    }
-
-                    tx.commit();
-                } finally {
-                    tx.end();
-                }
+                removeQueuedItems(list);
             }
         } finally {
             writeLock.unlock();
@@ -256,7 +207,64 @@ public class FtsManager implements FtsManagerAPI {
         return count;
     }
 
-    private int initIndexer(int count, List<FtsQueue> list) {
+    protected List<FtsQueue> loadQueuedItems() {
+        List<FtsQueue> list;
+
+        boolean useServerId = !config.getIndexingHosts().isEmpty();
+        int maxSize = config.getIndexingBatchSize();
+
+        Transaction tx = persistence.createTransaction();
+        try {
+            EntityManager em = persistence.getEntityManager();
+            String queryString = String.format("select q from sys$FtsQueue q where %s order by q.createTs",
+                    (useServerId ? "q.indexingHost = ?1" : "q.indexingHost is null"));
+            Query query = em.createQuery(queryString);
+            if (useServerId)
+                query.setParameter(1, serverId);
+            query.setMaxResults(maxSize);
+            list = query.getResultList();
+            tx.commit();
+        } finally {
+            tx.end();
+        }
+        return list;
+    }
+
+    protected void removeQueuedItems(List<FtsQueue> list) {
+        Transaction tx = persistence.createTransaction();
+        try {
+            EntityManager em = persistence.getEntityManager();
+
+            for (int i = 0; i < list.size(); i += DEL_CHUNK) {
+                StringBuilder sb = new StringBuilder("delete from SYS_FTS_QUEUE where ID in (");
+                List<FtsQueue> sublist = list.subList(i, Math.min(i + DEL_CHUNK, list.size()));
+                for (int idx = 0; idx < sublist.size(); idx++) {
+                    sb.append("?");
+                    if (idx < sublist.size() - 1)
+                        sb.append(", ");
+                }
+                sb.append(")");
+
+                DbTypeConverter converter = persistence.getDbTypeConverter();
+
+                Query query = em.createNativeQuery(sb.toString());
+                for (int idx = 0; idx < sublist.size(); idx++) {
+                    try {
+                        query.setParameter(idx + 1, converter.getSqlObject(sublist.get(idx).getId()));
+                    } catch (SQLException e) {
+                        throw new RuntimeException("Unable to set query parameter", e);
+                    }
+                }
+                query.executeUpdate();
+            }
+
+            tx.commit();
+        } finally {
+            tx.end();
+        }
+    }
+
+    protected int initIndexer(int count, List<FtsQueue> list) {
         LuceneIndexer indexer = createLuceneIndexer();
         try {
             for (FtsQueue ftsQueue : list) {
