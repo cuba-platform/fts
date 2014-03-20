@@ -77,6 +77,9 @@ public class FtsManager implements FtsManagerAPI {
     protected Metadata metadata;
 
     @Inject
+    protected ConfigLoader configLoader;
+
+    @Inject
     public void setConfiguration(Configuration configuration) {
         config = configuration.getConfig(FtsConfig.class);
     }
@@ -106,8 +109,7 @@ public class FtsManager implements FtsManagerAPI {
         if (descrByClassName == null) {
             synchronized (this) {
                 if (descrByClassName == null) {
-                    ConfigLoader loader = new ConfigLoader();
-                    descrByClassName = loader.loadConfiguration();
+                    descrByClassName = configLoader.loadConfiguration();
                 }
             }
         }

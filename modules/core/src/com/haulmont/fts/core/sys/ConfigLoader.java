@@ -11,9 +11,9 @@ import com.haulmont.chile.core.datatypes.Datatypes;
 import com.haulmont.chile.core.datatypes.impl.*;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaProperty;
-import com.haulmont.cuba.core.global.ConfigProvider;
+import com.haulmont.cuba.core.global.Configuration;
 import com.haulmont.cuba.core.global.GlobalConfig;
-import com.haulmont.cuba.core.global.MetadataProvider;
+import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.sys.AppContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -25,16 +25,26 @@ import org.dom4j.Element;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 
-import java.io.File;
+import javax.annotation.ManagedBean;
+import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * @author krivopustov
+ * @version $Id$
+ */
+@ManagedBean(ConfigLoader.NAME)
 public class ConfigLoader {
 
-    private static Log log = LogFactory.getLog(ConfigLoader.class);
+    public static final String NAME = "fts_ConfigLoader";
+
+    private Log log = LogFactory.getLog(ConfigLoader.class);
     
     private static final String DEFAULT_CONFIG = "/cuba-fts.xml";
 
@@ -47,12 +57,16 @@ public class ConfigLoader {
         Arrays.sort(systemProps);
     }
 
-    public ConfigLoader() {
-        confDir = ConfigProvider.getConfig(GlobalConfig.class).getConfDir();
+    @Inject
+    private Metadata metadata;
+
+    @Inject
+    public void setConfiguration(Configuration configuration) {
+        confDir = configuration.getConfig(GlobalConfig.class).getConfDir();
     }
 
     public Map<String, EntityDescr> loadConfiguration() {
-        HashMap<String, EntityDescr> map = new HashMap<String, EntityDescr>();
+        HashMap<String, EntityDescr> map = new HashMap<>();
 
         String configName = AppContext.getProperty("cuba.ftsConfig");
         if (StringUtils.isBlank(configName))
@@ -94,7 +108,8 @@ public class ConfigLoader {
         Element entitiesElem = rootElem.element("entities");
         for (Element entityElem : Dom4j.elements(entitiesElem, "entity")) {
             String className = entityElem.attributeValue("class");
-            MetaClass metaClass = MetadataProvider.getSession().getClass(ReflectionHelper.getClass(className));
+            MetaClass metaClass = metadata.getClassNN(ReflectionHelper.getClass(className));
+            metaClass = metadata.getExtendedEntities().getEffectiveMetaClass(metaClass);
 
             Element searchableIfScriptElem = entityElem.element("searchableIf");
             String searchableIfScript = searchableIfScriptElem != null ? searchableIfScriptElem.getText() : null;
@@ -134,7 +149,7 @@ public class ConfigLoader {
     }
 
     private void includeByName(EntityDescr descr, MetaClass metaClass, String name) {
-        if (metaClass.getPropertyEx(name) != null)
+        if (metaClass.getPropertyPath(name) != null)
             descr.addProperty(name);
     }
 
