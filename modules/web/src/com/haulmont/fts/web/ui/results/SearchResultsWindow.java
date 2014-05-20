@@ -18,6 +18,7 @@ import com.haulmont.cuba.gui.components.AbstractWindow;
 import com.haulmont.cuba.web.App;
 import com.haulmont.cuba.web.AppWindow;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
+import com.haulmont.cuba.web.toolkit.ui.CubaButton;
 import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.SearchResult;
@@ -47,9 +48,6 @@ public class SearchResultsWindow extends AbstractWindow {
     protected SearchResult searchResult;
 
     protected MetaClass fileMetaClass;
-
-    public SearchResultsWindow() {
-    }
 
     @Override
     public void init(Map<String, Object> params) {
@@ -94,6 +92,7 @@ public class SearchResultsWindow extends AbstractWindow {
             Collections.sort(
                     entities,
                     new Comparator<Pair<String, String>>() {
+                        @Override
                         public int compare(Pair<String, String> o1, Pair<String, String> o2) {
                             return o1.getSecond().compareTo(o2.getSecond());
                         }
@@ -129,7 +128,7 @@ public class SearchResultsWindow extends AbstractWindow {
         for (SearchResult.Entry entry : entries) {
             HorizontalLayout instanceLayout = new HorizontalLayout();
 
-            Button instanceBtn = new Button(entry.getCaption());
+            Button instanceBtn = new CubaButton(entry.getCaption());
             instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
             instanceBtn.addStyleName("fts-found-instance");
             instanceBtn.addClickListener(new InstanceClickListener(entityName, entry.getId()));
@@ -171,7 +170,7 @@ public class SearchResultsWindow extends AbstractWindow {
     protected void displayMore(String entityName, VerticalLayout instancesLayout) {
         HorizontalLayout instanceLayout = new HorizontalLayout();
 
-        Button instanceBtn = new Button(getMessage("more"));
+        Button instanceBtn = new CubaButton(getMessage("more"));
         instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
         instanceBtn.addStyleName("fts-found-instance");
         instanceBtn.addClickListener(new MoreClickListener(entityName, instancesLayout));
@@ -229,6 +228,7 @@ public class SearchResultsWindow extends AbstractWindow {
             this.entityId = entityId;
         }
 
+        @Override
         public void buttonClick(Button.ClickEvent event) {
             String windowId = entityName + ".edit";
 
@@ -253,6 +253,7 @@ public class SearchResultsWindow extends AbstractWindow {
             this.instancesLayout = instancesLayout;
         }
 
+        @Override
         public void buttonClick(Button.ClickEvent event) {
             searchResult = service.expandResult(searchResult, entityName);
 
