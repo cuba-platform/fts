@@ -8,11 +8,11 @@ import org.apache.lucene.store.Directory;
 
 public class Lucene {
 
-    protected static final String FLD_ENTITY = "entity";
-    protected static final String FLD_ID = "id";
-    protected static final String FLD_ALL = "all";
-    protected static final String FLD_LINKS = "links";
-    protected static final String FLD_MORPHOLOGY_ALL = "morphologyAll";
+    public static final String FLD_ENTITY = "entity";
+    public static final String FLD_ID = "id";
+    public static final String FLD_ALL = "all";
+    public static final String FLD_LINKS = "links";
+    public static final String FLD_MORPHOLOGY_ALL = "morphologyAll";
 
     protected Directory directory;
 

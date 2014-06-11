@@ -13,15 +13,15 @@ import java.util.*;
 
 public class EntityDescr {
 
-    private MetaClass metaClass;
+    protected MetaClass metaClass;
 
-    private Map<String, Boolean> properties = new HashMap<String, Boolean>();
+    protected Map<String, Boolean> properties = new HashMap<String, Boolean>();
 
-    private String searchableIfScript;
+    protected String searchableIfScript;
 
-    private String searchablesScript;
+    protected String searchablesScript;
 
-    private boolean show;
+    protected boolean show;
 
     public EntityDescr(MetaClass metaClass, String searchableIfScript, String searchablesScript, boolean show) {
         this.metaClass = metaClass;

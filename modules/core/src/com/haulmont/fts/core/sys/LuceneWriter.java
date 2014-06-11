@@ -25,22 +25,25 @@ import java.util.Map;
 
 public class LuceneWriter extends Lucene {
 
-    protected PerFieldAnalyzerWrapper analyzer;
     protected IndexWriter writer;
 
     public LuceneWriter(Directory directory) {
         super(directory);
+        writer = createWriter(directory);
+    }
 
+    public static IndexWriter createWriter(Directory directory) {
         List<LuceneMorphology> morphologies = MorphologyNormalizer.getAvailableMorphologies();
 
-        Map<String,Analyzer> analyzerPerField = new HashMap<>();
+        Map<String, Analyzer> analyzerPerField = new HashMap<>();
         analyzerPerField.put(FLD_LINKS, new WhitespaceAnalyzer(Version.LUCENE_44));
-        analyzerPerField.put(FLD_MORPHOLOGY_ALL, new MultiMorphologyAnalyzer(morphologies, new EntityAttributeAnalyzer()));
-        analyzer = new PerFieldAnalyzerWrapper(new EntityAttributeAnalyzer(), analyzerPerField);
+        analyzerPerField.put(FLD_MORPHOLOGY_ALL, new MultiMorphologyAnalyzer(morphologies,
+                new EntityAttributeAnalyzer()));
+        PerFieldAnalyzerWrapper analyzer = new PerFieldAnalyzerWrapper(new EntityAttributeAnalyzer(), analyzerPerField);
         try {
             IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_44, analyzer);
             config.setIndexDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy());
-            writer = new IndexWriter(directory, config);
+            return new IndexWriter(directory, config);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

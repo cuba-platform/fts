@@ -63,6 +63,8 @@ public class LuceneIndexer extends LuceneWriter {
 
     protected com.haulmont.cuba.core.global.Metadata metadata;
 
+    protected List<DocumentCreatedListener> documentCreatedListeners = new ArrayList<>();
+
     public LuceneIndexer(Map<String, EntityDescr> descriptions, Directory directory, boolean storeContentInIndex) {
         super(directory);
         this.descriptions = descriptions;
@@ -101,11 +103,13 @@ public class LuceneIndexer extends LuceneWriter {
             }
 
             Field idField, entityField, allField, linksField, morphologyAllField;
+            Entity entity;
+            Document doc;
             Transaction tx = persistence.createTransaction();
             try {
                 EntityManager em = persistence.getEntityManager();
                 MetaClass metaClass = metadata.getSession().getClass(entityName);
-                Entity entity = em.find(metaClass.getJavaClass(), entityId);
+                entity = em.find(metaClass.getJavaClass(), entityId);
                 if (entity == null) {
                     log.error("Entity instance not found: " + entityName + "-" + entityId);
                     return;
@@ -135,17 +139,18 @@ public class LuceneIndexer extends LuceneWriter {
                         Field.Store.YES
                 );
 
+                doc = new Document();
+                doc.add(idField);
+                doc.add(entityField);
+                doc.add(allField);
+                doc.add(linksField);
+                doc.add(morphologyAllField);
+                documentCreated(doc, entity, descr);
+
                 tx.commit();
             } finally {
                 tx.end();
             }
-
-            Document doc = new Document();
-            doc.add(idField);
-            doc.add(entityField);
-            doc.add(allField);
-            doc.add(linksField);
-            doc.add(morphologyAllField);
 
             if (FtsChangeType.UPDATE.equals(changeType)) {
                 log.debug("Updating document " + entityName + "-" + entityId);
@@ -304,5 +309,19 @@ public class LuceneIndexer extends LuceneWriter {
         if (sb.length() > 0)
             sb.append(" ");
         sb.append(obj.toString());
+    }
+
+    public void addListener(DocumentCreatedListener documentCreatedListener) {
+        this.documentCreatedListeners.add(documentCreatedListener);
+    }
+
+    protected void documentCreated(Document document, Entity entity, EntityDescr descr) {
+        for (DocumentCreatedListener documentCreatedListener : documentCreatedListeners) {
+            documentCreatedListener.onDocumentCreated(document, entity, descr);
+        }
+    }
+
+    public interface DocumentCreatedListener {
+        void onDocumentCreated(Document document, Entity entity, EntityDescr descr);
     }
 }

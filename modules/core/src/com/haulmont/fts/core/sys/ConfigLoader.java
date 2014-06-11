@@ -45,10 +45,10 @@ public class ConfigLoader {
     public static final String NAME = "fts_ConfigLoader";
 
     private Log log = LogFactory.getLog(ConfigLoader.class);
-    
-    private static final String DEFAULT_CONFIG = "/cuba-fts.xml";
 
-    private static String[] systemProps = new String[] {
+    protected static final String DEFAULT_CONFIG = "/cuba-fts.xml";
+
+    protected static String[] systemProps = new String[]{
             "id", "createTs", "createdBy", "version", "updateTs", "updatedBy", "deleteTs", "deletedBy"
     };
     protected String confDir;
@@ -94,7 +94,7 @@ public class ConfigLoader {
         return map;
     }
 
-    private void loadFromStream(InputStream stream, Map<String, EntityDescr> map) {
+    protected void loadFromStream(InputStream stream, Map<String, EntityDescr> map) {
         Document document = Dom4j.readDocument(stream);
         for (Element element : Dom4j.elements(document.getRootElement(), "include")) {
             String fileName = element.attributeValue("file");
@@ -110,74 +110,96 @@ public class ConfigLoader {
             String className = entityElem.attributeValue("class");
             MetaClass metaClass = metadata.getClassNN(ReflectionHelper.getClass(className));
             metaClass = metadata.getExtendedEntities().getEffectiveMetaClass(metaClass);
-
-            Element searchableIfScriptElem = entityElem.element("searchableIf");
-            String searchableIfScript = searchableIfScriptElem != null ? searchableIfScriptElem.getText() : null;
-
-            Element searchablesScriptElem = entityElem.element("searchables");
-            String searchablesScript = searchablesScriptElem != null ? searchablesScriptElem.getText() : null;
-
-            String showStr = entityElem.attributeValue("show");
-            boolean show = showStr == null || Boolean.valueOf(showStr);
-
-            EntityDescr entityDescr = new EntityDescr(metaClass, searchableIfScript, searchablesScript, show);
-
-            for (Element element : Dom4j.elements(entityElem, "include")) {
-                String re = element.attributeValue("re");
-                if (!StringUtils.isBlank(re))
-                    includeByRe(entityDescr, metaClass, re);
-                else {
-                    String name = element.attributeValue("name");
-                    if (!StringUtils.isBlank(name))
-                        includeByName(entityDescr, metaClass, name);
-                }
-            }
-
-            for (Element element : Dom4j.elements(entityElem, "exclude")) {
-                String re = element.attributeValue("re");
-                if (!StringUtils.isBlank(re))
-                    excludeByRe(entityDescr, metaClass, re);
-                else {
-                    String name = element.attributeValue("name");
-                    if (!StringUtils.isBlank(name))
-                        excludeByName(entityDescr, metaClass, name);
-                }
-            }
-
+            EntityDescr entityDescr = createEntityDescr(entityElem, metaClass);
             map.put(className, entityDescr);
         }
     }
 
-    private void includeByName(EntityDescr descr, MetaClass metaClass, String name) {
-        if (metaClass.getPropertyPath(name) != null)
-            descr.addProperty(name);
+    protected EntityDescr getNewEntityDescr(MetaClass metaClass, String searchableIfScript, String searchablesScript,
+                                            boolean show) {
+        return new EntityDescr(metaClass, searchableIfScript, searchablesScript, show);
     }
 
-    private void includeByRe(EntityDescr descr, MetaClass metaClass, String re) {
+    protected EntityDescr createEntityDescr(Element entityElem, MetaClass metaClass) {
+        Element searchableIfScriptElem = entityElem.element("searchableIf");
+        String searchableIfScript = searchableIfScriptElem != null ? searchableIfScriptElem.getText() : null;
+
+        Element searchablesScriptElem = entityElem.element("searchables");
+        String searchablesScript = searchablesScriptElem != null ? searchablesScriptElem.getText() : null;
+
+        String showStr = entityElem.attributeValue("show");
+        boolean show = showStr == null || Boolean.valueOf(showStr);
+
+        EntityDescr entityDescr = getNewEntityDescr(metaClass, searchableIfScript, searchablesScript, show);
+        setIncludedFields(entityElem, metaClass, entityDescr);
+        setExcludedFields(entityElem, metaClass, entityDescr);
+        return entityDescr;
+    }
+
+    protected void setIncludedFields(Element entityElem, MetaClass metaClass, EntityDescr entityDescr) {
+        for (Element element : Dom4j.elements(entityElem, "include")) {
+            String re = element.attributeValue("re");
+            if (!StringUtils.isBlank(re))
+                includeByRe(entityDescr, metaClass, re);
+            else {
+                String name = element.attributeValue("name");
+                if (!StringUtils.isBlank(name))
+                    includeByName(entityDescr, metaClass, name);
+            }
+        }
+    }
+
+    protected void setExcludedFields(Element entityElem, MetaClass metaClass, EntityDescr entityDescr) {
+        for (Element element : Dom4j.elements(entityElem, "exclude")) {
+            String re = element.attributeValue("re");
+            if (!StringUtils.isBlank(re))
+                excludeByRe(entityDescr, metaClass, re);
+            else {
+                String name = element.attributeValue("name");
+                if (!StringUtils.isBlank(name))
+                    excludeByName(entityDescr, metaClass, name);
+            }
+        }
+    }
+
+    protected void addPropertyToDescription(EntityDescr descr, String property) {
+        descr.addProperty(property);
+    }
+
+    protected void removePropertyFromDescription(EntityDescr descr, String property) {
+        descr.removeProperty(property);
+    }
+
+    protected void includeByName(EntityDescr descr, MetaClass metaClass, String name) {
+        if (metaClass.getPropertyPath(name) != null)
+            addPropertyToDescription(descr, name);
+    }
+
+    protected void includeByRe(EntityDescr descr, MetaClass metaClass, String re) {
         Pattern pattern = Pattern.compile(re);
         for (MetaProperty metaProperty : metaClass.getProperties()) {
             if (isSearchableProperty(metaProperty)) {
                 Matcher matcher = pattern.matcher(metaProperty.getName());
                 if (matcher.matches())
-                    descr.addProperty(metaProperty.getName());
+                    addPropertyToDescription(descr, metaProperty.getName());
             }
         }
     }
 
-    private void excludeByName(EntityDescr descr, MetaClass metaClass, String name) {
-        descr.removeProperty(name);
+    protected void excludeByName(EntityDescr descr, MetaClass metaClass, String name) {
+        removePropertyFromDescription(descr, name);
     }
 
-    private void excludeByRe(EntityDescr descr, MetaClass metaClass, String re) {
+    protected void excludeByRe(EntityDescr descr, MetaClass metaClass, String re) {
         Pattern pattern = Pattern.compile(re);
         for (String property : descr.getPropertyNames()) {
             Matcher matcher = pattern.matcher(property);
             if (matcher.matches())
-                descr.removeProperty(property);
+                removePropertyFromDescription(descr, property);
         }
     }
 
-    private boolean isSearchableProperty(MetaProperty metaProperty) {
+    protected boolean isSearchableProperty(MetaProperty metaProperty) {
         if (Arrays.binarySearch(systemProps, metaProperty.getName()) >= 0)
             return false;
 

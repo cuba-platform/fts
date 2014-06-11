@@ -44,9 +44,28 @@ public class LuceneSearcher extends Lucene {
     public List<EntityInfo> searchAllField(String searchTerm, int maxResults) {
         Set<EntityInfo> set = new LinkedHashSet<>();
 
-        ValueFormatter valueFormatter = new ValueFormatter();
+        Query query = createQueryForAllFieldSearch(searchTerm);
+        try {
+            TopDocs topDocs = searcher.search(query, maxResults);
+            for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                Document doc = searcher.doc(scoreDoc.doc);
+                String entityName = doc.getField(FLD_ENTITY).stringValue();
+                UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
+                String text = storeContentInIndex ? doc.getField(FLD_ALL).stringValue() : null;
+                EntityInfo entityInfo = new EntityInfo(entityName, entityId, text, false);
+                set.add(entityInfo);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return new ArrayList(set);
+    }
 
+
+    protected Query createQueryForAllFieldSearch(String searchTerm) {
         Query query;
+
+        ValueFormatter valueFormatter = new ValueFormatter();
 
         if (searchTerm.startsWith("\"") && searchTerm.endsWith("\"")) {
             searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
@@ -70,23 +89,10 @@ public class LuceneSearcher extends Lucene {
                 }
             }
         }
-        try {
-            TopDocs topDocs = searcher.search(query, maxResults);
-            for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                Document doc = searcher.doc(scoreDoc.doc);
-                String entityName = doc.getField(FLD_ENTITY).stringValue();
-                UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
-                String text = storeContentInIndex ? doc.getField(FLD_ALL).stringValue() : null;
-                EntityInfo entityInfo = new EntityInfo(entityName, entityId, text, false);
-                set.add(entityInfo);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return new ArrayList(set);
+        return query;
     }
 
-    private Query createQuery(String searchStr, ValueFormatter valueFormatter) {
+    protected Query createQuery(String searchStr, ValueFormatter valueFormatter) {
         Query query;
         String s = valueFormatter.guessTypeAndFormat(searchStr);
         if (s.startsWith("*")) {
