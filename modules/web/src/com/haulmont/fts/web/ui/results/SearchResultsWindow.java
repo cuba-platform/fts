@@ -10,11 +10,13 @@ import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.chile.core.model.Session;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
+import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.LoadContext;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.View;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.AbstractWindow;
+import com.haulmont.cuba.gui.config.WindowConfig;
 import com.haulmont.cuba.web.App;
 import com.haulmont.cuba.web.AppWindow;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
@@ -230,16 +232,18 @@ public class SearchResultsWindow extends AbstractWindow {
 
         @Override
         public void buttonClick(Button.ClickEvent event) {
-            String windowId = entityName + ".edit";
-
-            LoadContext lc = new LoadContext(metadata.getSession().getClass(entityName));
+            MetaClass metaClass = metadata.getSession().getClass(entityName);
+            LoadContext lc = new LoadContext(metaClass);
             lc.setView(View.MINIMAL);
             lc.setId(entityId);
             Entity entity = getDsContext().getDataSupplier().load(lc);
 
-            WindowManager.OpenType openType = AppWindow.Mode.TABBED.equals(App.getInstance().getAppWindow().getMode()) ?
+            AppWindow appWindow = App.getInstance().getAppWindow();
+            WindowManager.OpenType openType = AppWindow.Mode.TABBED == appWindow.getMode() ?
                     WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
-            openEditor(windowId, entity, openType);
+
+            WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
+            openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
         }
     }
 
