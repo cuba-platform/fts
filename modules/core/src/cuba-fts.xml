@@ -5,9 +5,7 @@
   -->
 
 <fts-config>
-
     <entities>
-
         <entity class="com.haulmont.cuba.security.entity.Role">
             <include re=".*"/>
             <exclude name="permissions"/>
@@ -21,14 +19,11 @@
             <include re=".*"/>
             <include name="userRoles.role"/>
             <exclude name="password"/>
-            <exclude name="defaultSubstitutedUser"/>
             <exclude name="substitutions"/>
         </entity>
 
         <entity class="com.haulmont.cuba.core.entity.FileDescriptor" show="false">
             <include name="name"/>
         </entity>
-
     </entities>
-
 </fts-config>
