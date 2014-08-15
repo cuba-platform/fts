@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2008-2014 Haulmont. All rights reserved.
+  ~ Use is subject to license terms, see http://www.cuba-platform.com/license for details.
+  -->
+
+<xs:schema
+        targetNamespace="http://schemas.haulmont.com/cuba/5.2/fts.xsd"
+        xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        xmlns="http://schemas.haulmont.com/cuba/5.2/fts.xsd"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified"
+        >
+
+    <xs:element name="fts-config" type="ftsConfigType"/>
+
+    <xs:complexType name="ftsConfigType">
+        <xs:sequence>
+            <xs:element type="entitiesType" name="entities" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="entitiesType">
+        <xs:sequence>
+            <xs:element type="entityType" name="entity" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="entityType">
+        <xs:sequence>
+            <xs:element type="includeType" name="include" maxOccurs="unbounded" minOccurs="0"/>
+            <xs:element type="includeType" name="exclude" maxOccurs="unbounded" minOccurs="0"/>
+            <xs:element name="searchables" maxOccurs="unbounded" minOccurs="0"/>
+            <xs:element name="searchableIf" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="class" type="xs:string" use="required"/>
+        <xs:attribute name="show" type="xs:boolean" use="optional"/>
+    </xs:complexType>
+
+    <xs:complexType name="includeType">
+        <xs:attribute name="name" type="xs:string" use="optional"/>
+        <xs:attribute name="re" type="xs:string" use="optional"/>
+    </xs:complexType>
+
+</xs:schema>

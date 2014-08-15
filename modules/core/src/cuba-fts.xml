@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2008-2013 Haulmont. All rights reserved.
+  ~ Copyright (c) 2008-2014 Haulmont. All rights reserved.
   ~ Use is subject to license terms, see http://www.cuba-platform.com/license for details.
   -->
 
-<fts-config>
+<fts-config xmlns="http://schemas.haulmont.com/cuba/5.2/fts.xsd">
     <entities>
         <entity class="com.haulmont.cuba.security.entity.Role">
             <include re=".*"/>
