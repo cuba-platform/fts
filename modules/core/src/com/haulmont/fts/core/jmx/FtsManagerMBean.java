@@ -29,4 +29,6 @@ public interface FtsManagerMBean {
     String reindexEntity(String entityName);
 
     String reindexAll();
+
+    String processEntireQueue();
 }

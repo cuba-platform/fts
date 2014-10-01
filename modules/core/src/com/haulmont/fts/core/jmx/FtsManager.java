@@ -90,4 +90,20 @@ public class FtsManager implements FtsManagerMBean {
             return ExceptionUtils.getStackTrace(e);
         }
     }
+
+    @Override
+    public String processEntireQueue() {
+        try {
+            Integer total = 0;
+            Integer count = null;
+            while (count == null || count > 0) {
+                count = manager.processQueue();
+                total += count;
+            }
+            return String.format("Done %d items", total);
+        } catch (Throwable e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        }
+    }
 }
