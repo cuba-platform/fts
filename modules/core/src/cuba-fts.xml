@@ -4,7 +4,7 @@
   ~ Use is subject to license terms, see http://www.cuba-platform.com/license for details.
   -->
 
-<fts-config xmlns="http://schemas.haulmont.com/cuba/5.2/fts.xsd">
+<fts-config xmlns="http://schemas.haulmont.com/cuba/5.3/fts.xsd">
     <entities>
         <entity class="com.haulmont.cuba.security.entity.Role">
             <include re=".*"/>
