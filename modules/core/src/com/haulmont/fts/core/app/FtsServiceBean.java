@@ -26,28 +26,28 @@ import java.util.UUID;
 @Service(FtsService.NAME)
 public class FtsServiceBean implements FtsService {
 
-    private LuceneSearcher searcher;
+    protected LuceneSearcher searcher;
 
     @Inject
-    private FtsManagerAPI manager;
+    protected FtsManagerAPI manager;
 
     @Inject
-    private PersistenceSecurity security;
+    protected PersistenceSecurity security;
 
     @Inject
-    private Persistence persistence;
+    protected Persistence persistence;
 
     @Inject
-    private Metadata metadata;
+    protected Metadata metadata;
 
-    private FtsConfig config;
+    protected FtsConfig config;
 
     @Inject
     public void setConfigProvider(Configuration configuration) {
         config = configuration.getConfig(FtsConfig.class);
     }
 
-    private LuceneSearcher getSearcher() {
+    protected LuceneSearcher getSearcher() {
         if (searcher == null) {
             synchronized (this) {
                 if (searcher == null) {
@@ -58,6 +58,7 @@ public class FtsServiceBean implements FtsService {
         return searcher;
     }
 
+    @Override
     public SearchResult search(String searchTerm) {
         if (searcher != null && !searcher.isCurrent())
             searcher = null;
@@ -124,13 +125,14 @@ public class FtsServiceBean implements FtsService {
         return result;
     }
 
+    @Override
     public SearchResult expandResult(SearchResult result, String entityName) {
         int max = result.getEntriesCount(entityName) + config.getSearchResultsBatchSize();
 
         Transaction tx = persistence.createTransaction();
         try {
             for (UUID id : result.getIds(entityName)) {
-                if (result.getEntriesCount(entityName) > max)
+                if (result.getEntriesCount(entityName) >= max)
                     break;
 
                 SearchResult.Entry entry = createEntry(entityName, id);
@@ -147,7 +149,7 @@ public class FtsServiceBean implements FtsService {
         return result;
     }
 
-    private SearchResult.Entry createEntry(String entityName, UUID entityId) {
+    protected SearchResult.Entry createEntry(String entityName, UUID entityId) {
         MetaClass metaClass = metadata.getSession().getClassNN(entityName);
 
         if (!security.isEntityOpPermitted(metaClass, EntityOp.READ))
