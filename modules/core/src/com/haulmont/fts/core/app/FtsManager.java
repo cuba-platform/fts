@@ -301,18 +301,16 @@ public class FtsManager implements FtsManagerAPI {
         }
 
         authentication.begin();
+        LuceneWriter luceneWriter = new LuceneWriter(getDirectory());
         try {
             writing = true;
-
-            LuceneWriter luceneWriter = new LuceneWriter(getDirectory());
             luceneWriter.optimize();
-            luceneWriter.close();
-
             return "Done";
         } catch (Throwable e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
         } finally {
+            luceneWriter.close();
             writeLock.unlock();
             writing = false;
             authentication.end();
@@ -342,12 +340,12 @@ public class FtsManager implements FtsManagerAPI {
         if (!locked) {
             throw new IllegalStateException("Unable to delete index: writing at the moment");
         }
+        LuceneWriter writer = new LuceneWriter(getDirectory());
         try {
             writing = true;
-            LuceneWriter writer = new LuceneWriter(getDirectory());
             writer.deleteIndexForEntity(entityName);
-            writer.close();
         } finally {
+            writer.close();
             writeLock.unlock();
             writing = false;
         }
@@ -359,13 +357,12 @@ public class FtsManager implements FtsManagerAPI {
         if (!locked) {
             throw new IllegalStateException("Unable to delete index: writing at the moment");
         }
+        LuceneWriter writer = new LuceneWriter(getDirectory());
         try {
             writing = true;
-
-            LuceneWriter writer = new LuceneWriter(getDirectory());
             writer.deleteAll();
-            writer.close();
         } finally {
+            writer.close();
             writeLock.unlock();
             writing = false;
         }
@@ -430,7 +427,7 @@ public class FtsManager implements FtsManagerAPI {
             synchronized (this) {
                 if (directory == null) {
                     String dir = config.getIndexDir();
-                    if (StringUtils.isBlank(dir)){
+                    if (StringUtils.isBlank(dir)) {
                         Configuration configuration = AppBeans.get(Configuration.NAME);
                         dir = configuration.getConfig(GlobalConfig.class).getDataDir() + "/ftsindex";
                     }
