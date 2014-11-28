@@ -100,7 +100,7 @@ public class FtsServiceBean implements FtsService {
                         for (EntityInfo linkEntityInfo : linksFieldResults) {
                             if (!manager.showInResults(linkEntityInfo.getName()))
                                 continue;
-                            
+
                             if (result.getEntriesCount(linkEntityInfo.getName()) < config.getSearchResultsBatchSize()) {
                                 SearchResult.Entry entry = createEntry(linkEntityInfo.getName(), linkEntityInfo.getId());
                                 if (entry != null) {
@@ -155,6 +155,15 @@ public class FtsServiceBean implements FtsService {
         if (!security.isEntityOpPermitted(metaClass, EntityOp.READ))
             return null;
 
+        Entity entity = getReloadedEntity(entityName, entityId, metaClass);
+        if (entity == null)
+            return null;
+
+        String entityCaption = entity.getInstanceName();
+        return new SearchResult.Entry(entityId, entityCaption);
+    }
+
+    protected Entity getReloadedEntity(String entityName, UUID entityId, MetaClass metaClass) {
         EntityManager em = persistence.getEntityManager();
 
         Query query = em.createQuery("select e from " + entityName + " e where e.id = :id");
@@ -167,8 +176,7 @@ public class FtsServiceBean implements FtsService {
         List<Entity> list = query.getResultList();
         if (list.isEmpty())
             return null;
-
-        String entityCaption = list.get(0).getInstanceName();
-        return new SearchResult.Entry(entityId, entityCaption);
+        return list.get(0);
     }
+
 }

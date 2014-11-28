@@ -233,10 +233,7 @@ public class SearchResultsWindow extends AbstractWindow {
         @Override
         public void buttonClick(Button.ClickEvent event) {
             MetaClass metaClass = metadata.getSession().getClass(entityName);
-            LoadContext lc = new LoadContext(metaClass);
-            lc.setView(View.MINIMAL);
-            lc.setId(entityId);
-            Entity entity = getDsContext().getDataSupplier().load(lc);
+            Entity entity = reloadEntity(metaClass, entityId);
 
             AppWindow appWindow = App.getInstance().getAppWindow();
             WindowManager.OpenType openType = AppWindow.Mode.TABBED == appWindow.getMode() ?
@@ -245,6 +242,13 @@ public class SearchResultsWindow extends AbstractWindow {
             WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
             openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
         }
+    }
+
+    protected Entity reloadEntity(MetaClass metaClass, UUID entityId) {
+        LoadContext lc = new LoadContext(metaClass);
+        lc.setView(View.MINIMAL);
+        lc.setId(entityId);
+        return getDsContext().getDataSupplier().load(lc);
     }
 
     protected class MoreClickListener implements Button.ClickListener {
