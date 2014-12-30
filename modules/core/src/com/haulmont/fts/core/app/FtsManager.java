@@ -135,8 +135,13 @@ public class FtsManager implements FtsManagerAPI {
         List<BaseEntity> list = new ArrayList<>();
 
         EntityDescr descr = getDescrByClassName().get(entity.getClass().getName());
-        if (descr == null)
-            return list;
+        if (descr == null) {
+            Class originalClass = metadata.getExtendedEntities().getOriginalClass(entity.getMetaClass());
+            if (originalClass != null)
+                descr = getDescrByClassName().get(originalClass.getName());
+            if (descr == null)
+                return list;
+        }
 
         Set<String> properties = descr.getPropertyNames();
 
