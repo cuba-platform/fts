@@ -15,10 +15,10 @@ allprojects {
 buildscript {
     ext.cubaVersion = '5.4-SNAPSHOT'
     ext.cubaVersion = rootProject.hasProperty('buildVersion') ? rootProject['buildVersion'] : cubaVersion
-    
+
     println("CUBA Platform - FTS Version ${ext.cubaVersion}")
     println("")
-    
+
     repositories {
         mavenLocal()
         maven {
@@ -41,10 +41,12 @@ def globalModule = project(':fts-global')
 def coreModule = project(':fts-core')
 def webModule = project(':fts-web')
 def webLegacyModule = project(':fts-web6')
+def guiModule = project(':fts-gui')
+def desktopModule = project(':fts-desktop')
 
 def baseVersion = artifactVersion + (isSnapshot ? '-SNAPSHOT' : '')
 
-configure([globalModule, coreModule, webModule, webLegacyModule]) {
+configure([globalModule, coreModule, webModule, webLegacyModule, guiModule, desktopModule]) {
     apply(plugin: 'java')
     apply(plugin: 'idea')
     apply(plugin: 'maven')
@@ -103,6 +105,7 @@ configure(coreModule) {
 configure(webModule) {
     dependencies {
         compile(globalModule)
+        compile(guiModule)
         compile(group: 'com.haulmont.cuba', name: 'cuba-web', version: baseVersion)
     }
 }
@@ -110,6 +113,22 @@ configure(webModule) {
 configure(webLegacyModule) {
     dependencies {
         compile(globalModule)
+        compile(guiModule)
         compile(group: 'com.haulmont.cuba', name: 'cuba-web6', version: baseVersion)
+    }
+}
+
+configure(guiModule) {
+    dependencies {
+        compile(globalModule)
+        compile(group: 'com.haulmont.cuba', name: 'cuba-gui', version: baseVersion)
+    }
+}
+
+configure(desktopModule) {
+    dependencies {
+        compile(globalModule)
+        compile(guiModule)
+        compile(group: 'com.haulmont.cuba', name: 'cuba-desktop', version: baseVersion)
     }
 }
