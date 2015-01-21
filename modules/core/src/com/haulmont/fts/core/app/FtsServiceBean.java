@@ -128,7 +128,7 @@ public class FtsServiceBean implements FtsService {
             if (propertyPath == null) {
                 throw new RuntimeException("Property path " + linkProperty + " for entity " + entityName + " doesn't exist");
             }
-            String linkedEntityName = metadata.getClassNN(propertyPath.getMetaProperty().getJavaType()).getName();
+            String linkedEntityName = propertyPath.getMetaProperty().getRange().asClass().getName();
             List<String> collectedLinkedEntityNames = collectEntityHierarchyNames(linkedEntityName);
             result.addAll(collectedLinkedEntityNames);
         }
