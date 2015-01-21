@@ -145,7 +145,7 @@ public class SearchResultsWindow extends AbstractWindow {
                 List<String> list = new ArrayList<>(hi.getHits().size());
                 for (Map.Entry<String, String> hitEntry : hi.getHits().entrySet()) {
                     String hitProperty = hitEntry.getKey();
-                    list.add(getHitPropertyCaption(entityName, hitProperty) + ": " + hitEntry.getValue());
+                    list.add(service.getHitPropertyCaption(entityName, hitProperty) + ": " + hitEntry.getValue());
                 }
                 Collections.sort(list);
 
@@ -181,43 +181,6 @@ public class SearchResultsWindow extends AbstractWindow {
         instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
 
         instancesLayout.addComponent(instanceLayout);
-    }
-
-    private String getHitPropertyCaption(String entityName, String hitProperty) {
-        String[] parts = hitProperty.split("\\.");
-        if (parts.length == 1) {
-            MetaClass metaClass = metadata.getSession().getClass(entityName);
-            if (metaClass == null)
-                return hitProperty;
-
-            MetaProperty metaProperty = metaClass.getProperty(hitProperty);
-            if (metaProperty == null)
-                return hitProperty;
-
-            return messages.getTools().getPropertyCaption(metaProperty);
-        } else {
-            String linkEntityName = parts[0];
-            MetaClass metaClass = metadata.getSession().getClass(linkEntityName);
-            if (metaClass == null)
-                return hitProperty;
-
-            if (metaClass == fileMetaClass && parts[1].equals(FTS.FILE_CONT_PROP)) {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 2; i < parts.length; i++) {
-                    sb.append(parts[i]);
-                    if (i < parts.length - 1)
-                        sb.append(".");
-                }
-                return messages.formatMessage(getClass(), "fileContent", sb.toString());
-            }
-
-            MetaProperty metaProperty = metaClass.getProperty(parts[1]);
-            if (metaProperty == null)
-                return hitProperty;
-
-            return messages.getTools().getEntityCaption(metaClass) + "."
-                    + messages.getTools().getPropertyCaption(metaProperty);
-        }
     }
 
     private class InstanceClickListener implements Button.ClickListener {

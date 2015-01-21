@@ -5,23 +5,24 @@
 package com.haulmont.fts.core.app;
 
 import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.chile.core.model.MetaProperty;
+import com.haulmont.chile.core.model.MetaPropertyPath;
 import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.entity.Entity;
-import com.haulmont.cuba.core.global.Configuration;
-import com.haulmont.cuba.core.global.FtsConfig;
-import com.haulmont.cuba.core.global.Metadata;
-import com.haulmont.cuba.core.global.View;
+import com.haulmont.cuba.core.entity.FileDescriptor;
+import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.security.entity.EntityOp;
 import com.haulmont.fts.app.FtsService;
+import com.haulmont.fts.core.sys.EntityDescr;
 import com.haulmont.fts.core.sys.EntityInfo;
 import com.haulmont.fts.core.sys.LuceneSearcher;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
+import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.SearchResult;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service(FtsService.NAME)
 public class FtsServiceBean implements FtsService {
@@ -39,6 +40,9 @@ public class FtsServiceBean implements FtsService {
 
     @Inject
     protected Metadata metadata;
+
+    @Inject
+    protected Messages messages;
 
     protected FtsConfig config;
 
@@ -64,9 +68,76 @@ public class FtsServiceBean implements FtsService {
             searcher = null;
 
         int maxResults = config.getMaxSearchResults();
+        List<EntityInfo> allFieldResults = getSearcher().searchAllField(searchTerm, maxResults);
+
+        return makeSearchResult(searchTerm, maxResults, allFieldResults);
+    }
+
+    @Override
+    public SearchResult search(String searchTerm, List<String> entityNames) {
+        if (searcher != null && !searcher.isCurrent())
+            searcher = null;
+
+        //first search among entities with names from entityNames method parameter
+        List<EntityInfo> allFieldResults = getSearcher().searchAllField(searchTerm, entityNames);
+
+        SearchResult searchResult = new SearchResult(searchTerm);
+        for (EntityInfo entityInfo : allFieldResults) {
+            searchResult.addHit(entityInfo.getId(), entityInfo.getText(), null, new MorphologyNormalizer());
+            //we don't reload entity because we don't need entity caption
+            SearchResult.Entry entry = new SearchResult.Entry(entityInfo.getId(), entityInfo.getId().toString());
+            searchResult.addEntry(entityInfo.getName(), entry);
+        }
+
+        //try to find entities that has a link to other entities (not from entityNames collection)
+        //that matches a search criteria
+        Set<String> linkedEntitiesNames = new HashSet<>();
+        for (String entityName : entityNames) {
+            linkedEntitiesNames.addAll(findLinkedEntitiesNames(entityName));
+        }
+
+        List<EntityInfo> linkedEntitiesInfos = getSearcher().searchAllField(searchTerm, linkedEntitiesNames);
+        for (EntityInfo linkedEntitiesInfo : linkedEntitiesInfos) {
+            List<EntityInfo> entitiesWithLinkInfos = getSearcher().searchLinksField(linkedEntitiesInfo.getId(), entityNames);
+            for (EntityInfo entityWithLinkInfo : entitiesWithLinkInfos) {
+                searchResult.addHit(entityWithLinkInfo.getId(), linkedEntitiesInfo.getText(), linkedEntitiesInfo.getName(),
+                        new MorphologyNormalizer());
+                searchResult.addEntry(entityWithLinkInfo.getName(), new SearchResult.Entry(entityWithLinkInfo.getId(), entityWithLinkInfo.getId().toString()));
+            }
+        }
+
+        return searchResult;
+    }
+
+    /**
+     * Iterates through entity indexed link properties and returns a collection of
+     * these properties entity names
+     */
+    protected Set<String> findLinkedEntitiesNames(String entityName) {
+        Set<String> result = new HashSet<>();
+        EntityDescr entityDescr = manager.getDescrByName().get(entityName);
+        if (entityDescr == null)
+            return result;
+        List<String> linkProperties = entityDescr.getLinkProperties();
+        MetaClass metaClass = metadata.getClass(entityName);
+        if (metaClass == null) {
+            throw new RuntimeException("Entity with name " + entityName + " not found");
+        }
+        for (String linkProperty : linkProperties) {
+            MetaPropertyPath propertyPath = metaClass.getPropertyPath(linkProperty);
+            if (propertyPath == null) {
+                throw new RuntimeException("Property path " + linkProperty + " for entity " + entityName + " doesn't exist");
+            }
+            String linkedEntityName = metadata.getClassNN(propertyPath.getMetaProperty().getJavaType()).getName();
+            List<String> collectedLinkedEntityNames = collectEntityHierarchyNames(linkedEntityName);
+            result.addAll(collectedLinkedEntityNames);
+        }
+        return result;
+    }
+
+    protected SearchResult makeSearchResult(String searchTerm, int maxResults, List<EntityInfo> allFieldResults) {
         SearchResult result = new SearchResult(searchTerm);
 
-        List<EntityInfo> allFieldResults = getSearcher().searchAllField(searchTerm, maxResults);
         if (!allFieldResults.isEmpty()) {
             Transaction tx = persistence.createTransaction();
             try {
@@ -121,7 +192,6 @@ public class FtsServiceBean implements FtsService {
                 }
             }
         }
-
         return result;
     }
 
@@ -147,6 +217,11 @@ public class FtsServiceBean implements FtsService {
             tx.end();
         }
         return result;
+    }
+
+    @Override
+    public boolean isEntityIndexed(String entityName) {
+        return manager.showInResults(entityName);
     }
 
     protected SearchResult.Entry createEntry(String entityName, UUID entityId) {
@@ -177,6 +252,67 @@ public class FtsServiceBean implements FtsService {
         if (list.isEmpty())
             return null;
         return list.get(0);
+    }
+
+    @Override
+    public List<String> collectEntityHierarchyNames(String entityName) {
+        MetaClass metaClass = metadata.getClass(entityName);
+        if (metaClass == null)
+            throw new IllegalArgumentException("Entity with name " + entityName + " does not exist");
+
+        List<String> result = new ArrayList<>();
+        result.add(entityName);
+
+        for (MetaClass descendantMetaClass : metaClass.getDescendants()) {
+            result.add(descendantMetaClass.getName());
+        }
+
+        MetaClass originalMetaClass = metadata.getExtendedEntities().getOriginalMetaClass(metaClass);
+        if (originalMetaClass != null) {
+            result.add(originalMetaClass.getName());
+        }
+
+        return result;
+    }
+
+    @Override
+    public String getHitPropertyCaption(String entityName, String hitProperty) {
+        String[] parts = hitProperty.split("\\.");
+        if (parts.length == 1) {
+            MetaClass metaClass = metadata.getSession().getClass(entityName);
+            if (metaClass == null)
+                return hitProperty;
+
+            MetaProperty metaProperty = metaClass.getProperty(hitProperty);
+            if (metaProperty == null)
+                return hitProperty;
+
+            return messages.getTools().getPropertyCaption(metaProperty);
+        } else {
+            String linkEntityName = parts[0];
+            MetaClass metaClass = metadata.getSession().getClass(linkEntityName);
+            if (metaClass == null)
+                return hitProperty;
+
+            MetaClass fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
+
+            if (metaClass == fileMetaClass && parts[1].equals(FTS.FILE_CONT_PROP)) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 2; i < parts.length; i++) {
+                    sb.append(parts[i]);
+                    if (i < parts.length - 1)
+                        sb.append(".");
+                }
+                return messages.formatMessage(getClass(), "fileContent", sb.toString());
+            }
+
+            MetaProperty metaProperty = metaClass.getProperty(parts[1]);
+            if (metaProperty == null)
+                return hitProperty;
+
+            return messages.getTools().getEntityCaption(metaClass) + "."
+                    + messages.getTools().getPropertyCaption(metaProperty);
+        }
     }
 
 }

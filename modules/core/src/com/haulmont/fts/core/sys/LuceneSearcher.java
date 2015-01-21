@@ -61,6 +61,28 @@ public class LuceneSearcher extends Lucene {
         return new ArrayList(set);
     }
 
+    public List<EntityInfo> searchAllField(String searchTerm, Collection<String> entityNames) {
+        Set<EntityInfo> set = new LinkedHashSet<>();
+
+        Query query = createQueryForAllFieldSearch(searchTerm, entityNames);
+
+        try {
+            AllDocsCollector collector = new AllDocsCollector();
+            searcher.search(query, collector);
+            for (Integer docId : collector.getDocIds()) {
+                Document doc = searcher.doc(docId);
+                String entityName = doc.getField(FLD_ENTITY).stringValue();
+                UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
+                String text = storeContentInIndex ? doc.getField(FLD_ALL).stringValue() : null;
+                EntityInfo entityInfo = new EntityInfo(entityName, entityId, text, false);
+                set.add(entityInfo);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return new ArrayList<>(set);
+    }
+
 
     protected Query createQueryForAllFieldSearch(String searchTerm) {
         Query query;
@@ -89,6 +111,34 @@ public class LuceneSearcher extends Lucene {
                 }
             }
         }
+        return query;
+    }
+
+    protected Query createQueryForAllFieldSearch(String searchTerm, Collection<String> entityNames) {
+        BooleanQuery query = new BooleanQuery();
+        Query queryForAllFieldSearch = createQueryForAllFieldSearch(searchTerm);
+
+        BooleanQuery entityNamesQuery = new BooleanQuery();
+        for (String entityName : entityNames) {
+            Term term = new Term(FLD_ENTITY, entityName);
+            entityNamesQuery.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
+        }
+
+        query.add(queryForAllFieldSearch, BooleanClause.Occur.MUST);
+        query.add(entityNamesQuery, BooleanClause.Occur.MUST);
+        return query;
+    }
+
+    protected Query createQueryForLinksFieldSearch(UUID id, List<String> entityNames) {
+        BooleanQuery query = new BooleanQuery();
+        TermQuery idQuery = new TermQuery(new Term(FLD_LINKS, id.toString()));
+        BooleanQuery entityNamesQuery = new BooleanQuery();
+        for (String entityName : entityNames) {
+            Term term = new Term(FLD_ENTITY, entityName);
+            entityNamesQuery.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
+        }
+        query.add(idQuery, BooleanClause.Occur.MUST);
+        query.add(entityNamesQuery, BooleanClause.Occur.MUST);
         return query;
     }
 
@@ -129,6 +179,26 @@ public class LuceneSearcher extends Lucene {
             throw new RuntimeException(e);
         }
         return new ArrayList(set);
+    }
+
+    public List<EntityInfo> searchLinksField(UUID id, List<String> entityNames) {
+        Set<EntityInfo> set = new LinkedHashSet<>();
+        Query query = createQueryForLinksFieldSearch(id, entityNames);
+        try {
+            AllDocsCollector collector = new AllDocsCollector();
+            searcher.search(query, collector);
+            for (Integer docId : collector.getDocIds()) {
+                Document doc = searcher.doc(docId);
+                String entityName = doc.getField(FLD_ENTITY).stringValue();
+                UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
+                String text = storeContentInIndex ? doc.getField(FLD_ALL).stringValue() : null;
+                EntityInfo entityInfo = new EntityInfo(entityName, entityId, text, true);
+                set.add(entityInfo);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return new ArrayList<>(set);
     }
 
 }
