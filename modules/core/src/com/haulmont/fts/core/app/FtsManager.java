@@ -19,10 +19,7 @@ import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.core.sys.persistence.DbTypeConverter;
 import com.haulmont.cuba.security.app.Authenticated;
 import com.haulmont.cuba.security.app.Authentication;
-import com.haulmont.fts.core.sys.ConfigLoader;
-import com.haulmont.fts.core.sys.EntityDescr;
-import com.haulmont.fts.core.sys.LuceneIndexer;
-import com.haulmont.fts.core.sys.LuceneWriter;
+import com.haulmont.fts.core.sys.*;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -200,7 +197,7 @@ public class FtsManager implements FtsManagerAPI {
             writing = true;
 
             List<FtsQueue> list = loadQueuedItems();
-
+            list = new ArrayList<>(list);
             if (!list.isEmpty()) {
                 count = initIndexer(count, list);
                 removeQueuedItems(list);
@@ -273,10 +270,18 @@ public class FtsManager implements FtsManagerAPI {
 
     protected int initIndexer(int count, List<FtsQueue> list) {
         LuceneIndexer indexer = createLuceneIndexer();
+        List<FtsQueue> unindexed = new ArrayList<>(list.size());
         try {
             for (FtsQueue ftsQueue : list) {
-                indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
-                count++;
+                try {
+                    indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
+                    count++;
+                } catch (EntityIndexingException e) {
+                    unindexed.add(ftsQueue);
+                }
+            }
+            if (!unindexed.isEmpty()) {
+                list.removeAll(unindexed);
             }
         } finally {
             indexer.close();
