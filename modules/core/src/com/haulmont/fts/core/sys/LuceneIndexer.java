@@ -90,7 +90,7 @@ public class LuceneIndexer extends LuceneWriter {
         }
     }
 
-    public void indexEntity(String entityName, UUID entityId, FtsChangeType changeType) throws EntityIndexingException {
+    public void indexEntity(String entityName, UUID entityId, FtsChangeType changeType) throws IndexingException {
         if (FtsChangeType.DELETE.equals(changeType)) {
             deleteQueue.add(new Pair<>(entityName, entityId));
             return;
@@ -160,19 +160,19 @@ public class LuceneIndexer extends LuceneWriter {
                 writer.addDocument(doc);
             }
 
-        } catch (EntityIndexingException e) {
+        } catch (IndexingException e) {
             log.error("Error indexing " + entityName + "-" + entityId);
-            throw new EntityIndexingException(entityName, entityId, e);
+            throw new IndexingException(entityName, entityId, e);
         } catch (IOException e) {
             log.error("Error indexing " + entityName + "-" + entityId);
-            throw new EntityIndexingException(e);
+            throw new IndexingException(e);
         } catch (RuntimeException e) {
             log.error("Error indexing " + entityName + "-" + entityId);
             throw e;
         }
     }
 
-    protected String createAllFieldContent(Entity entity, EntityDescr descr) throws EntityIndexingException {
+    protected String createAllFieldContent(Entity entity, EntityDescr descr) throws IndexingException {
         StringBuilder sb = new StringBuilder();
 
         for (String propName : descr.getLocalProperties()) {
@@ -198,7 +198,7 @@ public class LuceneIndexer extends LuceneWriter {
         return sb.toString();
     }
 
-    protected void appendFileContent(StringBuilder sb, FileDescriptor fileDescriptor) throws EntityIndexingException {
+    protected void appendFileContent(StringBuilder sb, FileDescriptor fileDescriptor) throws IndexingException {
         Parser parser = getParser(fileDescriptor);
         if (parser == null) return;
         FileStorageAPI fs = AppBeans.get(FileStorageAPI.class);
@@ -206,7 +206,7 @@ public class LuceneIndexer extends LuceneWriter {
         try {
             data = fs.loadFile(fileDescriptor);
         } catch (FileStorageException e) {
-            throw new EntityIndexingException(e);
+            throw new IndexingException(e);
         }
         InputStream stream = new ByteArrayInputStream(data);
 
@@ -221,13 +221,13 @@ public class LuceneIndexer extends LuceneWriter {
                     stringWriter = new StringWriter();
                     parser.parse(stream, new BodyContentHandler(stringWriter), new Metadata(), new ParseContext());
                 } catch (Exception e1) {
-                    throw new EntityIndexingException(e);
+                    throw new IndexingException(e);
                 }
             } else {
-                throw new EntityIndexingException(e);
+                throw new IndexingException(e);
             }
         } catch (Exception e) {
-            throw new EntityIndexingException(e);
+            throw new IndexingException(e);
         }
         appendString(sb, stringWriter.toString());
     }

@@ -199,7 +199,7 @@ public class FtsManager implements FtsManagerAPI {
             List<FtsQueue> list = loadQueuedItems();
             list = new ArrayList<>(list);
             if (!list.isEmpty()) {
-                count = initIndexer(count, list);
+                count = initIndexer(list);
                 removeQueuedItems(list);
             }
         } finally {
@@ -268,15 +268,16 @@ public class FtsManager implements FtsManagerAPI {
         }
     }
 
-    protected int initIndexer(int count, List<FtsQueue> list) {
+    protected int initIndexer(List<FtsQueue> list) {
         LuceneIndexer indexer = createLuceneIndexer();
         List<FtsQueue> unindexed = new ArrayList<>(list.size());
+        int count = 0;
         try {
             for (FtsQueue ftsQueue : list) {
                 try {
                     indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
                     count++;
-                } catch (EntityIndexingException e) {
+                } catch (IndexingException e) {
                     unindexed.add(ftsQueue);
                 }
             }

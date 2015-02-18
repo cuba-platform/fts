@@ -11,31 +11,31 @@ import java.util.UUID;
  * @author gorelov
  * @version $Id$
  */
-public class EntityIndexingException extends Exception {
+public class IndexingException extends Exception {
     private static final long serialVersionUID = -406668009906992897L;
 
     private String entityName;
     private UUID entityId;
 
-    public EntityIndexingException(Throwable cause) {
+    public IndexingException(Throwable cause) {
         this(null, null, null, cause);
     }
 
-    public EntityIndexingException(String entityName, UUID entityId, Throwable cause) {
+    public IndexingException(String entityName, UUID entityId, Throwable cause) {
         this(entityName, entityId, null, cause);
     }
 
-    public EntityIndexingException(String entityName, UUID entityId, String message, Throwable cause) {
+    public IndexingException(String entityName, UUID entityId, String message, Throwable cause) {
         super(message, cause);
         this.entityName = entityName;
         this.entityId = entityId;
     }
 
-    public EntityIndexingException(String entityName, UUID entityId, String message) {
+    public IndexingException(String entityName, UUID entityId, String message) {
         this(entityName, entityId, message, null);
     }
 
-    public EntityIndexingException(String entityName, UUID entityId) {
+    public IndexingException(String entityName, UUID entityId) {
         this(entityName, entityId, null, null);
     }
 
