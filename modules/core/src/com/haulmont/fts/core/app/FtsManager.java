@@ -278,7 +278,8 @@ public class FtsManager implements FtsManagerAPI {
                     indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
                     count++;
                 } catch (IndexingException e) {
-                    unindexed.add(ftsQueue);
+                    if (e.getEntityType() != IndexingException.EntityType.FILE)
+                        unindexed.add(ftsQueue);
                 }
             }
             if (!unindexed.isEmpty()) {

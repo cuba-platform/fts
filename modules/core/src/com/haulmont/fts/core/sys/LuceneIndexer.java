@@ -162,10 +162,10 @@ public class LuceneIndexer extends LuceneWriter {
 
         } catch (IndexingException e) {
             log.error("Error indexing " + entityName + "-" + entityId);
-            throw new IndexingException(entityName, entityId, e);
+            throw new IndexingException(entityName, entityId, e.getEntityType(), e);
         } catch (IOException e) {
             log.error("Error indexing " + entityName + "-" + entityId);
-            throw new IndexingException(e);
+            throw new IndexingException(entityName, entityId, IndexingException.EntityType.OTHER, e);
         } catch (RuntimeException e) {
             log.error("Error indexing " + entityName + "-" + entityId);
             throw e;
@@ -206,7 +206,7 @@ public class LuceneIndexer extends LuceneWriter {
         try {
             data = fs.loadFile(fileDescriptor);
         } catch (FileStorageException e) {
-            throw new IndexingException(e);
+            throw new IndexingException(IndexingException.EntityType.FILE, e);
         }
         InputStream stream = new ByteArrayInputStream(data);
 
@@ -221,13 +221,13 @@ public class LuceneIndexer extends LuceneWriter {
                     stringWriter = new StringWriter();
                     parser.parse(stream, new BodyContentHandler(stringWriter), new Metadata(), new ParseContext());
                 } catch (Exception e1) {
-                    throw new IndexingException(e);
+                    throw new IndexingException(IndexingException.EntityType.FILE, e);
                 }
             } else {
-                throw new IndexingException(e);
+                throw new IndexingException(IndexingException.EntityType.FILE, e);
             }
         } catch (Exception e) {
-            throw new IndexingException(e);
+            throw new IndexingException(IndexingException.EntityType.FILE, e);
         }
         appendString(sb, stringWriter.toString());
     }

@@ -16,27 +16,21 @@ public class IndexingException extends Exception {
 
     private String entityName;
     private UUID entityId;
+    private EntityType entityType;
 
-    public IndexingException(Throwable cause) {
-        this(null, null, null, cause);
+    public IndexingException(EntityType entityType, Throwable cause) {
+        this(null, null, null, entityType, cause);
     }
 
-    public IndexingException(String entityName, UUID entityId, Throwable cause) {
-        this(entityName, entityId, null, cause);
+    public IndexingException(String entityName, UUID entityId, EntityType entityType, Throwable cause) {
+        this(entityName, entityId, null, entityType, cause);
     }
 
-    public IndexingException(String entityName, UUID entityId, String message, Throwable cause) {
+    public IndexingException(String entityName, UUID entityId, String message, EntityType entityType, Throwable cause) {
         super(message, cause);
         this.entityName = entityName;
         this.entityId = entityId;
-    }
-
-    public IndexingException(String entityName, UUID entityId, String message) {
-        this(entityName, entityId, message, null);
-    }
-
-    public IndexingException(String entityName, UUID entityId) {
-        this(entityName, entityId, null, null);
+        this.entityType = entityType;
     }
 
     public String getEntityName() {
@@ -45,5 +39,14 @@ public class IndexingException extends Exception {
 
     public UUID getEntityId() {
         return entityId;
+    }
+
+    public EntityType getEntityType() {
+        return entityType;
+    }
+
+    public enum EntityType {
+        FILE,
+        OTHER
     }
 }
