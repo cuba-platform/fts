@@ -32,7 +32,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         <item name="Apache XMLBeans" web="http://xmlbeans.apache.org/" license="apache-2.0"/>
 
-        <item name="Apache JAMES Mime4j" web="http://xmlbeans.apache.org/" license="apache-2.0"/>
+        <item name="Apache James Mime4J" web="https://james.apache.org/mime4j" license="apache-2.0"/>
 
         <item name="Boilerpipe" web="https://code.google.com/p/boilerpipe/" license="apache-2.0"/>
 
