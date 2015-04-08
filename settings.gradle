@@ -6,11 +6,10 @@
 
 rootProject.name = 'fts'
 
-include(':fts-global', ':fts-core', ':fts-web', ':fts-web6', ':fts-gui', ':fts-desktop')
+include(':fts-global', ':fts-core', ':fts-web', ':fts-gui', ':fts-desktop')
 
 project(':fts-global').projectDir = new File(settingsDir, 'modules/global')
 project(':fts-core').projectDir = new File(settingsDir, 'modules/core')
 project(':fts-gui').projectDir = new File(settingsDir, 'modules/gui')
 project(':fts-desktop').projectDir = new File(settingsDir, 'modules/desktop')
 project(':fts-web').projectDir = new File(settingsDir, 'modules/web')
-project(':fts-web6').projectDir = new File(settingsDir, 'modules/web6')
