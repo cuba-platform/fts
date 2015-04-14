@@ -36,7 +36,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         <item name="Boilerpipe" web="https://code.google.com/p/boilerpipe/" license="apache-2.0"/>
 
-        <item name="Morphology for Lucene" web="https://code.google.com/p/russianmorphology" license="apache-2.0"/>
+        <item name="Morphology for Lucene" web="https://code.google.com/p/russianmorphology" license="apache-2.0"
+              fork="true"/>
 
         <item name="metadata-extractor" web="https://github.com/drewnoakes/metadata-extractor" license="apache-2.0"/>
 
