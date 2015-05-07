@@ -22,6 +22,12 @@
             <exclude name="substitutions"/>
         </entity>
 
+        <entity class="com.haulmont.cuba.security.entity.UserRole" show="false">
+            <searchables>
+                searchables.add(entity.user)
+            </searchables>
+        </entity>
+
         <entity class="com.haulmont.cuba.core.entity.FileDescriptor" show="false">
             <include name="name"/>
         </entity>
