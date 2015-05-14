@@ -6,7 +6,6 @@ package com.haulmont.fts.web.ui.results;
 
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.chile.core.model.MetaClass;
-import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.chile.core.model.Session;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
@@ -16,13 +15,13 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.View;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.AbstractWindow;
+import com.haulmont.cuba.gui.components.mainwindow.AppWorkArea;
 import com.haulmont.cuba.gui.config.WindowConfig;
 import com.haulmont.cuba.web.App;
 import com.haulmont.cuba.web.AppWindow;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
 import com.haulmont.cuba.web.toolkit.ui.CubaButton;
 import com.haulmont.fts.app.FtsService;
-import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.SearchResult;
 import com.vaadin.server.Sizeable;
 import com.vaadin.shared.ui.label.ContentMode;
@@ -199,11 +198,17 @@ public class SearchResultsWindow extends AbstractWindow {
             Entity entity = reloadEntity(metaClass, entityId);
 
             AppWindow appWindow = App.getInstance().getAppWindow();
-            WindowManager.OpenType openType = AppWindow.Mode.TABBED == appWindow.getMode() ?
-                    WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
+            AppWorkArea workArea = appWindow.getMainWindow().getWorkArea();
 
-            WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
-            openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
+            if (workArea != null) {
+                WindowManager.OpenType openType = AppWorkArea.Mode.TABBED == workArea.getMode() ?
+                        WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
+
+                WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
+                openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
+            } else {
+                throw new IllegalStateException("Application does not have any configured work area");
+            }
         }
     }
 
