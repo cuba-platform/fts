@@ -5,12 +5,10 @@
 
 package com.haulmont.fts.core.sys.morphology;
 
+import com.haulmont.bali.util.ReflectionHelper;
 import com.haulmont.fts.global.Normalizer;
 import org.apache.lucene.morphology.LuceneMorphology;
-import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
-import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,10 +23,21 @@ public class MorphologyNormalizer implements Normalizer {
 
     static {
         try {
-            morphologies.add(new RussianLuceneMorphology());
-            morphologies.add(new EnglishLuceneMorphology());
-        } catch (IOException e) {
-            throw new RuntimeException();
+            Class<?> morphClass = ReflectionHelper.loadClass("org.apache.lucene.morphology.english.EnglishLuceneMorphology");
+            morphologies.add((LuceneMorphology) morphClass.newInstance());
+        } catch (ClassNotFoundException ignored) {
+            // the dependency could be excluded
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException("Error initializing FTS English morphology", e);
+        }
+
+        try {
+            Class<?> morphClass = ReflectionHelper.loadClass("org.apache.lucene.morphology.russian.RussianLuceneMorphology");
+            morphologies.add((LuceneMorphology) morphClass.newInstance());
+        } catch (ClassNotFoundException ignored) {
+            // the dependency could be excluded
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException("Error initializing FTS Russian morphology", e);
         }
     }
 
