@@ -24,6 +24,10 @@ import org.springframework.stereotype.Service;
 import javax.inject.Inject;
 import java.util.*;
 
+/**
+ * @author krivopustov
+ * @version $Id$
+ */
 @Service(FtsService.NAME)
 public class FtsServiceBean implements FtsService {
 
@@ -303,7 +307,7 @@ public class FtsServiceBean implements FtsService {
                     if (i < parts.length - 1)
                         sb.append(".");
                 }
-                return messages.formatMessage(getClass(), "fileContent", sb.toString());
+                return messages.formatMessage(FtsServiceBean.class, "fileContent", sb.toString());
             }
 
             MetaProperty metaProperty = metaClass.getProperty(parts[1]);
@@ -314,5 +318,4 @@ public class FtsServiceBean implements FtsService {
                     + messages.getTools().getPropertyCaption(metaProperty);
         }
     }
-
 }
