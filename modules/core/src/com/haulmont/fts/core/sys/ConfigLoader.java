@@ -109,6 +109,10 @@ public class ConfigLoader {
         for (Element entityElem : Dom4j.elements(entitiesElem, "entity")) {
             String className = entityElem.attributeValue("class");
             MetaClass metaClass = metadata.getClassNN(ReflectionHelper.getClass(className));
+            if (!metadata.getTools().isPersistent(metaClass)) {
+                log.warn("Entity " + metaClass.getName() + " is not persistent, ignore it");
+                continue;
+            }
             metaClass = metadata.getExtendedEntities().getEffectiveMetaClass(metaClass);
             EntityDescr entityDescr = createEntityDescr(entityElem, metaClass);
             map.put(className, entityDescr);
