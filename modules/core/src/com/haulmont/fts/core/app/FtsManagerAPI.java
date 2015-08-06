@@ -10,6 +10,7 @@ import org.apache.lucene.store.Directory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * @author krivopustov
@@ -23,7 +24,11 @@ public interface FtsManagerAPI {
 
     List<BaseEntity> getSearchableEntities(BaseEntity entity);
 
-    public Map<String, EntityDescr> getDescrByName();
+    boolean isReindexing();
+
+    Queue<String> getReindexEntitiesQueue();
+
+    Map<String, EntityDescr> getDescrByName();
 
     int processQueue();
 
@@ -46,4 +51,10 @@ public interface FtsManagerAPI {
     int reindexEntity(String entityName);
 
     int reindexAll();
+
+    void asyncReindexEntity(String entityName);
+
+    void asyncReindexAll();
+
+    int reindexNextBatch();
 }

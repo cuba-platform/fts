@@ -4,6 +4,7 @@
  */
 package com.haulmont.fts.core.app;
 
+import com.google.common.base.Strings;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
@@ -36,6 +37,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -52,6 +54,10 @@ public class FtsManager implements FtsManagerAPI {
 
     protected final ReentrantLock writeLock = new ReentrantLock();
     protected volatile boolean writing;
+
+    protected final ReentrantLock reindexLock = new ReentrantLock();
+    protected volatile boolean reindexing;
+    protected volatile Queue<String> reindexEntitiesQueue = new ConcurrentLinkedQueue<>();
 
     protected volatile Directory directory;
 
@@ -77,6 +83,9 @@ public class FtsManager implements FtsManagerAPI {
     protected ConfigLoader configLoader;
 
     @Inject
+    protected FtsSender ftsSender;
+
+    @Inject
     public void setConfiguration(Configuration configuration) {
         config = configuration.getConfig(FtsConfig.class);
     }
@@ -100,6 +109,16 @@ public class FtsManager implements FtsManagerAPI {
     @Override
     public boolean isWriting() {
         return writing;
+    }
+
+    @Override
+    public boolean isReindexing() {
+        return reindexing;
+    }
+
+    @Override
+    public Queue<String> getReindexEntitiesQueue() {
+        return reindexEntitiesQueue;
     }
 
     protected Map<String, EntityDescr> getDescrByClassName() {
@@ -184,6 +203,11 @@ public class FtsManager implements FtsManagerAPI {
         if (!config.getEnabled())
             return 0;
 
+        if (!reindexEntitiesQueue.isEmpty()) {
+            log.debug("Unable to process queue: there are entities that are waiting for reindex");
+            return 0;
+        }
+
         log.debug("Start processing queue");
         int count = 0;
         boolean locked = writeLock.tryLock();
@@ -207,7 +231,7 @@ public class FtsManager implements FtsManagerAPI {
             writing = false;
             authentication.end();
         }
-        log.debug(count + " queue items succesfully processed");
+        log.debug(count + " queue items successfully processed");
         return count;
     }
 
@@ -220,7 +244,7 @@ public class FtsManager implements FtsManagerAPI {
         Transaction tx = persistence.createTransaction();
         try {
             EntityManager em = persistence.getEntityManager();
-            String queryString = String.format("select q from sys$FtsQueue q where %s order by q.createTs",
+            String queryString = String.format("select q from sys$FtsQueue q where q.fake = false and %s order by q.createTs",
                     (useServerId ? "q.indexingHost = ?1" : "q.indexingHost is null"));
             Query query = em.createQuery(queryString);
             if (useServerId)
@@ -426,12 +450,118 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     @Override
+    public void asyncReindexEntity(String entityName) {
+        MetaClass metaClass = metadata.getSession().getClass(entityName);
+        if (metaClass == null)
+            throw new IllegalArgumentException("MetaClass not found for " + entityName);
+
+        EntityDescr descr = getDescrByName().get(entityName);
+        if (descr == null)
+            throw new IllegalArgumentException("FTS configuration not found for " + entityName);
+
+        Transaction tx = persistence.createTransaction();
+        try {
+            ftsSender.emptyQueue(entityName);
+            reindexEntitiesQueue.add(entityName);
+            tx.commit();
+        } finally {
+            tx.end();
+        }
+    }
+
+    @Override
     public int reindexAll() {
         int count = 0;
         for (String entityName : getDescrByName().keySet()) {
             count += reindexEntity(entityName);
         }
         return count;
+    }
+
+    @Override
+    public void asyncReindexAll() {
+        for (String entityName : getDescrByName().keySet()) {
+            asyncReindexEntity(entityName);
+        }
+    }
+
+    @Override
+    public int reindexNextBatch() {
+        if (!AppContext.isStarted())
+            return 0;
+
+        if (!config.getEnabled())
+            return 0;
+
+        if (reindexEntitiesQueue.isEmpty())
+            return 0;
+
+        log.debug("Start reindexing next entities batch");
+        boolean locked = reindexLock.tryLock();
+        if (!locked) {
+            log.warn("Unable to reindex next batch of entities: reindexing at the moment");
+            return 0;
+        }
+
+        authentication.begin();
+        Transaction tx = persistence.createTransaction();
+        try {
+            reindexing = true;
+            try {
+                String entityName = reindexEntitiesQueue.element();
+                int reindexBatchSize = config.getReindexBatchSize();
+                EntityManager em = persistence.getEntityManager();
+
+                EntityDescr entityDescr = getDescrByName().get(entityName);
+                String searchableIfScript = entityDescr.getSearchableIfScript();
+                if (Strings.isNullOrEmpty(searchableIfScript)) {
+                    List<UUID> ids = em.createQuery("select e.id from " + entityName + " e where e.id not in " +
+                            "(select q.entityId from sys$FtsQueue q where q.entityName = :entityName)", UUID.class)
+                            .setParameter("entityName", entityName)
+                            .setMaxResults(reindexBatchSize)
+                            .getResultList();
+                    for (UUID id : ids) {
+                        ftsSender.enqueue(entityName, id, FtsChangeType.INSERT);
+                    }
+                    tx.commit();
+                    if (ids.size() < reindexBatchSize) {
+                        reindexEntitiesQueue.remove();
+                    }
+                    log.debug(ids.size() + " instances of " + entityName + " was added to the FTS queue");
+                    return ids.size();
+                } else {
+                    List<BaseEntity> entities = em.createQuery("select e from " + entityName + " e where e.id not in " +
+                            "(select q.entityId from sys$FtsQueue q where q.entityName = :entityName)", BaseEntity.class)
+                            .setParameter("entityName", entityName)
+                            .setMaxResults(reindexBatchSize)
+                            .getResultList();
+                    int count = 0;
+                    for (BaseEntity entity : entities) {
+                        if (runSearchableIf(entity, entityDescr)) {
+                            ftsSender.enqueue(entityName, (UUID) entity.getId(), FtsChangeType.INSERT);
+                            count++;
+                        } else {
+                            ftsSender.enqueueFake(entityName, (UUID) entity.getId());
+                        }
+                    }
+                    if (entities.size() < reindexBatchSize) {
+                        reindexEntitiesQueue.remove();
+                        ftsSender.emptyFakeQueue(entityName);
+                    }
+                    tx.commit();
+                    log.debug(entities.size() + " instances of " + entityName + " was processed. "
+                            + count + " of them was added to the FTS queue");
+                    return entities.size();
+
+                }
+            } finally {
+                tx.end();
+            }
+        } finally {
+            reindexLock.unlock();
+            reindexing = false;
+            authentication.end();
+        }
     }
 
     public Directory getDirectory() {

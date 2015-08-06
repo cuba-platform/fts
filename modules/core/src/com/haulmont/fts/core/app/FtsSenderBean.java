@@ -84,6 +84,15 @@ public class FtsSenderBean implements FtsSender {
         }
     }
 
+    @Override
+    public void enqueueFake(String entityName, UUID entityId) {
+        FtsQueue q = metadata.create(FtsQueue.class);
+        q.setEntityId(entityId);
+        q.setEntityName(entityName);
+        q.setFake(true);
+        persistence.getEntityManager().persist(q);
+    }
+
     protected void persistQueueItem(String entityName, UUID entityId, FtsChangeType changeType,
                                     @Nullable String indexingHost) {
         FtsQueue q = new FtsQueue();
@@ -98,6 +107,14 @@ public class FtsSenderBean implements FtsSender {
     public void emptyQueue(String entityName) {
         EntityManager em = persistence.getEntityManager();
         Query q = em.createQuery("delete from sys$FtsQueue q where q.entityName = ?1");
+        q.setParameter(1, entityName);
+        q.executeUpdate();
+    }
+
+    @Override
+    public void emptyFakeQueue(String entityName) {
+        EntityManager em = persistence.getEntityManager();
+        Query q = em.createQuery("delete from sys$FtsQueue q where q.entityName = ?1 and q.fake = true");
         q.setParameter(1, entityName);
         q.executeUpdate();
     }

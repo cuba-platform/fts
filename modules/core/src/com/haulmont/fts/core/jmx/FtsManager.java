@@ -13,6 +13,7 @@ import org.apache.commons.logging.LogFactory;
 
 import javax.annotation.ManagedBean;
 import javax.inject.Inject;
+import java.util.Queue;
 
 /**
  * @author krivopustov
@@ -39,6 +40,16 @@ public class FtsManager implements FtsManagerMBean {
     @Override
     public boolean isWriting() {
         return manager.isWriting();
+    }
+
+    @Override
+    public boolean isReindexing() {
+        return manager.isReindexing();
+    }
+
+    @Override
+    public Queue<String> getReindexEntitiesQueue() {
+        return manager.getReindexEntitiesQueue();
     }
 
     @Override
@@ -85,6 +96,35 @@ public class FtsManager implements FtsManagerMBean {
             int count = manager.reindexAll();
 
             return String.format("Enqueued %d items. Reindexing will be performed on next processQueue invocation.", count);
+        } catch (Throwable e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        }
+    }
+
+    @Authenticated
+    @Override
+    public String asyncReindexEntity(String entityName) {
+        try {
+            manager.deleteIndexForEntity(entityName);
+            manager.asyncReindexEntity(entityName);
+            return String.format("Entity %s is marked for reindex. Entity instances will be added to the fts queue " +
+                    "by reindexNextBatch method.", entityName);
+        } catch (Throwable e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        }
+    }
+
+
+    @Authenticated
+    @Override
+    public String asyncReindexAll() {
+        try {
+            manager.deleteIndex();
+            manager.asyncReindexAll();
+            return "All entities are marked for reindexing. Entity instances will be added to the fts queue " +
+                    "by reindexNextBatch method invocations.";
         } catch (Throwable e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
