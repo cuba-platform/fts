@@ -7,7 +7,7 @@ package com.haulmont.fts.web.ui.results;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.Messages;
 import com.haulmont.cuba.gui.WindowManager;
-import com.haulmont.cuba.gui.components.IFrame;
+import com.haulmont.cuba.gui.components.Frame;
 import com.haulmont.cuba.gui.components.Window;
 import com.haulmont.cuba.gui.config.WindowConfig;
 import com.haulmont.cuba.gui.config.WindowInfo;
@@ -40,7 +40,7 @@ public class SearchLauncher implements Callable<Window> {
         String searchTerm = (String) params.get("searchTerm");
         if (StringUtils.isBlank(searchTerm)) {
             App.getInstance().getWindowManager().showNotification(
-                    messages.getMessage(getClass(), "noSearchTerm"), IFrame.NotificationType.HUMANIZED);
+                    messages.getMessage(getClass(), "noSearchTerm"), Frame.NotificationType.HUMANIZED);
             return null;
         } else {
             searchTerm = searchTerm.trim();
@@ -51,7 +51,7 @@ public class SearchLauncher implements Callable<Window> {
 
             if (searchResult.isEmpty()) {
                 windowManager.showNotification(
-                        messages.getMessage(getClass(), "notFound"), IFrame.NotificationType.HUMANIZED);
+                        messages.getMessage(getClass(), "notFound"), Frame.NotificationType.HUMANIZED);
                 return null;
             } else {
                 params.put("searchResult", searchResult);
