@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,7 +67,7 @@ public class ConfigLoader {
     }
 
     public Map<String, EntityDescr> loadConfiguration() {
-        HashMap<String, EntityDescr> map = new HashMap<>();
+        HashMap<String, EntityDescr> map = new LinkedHashMap<>();
 
         String configName = AppContext.getProperty("cuba.ftsConfig");
         if (StringUtils.isBlank(configName))
