@@ -35,7 +35,6 @@ import javax.annotation.ManagedBean;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
@@ -277,11 +276,7 @@ public class FtsManager implements FtsManagerAPI {
 
                 Query query = em.createNativeQuery(sb.toString());
                 for (int idx = 0; idx < sublist.size(); idx++) {
-                    try {
-                        query.setParameter(idx + 1, converter.getSqlObject(sublist.get(idx).getId()));
-                    } catch (SQLException e) {
-                        throw new RuntimeException("Unable to set query parameter", e);
-                    }
+                    query.setParameter(idx + 1, converter.getSqlObject(sublist.get(idx).getId()));
                 }
                 query.executeUpdate();
             }
