@@ -54,7 +54,7 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
 
     dependencies {
         compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: baseVersion)
-        testCompile(group: 'junit', name: 'junit', version: '4.5')
+        testCompile('junit:junit:4.12')
     }
 
     task sourceJar(type: Jar) {
