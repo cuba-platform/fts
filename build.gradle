@@ -81,6 +81,12 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
                 out: "$checkstyleDir/$project.name-checkstyle.html",
                 style: "$checkstyleConfigDir/checkstyle.xsl")
     }
+
+    jar {
+        manifest {
+            attributes("Implementation-Version": cubaVersion)
+        }
+    }
 }
 
 configure(coreModule) {
