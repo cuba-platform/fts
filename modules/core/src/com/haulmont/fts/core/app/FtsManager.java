@@ -35,6 +35,10 @@ import javax.annotation.ManagedBean;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
@@ -350,7 +354,7 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public String upgrade() {
-        IndexUpgrader upgrader = new IndexUpgrader(getDirectory(), Version.LUCENE_44);
+        IndexUpgrader upgrader = new IndexUpgrader(getDirectory());
         try {
             upgrader.upgrade();
         } catch (IOException e) {
@@ -568,16 +572,17 @@ public class FtsManager implements FtsManagerAPI {
                         Configuration configuration = AppBeans.get(Configuration.NAME);
                         dir = configuration.getConfig(GlobalConfig.class).getDataDir() + "/ftsindex";
                     }
-                    File file = new File(dir);
-                    if (!file.exists()) {
-                        boolean b = file.mkdirs();
-                        if (!b)
+                    Path file = Paths.get(dir);
+                    if (!Files.exists(file)) {
+                        try {
+                            Files.createDirectory(file);
+                        } catch (IOException e) {
                             throw new RuntimeException("Directory " + dir + " doesn't exist and can not be created");
+                        }
                     }
                     try {
                         directory = FSDirectory.open(file);
-
-                        if (directory.fileExists("write.lock")) {
+                        if (Files.exists(file.resolve("write.lock"))) {
                             directory.deleteFile("write.lock");
                         }
                     } catch (IOException e) {

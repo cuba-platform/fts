@@ -5,9 +5,10 @@
 
 package com.haulmont.fts.core.sys;
 
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.SimpleCollector;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,16 +22,11 @@ import java.util.List;
  * @author gorbunkov
  * @version $Id$
  */
-public class AllDocsCollector extends Collector {
+public class AllDocsCollector extends SimpleCollector {
 
     private int docBase;
 
     private List<Integer> docIds = new ArrayList<>();
-
-    @Override
-    public void setScorer(Scorer scorer) throws IOException {
-        //do nothing
-    }
 
     @Override
     public void collect(int doc) throws IOException {
@@ -38,16 +34,16 @@ public class AllDocsCollector extends Collector {
     }
 
     @Override
-    public void setNextReader(AtomicReaderContext context) throws IOException {
+    public void doSetNextReader(LeafReaderContext context) throws IOException {
         this.docBase = context.docBase;
-    }
-
-    @Override
-    public boolean acceptsDocsOutOfOrder() {
-        return true;
     }
 
     public List<Integer> getDocIds() {
         return docIds;
+    }
+
+    @Override
+    public boolean needsScores() {
+        return false;
     }
 }

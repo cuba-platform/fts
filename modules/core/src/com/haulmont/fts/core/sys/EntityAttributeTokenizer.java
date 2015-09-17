@@ -6,6 +6,7 @@ package com.haulmont.fts.core.sys;
 
 import com.haulmont.fts.global.FTS;
 import org.apache.lucene.analysis.util.CharTokenizer;
+import org.apache.lucene.util.AttributeFactory;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.Version;
 
@@ -13,12 +14,8 @@ import java.io.Reader;
 
 public class EntityAttributeTokenizer extends CharTokenizer {
 
-    public EntityAttributeTokenizer(AttributeSource.AttributeFactory factory, Reader input) {
-        super(Version.LUCENE_44, factory, input);
-    }
-
-    public EntityAttributeTokenizer(Reader input) {
-        super(Version.LUCENE_44, input);
+    public EntityAttributeTokenizer() {
+        super();
     }
 
     protected int normalize(int c) {

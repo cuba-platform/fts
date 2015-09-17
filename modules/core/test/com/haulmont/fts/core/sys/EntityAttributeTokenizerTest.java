@@ -11,7 +11,7 @@ import java.io.StringReader;
 public class EntityAttributeTokenizerTest extends TestCase {
 
     public void test() {
-        EntityAttributeTokenizer tokenizer = new EntityAttributeTokenizer(new StringReader("abcd"));
+        EntityAttributeTokenizer tokenizer = new EntityAttributeTokenizer();
 
         boolean b = tokenizer.isTokenChar('^');
         assertTrue(b);

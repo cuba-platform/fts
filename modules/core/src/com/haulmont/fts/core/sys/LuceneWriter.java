@@ -16,7 +16,6 @@ import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Version;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -36,12 +35,11 @@ public class LuceneWriter extends Lucene {
         List<LuceneMorphology> morphologies = MorphologyNormalizer.getAvailableMorphologies();
 
         Map<String, Analyzer> analyzerPerField = new HashMap<>();
-        analyzerPerField.put(FLD_LINKS, new WhitespaceAnalyzer(Version.LUCENE_44));
-        analyzerPerField.put(FLD_MORPHOLOGY_ALL, new MultiMorphologyAnalyzer(morphologies,
-                new EntityAttributeAnalyzer()));
+        analyzerPerField.put(FLD_LINKS, new WhitespaceAnalyzer());
+        analyzerPerField.put(FLD_MORPHOLOGY_ALL, new MultiMorphologyAnalyzer(morphologies));
         PerFieldAnalyzerWrapper analyzer = new PerFieldAnalyzerWrapper(new EntityAttributeAnalyzer(), analyzerPerField);
         try {
-            IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_44, analyzer);
+            IndexWriterConfig config = new IndexWriterConfig(analyzer);
             config.setIndexDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy());
             return new IndexWriter(directory, config);
         } catch (IOException e) {

@@ -11,7 +11,7 @@ import java.io.Reader;
 public class EntityAttributeAnalyzer extends Analyzer {
 
     @Override
-    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-        return new TokenStreamComponents(new EntityAttributeTokenizer(reader));
+    protected TokenStreamComponents createComponents(String fieldName) {
+        return new TokenStreamComponents(new EntityAttributeTokenizer());
     }
 }
