@@ -105,7 +105,7 @@ configure(coreModule) {
         compile(group: 'org.apache.tika', name: 'tika-parsers', version: '1.9') {
             exclude(group: 'org.apache.poi', module: 'poi')
         }
-        testCompile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion, classifier: 'tests')
+        testCompile(group: 'com.haulmont.cuba', name: 'cuba-core-tests', version: baseVersion)
     }
 }
 
