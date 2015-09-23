@@ -4,14 +4,6 @@
  * Use is subject to license terms.
  */
 
-allprojects {
-    ext.artifactGroup = 'com.haulmont.fts'
-    ext.artifactVersion = cubaVersion.replace('-SNAPSHOT', '')
-    ext.isSnapshot = cubaVersion.endsWith('-SNAPSHOT')
-    ext.vcs = 'svn'
-    //ext.tomcatDir = rootDir.absolutePath + '/../tomcat'
-}
-
 buildscript {
     ext.cubaVersion = '6.0-SNAPSHOT'
     ext.cubaVersion = rootProject.hasProperty('buildVersion') ? rootProject['buildVersion'] : cubaVersion
@@ -37,13 +29,25 @@ buildscript {
 apply(plugin: 'idea')
 apply(plugin: 'cuba')
 
+cuba {
+    artifact {
+        group = 'com.haulmont.fts'
+        version = cubaVersion.replace('-SNAPSHOT', '')
+        isSnapshot = cubaVersion.endsWith('-SNAPSHOT')
+    }
+
+    ide {
+        vcs = 'svn'
+    }
+}
+
 def globalModule = project(':fts-global')
 def coreModule = project(':fts-core')
 def webModule = project(':fts-web')
 def guiModule = project(':fts-gui')
 def desktopModule = project(':fts-desktop')
 
-def baseVersion = artifactVersion + (isSnapshot ? '-SNAPSHOT' : '')
+def baseVersion = cuba.artifact.version + (cuba.artifact.isSnapshot ? '-SNAPSHOT' : '')
 
 configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
     apply(plugin: 'java')
