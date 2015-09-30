@@ -12,7 +12,7 @@ import com.haulmont.cuba.gui.components.filter.condition.CustomCondition;
 import com.haulmont.cuba.security.global.UserSession;
 import com.haulmont.fts.global.SearchResult;
 
-import javax.annotation.ManagedBean;
+import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import java.util.*;
 
@@ -20,7 +20,7 @@ import java.util.*;
  * @author gorbunkov
  * @version $Id$
  */
-@ManagedBean(FtsFilterHelper.NAME)
+@Component(FtsFilterHelper.NAME)
 public class FtsFilterHelperBean implements FtsFilterHelper {
 
     @Inject

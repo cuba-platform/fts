@@ -18,7 +18,7 @@ import com.haulmont.cuba.core.global.FtsConfig;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.fts.core.jmx.FtsManagerMBean;
 
-import javax.annotation.ManagedBean;
+import org.springframework.stereotype.Component;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.List;
@@ -28,7 +28,7 @@ import java.util.UUID;
  * @author krivopustov
  * @version $Id$
  */
-@ManagedBean(FtsSender.NAME)
+@Component(FtsSender.NAME)
 public class FtsSenderBean implements FtsSender {
 
     protected FtsManagerAPI manager;

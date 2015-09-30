@@ -31,7 +31,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-import javax.annotation.ManagedBean;
+import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +47,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author krivopustov
  * @version $Id$
  */
-@ManagedBean(FtsManagerAPI.NAME)
+@Component(FtsManagerAPI.NAME)
 public class FtsManager implements FtsManagerAPI {
 
     private Log log = LogFactory.getLog(FtsManager.class);

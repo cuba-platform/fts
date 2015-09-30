@@ -11,7 +11,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import javax.annotation.ManagedBean;
+import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import java.util.Queue;
 
@@ -19,7 +19,7 @@ import java.util.Queue;
  * @author krivopustov
  * @version $Id$
  */
-@ManagedBean("fts_FtsManagerMBean")
+@Component("fts_FtsManagerMBean")
 public class FtsManager implements FtsManagerMBean {
 
     protected Log log = LogFactory.getLog(getClass());

@@ -25,7 +25,7 @@ import org.dom4j.Element;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 
-import javax.annotation.ManagedBean;
+import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
  * @author krivopustov
  * @version $Id$
  */
-@ManagedBean(ConfigLoader.NAME)
+@Component(ConfigLoader.NAME)
 public class ConfigLoader {
 
     public static final String NAME = "fts_ConfigLoader";
