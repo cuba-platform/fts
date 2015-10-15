@@ -100,8 +100,9 @@ configure(coreModule) {
         compile(group: 'org.apache.lucene', name: 'lucene-core', version: '5.3.0')
         compile(group: 'org.apache.lucene', name: 'lucene-analyzers-common', version: '5.3.0')
         compile(group: 'org.apache.lucene', name: 'lucene-backward-codecs', version: '5.3.0')
-        compile(group: 'org.apache.lucene.morphology', name: 'russian', version: '1.1')
-        compile(group: 'org.apache.lucene.morphology', name: 'english', version: '1.1')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morphology-ru', version: '1.1')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morphology-en', version: '1.1')
+        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morph', version: '1.1')
         compile(group: 'org.apache.tika', name: 'tika-parsers', version: '1.9') {
             exclude(group: 'org.apache.poi', module: 'poi')
         }
