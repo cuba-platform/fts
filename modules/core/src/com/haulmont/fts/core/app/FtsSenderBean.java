@@ -95,7 +95,7 @@ public class FtsSenderBean implements FtsSender {
 
     protected void persistQueueItem(String entityName, UUID entityId, FtsChangeType changeType,
                                     @Nullable String indexingHost) {
-        FtsQueue q = new FtsQueue();
+        FtsQueue q = metadata.create(FtsQueue.class);
         q.setEntityId(entityId);
         q.setEntityName(entityName);
         q.setChangeType(changeType);
