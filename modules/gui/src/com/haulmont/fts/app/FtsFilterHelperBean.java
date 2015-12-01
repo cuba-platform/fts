@@ -73,8 +73,7 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
     @Override
     public CustomCondition createFtsCondition(int queryKey) {
         CustomCondition condition = new CustomCondition();
-        condition.setJoin(", sys$QueryResult qr");
-        condition.setWhere("qr.entityId = {E}.id and qr.queryKey = :custom$queryKey and qr.sessionId = :custom$sessionId");
+        condition.setWhere("exists (select qr from sys$QueryResult qr where qr.entityId = {E}.id and qr.queryKey = :custom$queryKey and qr.sessionId = :custom$sessionId)");
         condition.setUnary(true);
         return condition;
     }
