@@ -104,6 +104,7 @@ configure(coreModule) {
         compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morphology-en', version: '1.1')
         compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morph', version: '1.1')
         compile(group: 'org.apache.tika', name: 'tika-parsers', version: '1.9') {
+            exclude(group: 'junit', module: 'junit')
             exclude(group: 'org.apache.poi', module: 'poi')
         }
         testCompile(group: 'com.haulmont.cuba', name: 'cuba-core-tests', version: baseVersion)
