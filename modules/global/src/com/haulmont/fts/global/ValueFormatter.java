@@ -4,10 +4,11 @@
  */
 package com.haulmont.fts.global;
 
+import com.google.common.base.Joiner;
 import com.haulmont.chile.core.datatypes.Datatypes;
 import com.haulmont.chile.core.datatypes.FormatStrings;
-import com.haulmont.cuba.core.global.AppBeans;
-import com.haulmont.cuba.core.global.UserSessionSource;
+import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.cuba.core.global.*;
 import org.apache.commons.lang.time.DateFormatUtils;
 
 import java.math.BigDecimal;
@@ -15,7 +16,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.*;
 
 public class ValueFormatter {
 
@@ -38,6 +39,9 @@ public class ValueFormatter {
         } else if (value instanceof Integer || value instanceof Long) {
             return value.toString();
 
+        } else if (value instanceof Enum) {
+            return formatEnum((Enum) value);
+
         } else
             return value.toString();
     }
@@ -55,6 +59,16 @@ public class ValueFormatter {
             return format(v);
 
         return value;
+    }
+
+    private String formatEnum(Enum enumValue) {
+        Messages messages = AppBeans.get(Messages.class);
+        GlobalConfig globalConfig = AppBeans.get(Configuration.class).getConfig(GlobalConfig.class);
+        Set<String> localizedValues = new HashSet<>();
+        for (Locale locale : globalConfig.getAvailableLocales().values()) {
+            localizedValues.add(messages.getMessage(enumValue, locale));
+        }
+        return Joiner.on(" ").join(localizedValues);
     }
 
     private Object tryDate(String value) {
