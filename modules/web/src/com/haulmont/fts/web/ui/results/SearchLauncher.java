@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2008-2013 Haulmont. All rights reserved.
- * Use is subject to license terms, see http://www.cuba-platform.com/license for details.
+ * Copyright (c) 2008-2016 Haulmont. All rights reserved.
+ * Use is subject to license terms, see http://www.cuba-platform.com/commercial-software-license for details.
  */
 package com.haulmont.fts.web.ui.results;
 
@@ -20,8 +20,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
- * @author krivopustov
- * @version $Id$
  */
 public class SearchLauncher implements Callable<Window> {
 
