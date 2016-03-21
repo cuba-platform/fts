@@ -13,8 +13,6 @@ import com.haulmont.cuba.core.app.ServerInfoAPI;
 import com.haulmont.cuba.core.entity.BaseEntity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
-import com.haulmont.cuba.core.global.Configuration;
-import com.haulmont.cuba.core.global.FtsConfig;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.fts.core.jmx.FtsManagerMBean;
 
@@ -37,18 +35,14 @@ public class FtsSenderBean implements FtsSender {
     @Inject
     protected Persistence persistence;
 
-    private FtsConfig ftsConfig;
+    @Inject
+    private FtsCoreConfig coreConfig;
 
     private String serverId;
 
     @Inject
     public void setManager(FtsManagerAPI manager) {
         this.manager = manager;
-    }
-
-    @Inject
-    public void setConfiguration(Configuration configuration) {
-        ftsConfig = configuration.getConfig(FtsConfig.class);
     }
 
     @Inject
@@ -72,7 +66,7 @@ public class FtsSenderBean implements FtsSender {
     }
 
     public void enqueue(String entityName, UUID entityId, FtsChangeType changeType) {
-        List<String> indexingHosts = ftsConfig.getIndexingHosts();
+        List<String> indexingHosts = coreConfig.getIndexingHosts();
         if (indexingHosts.isEmpty()) {
             persistQueueItem(entityName, entityId, changeType, null);
         } else {

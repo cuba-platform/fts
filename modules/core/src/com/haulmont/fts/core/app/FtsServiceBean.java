@@ -46,18 +46,14 @@ public class FtsServiceBean implements FtsService {
     @Inject
     protected Messages messages;
 
-    protected FtsConfig config;
-
     @Inject
-    public void setConfigProvider(Configuration configuration) {
-        config = configuration.getConfig(FtsConfig.class);
-    }
+    protected FtsCoreConfig coreConfig;
 
     protected LuceneSearcher getSearcher() {
         if (searcher == null) {
             synchronized (this) {
                 if (searcher == null) {
-                    searcher = new LuceneSearcher(manager.getDirectory(), config.getStoreContentInIndex());
+                    searcher = new LuceneSearcher(manager.getDirectory(), coreConfig.getStoreContentInIndex());
                 }
             }
         }
@@ -69,7 +65,7 @@ public class FtsServiceBean implements FtsService {
         if (searcher != null && !searcher.isCurrent())
             searcher = null;
 
-        int maxResults = config.getMaxSearchResults();
+        int maxResults = coreConfig.getMaxSearchResults();
         List<EntityInfo> allFieldResults = getSearcher().searchAllField(searchTerm, maxResults);
 
         return makeSearchResult(searchTerm, maxResults, allFieldResults);
@@ -147,7 +143,7 @@ public class FtsServiceBean implements FtsService {
                     if (!manager.showInResults(entityInfo.getName()))
                         continue;
 
-                    if (result.getEntriesCount(entityInfo.getName()) < config.getSearchResultsBatchSize()) {
+                    if (result.getEntriesCount(entityInfo.getName()) < coreConfig.getSearchResultsBatchSize()) {
                         SearchResult.Entry entry = createEntry(entityInfo.getName(), entityInfo.getId());
                         if (entry != null) {
                             result.addEntry(entityInfo.getName(), entry);
@@ -174,7 +170,7 @@ public class FtsServiceBean implements FtsService {
                             if (!manager.showInResults(linkEntityInfo.getName()))
                                 continue;
 
-                            if (result.getEntriesCount(linkEntityInfo.getName()) < config.getSearchResultsBatchSize()) {
+                            if (result.getEntriesCount(linkEntityInfo.getName()) < coreConfig.getSearchResultsBatchSize()) {
                                 SearchResult.Entry entry = createEntry(linkEntityInfo.getName(), linkEntityInfo.getId());
                                 if (entry != null) {
                                     result.addEntry(linkEntityInfo.getName(), entry);
@@ -199,7 +195,7 @@ public class FtsServiceBean implements FtsService {
 
     @Override
     public SearchResult expandResult(SearchResult result, String entityName) {
-        int max = result.getEntriesCount(entityName) + config.getSearchResultsBatchSize();
+        int max = result.getEntriesCount(entityName) + coreConfig.getSearchResultsBatchSize();
 
         Transaction tx = persistence.createTransaction();
         try {

@@ -64,7 +64,11 @@ public class FtsManager implements FtsManagerAPI {
 
     protected static final int DEL_CHUNK = 10;
 
+    @Inject
     protected FtsConfig config;
+
+    @Inject
+    protected FtsCoreConfig coreConfig;
 
     protected String serverId;
 
@@ -85,11 +89,6 @@ public class FtsManager implements FtsManagerAPI {
 
     @Inject
     protected FtsSender ftsSender;
-
-    @Inject
-    public void setConfiguration(Configuration configuration) {
-        config = configuration.getConfig(FtsConfig.class);
-    }
 
     @Inject
     public void setServerInfo(ServerInfoAPI serverInfo) {
@@ -239,8 +238,8 @@ public class FtsManager implements FtsManagerAPI {
     protected List<FtsQueue> loadQueuedItems() {
         List<FtsQueue> list;
 
-        boolean useServerId = !config.getIndexingHosts().isEmpty();
-        int maxSize = config.getIndexingBatchSize();
+        boolean useServerId = !coreConfig.getIndexingHosts().isEmpty();
+        int maxSize = coreConfig.getIndexingBatchSize();
 
         Transaction tx = persistence.createTransaction();
         try {
@@ -313,7 +312,7 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     protected LuceneIndexer createLuceneIndexer() {
-        return new LuceneIndexer(getDescrByName(), getDirectory(), config.getStoreContentInIndex());
+        return new LuceneIndexer(getDescrByName(), getDirectory(), coreConfig.getStoreContentInIndex());
     }
 
     protected FtsConfig getConfig() {
@@ -506,7 +505,7 @@ public class FtsManager implements FtsManagerAPI {
             reindexing = true;
             try {
                 String entityName = reindexEntitiesQueue.element();
-                int reindexBatchSize = config.getReindexBatchSize();
+                int reindexBatchSize = coreConfig.getReindexBatchSize();
                 EntityManager em = persistence.getEntityManager();
 
                 EntityDescr entityDescr = getDescrByName().get(entityName);
@@ -565,7 +564,7 @@ public class FtsManager implements FtsManagerAPI {
         if (directory == null) {
             synchronized (this) {
                 if (directory == null) {
-                    String dir = config.getIndexDir();
+                    String dir = coreConfig.getIndexDir();
                     if (StringUtils.isBlank(dir)) {
                         Configuration configuration = AppBeans.get(Configuration.NAME);
                         dir = configuration.getConfig(GlobalConfig.class).getDataDir() + "/ftsindex";
