@@ -21,6 +21,7 @@ import com.haulmont.cuba.core.sys.persistence.DbTypeConverter;
 import com.haulmont.cuba.security.app.Authenticated;
 import com.haulmont.cuba.security.app.Authentication;
 import com.haulmont.fts.core.sys.*;
+import com.haulmont.fts.global.FtsConfig;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -29,16 +30,13 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.index.IndexUpgrader;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
-
 import org.springframework.stereotype.Component;
+
 import javax.inject.Inject;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
@@ -68,7 +66,7 @@ public class FtsManager implements FtsManagerAPI {
     protected FtsConfig config;
 
     @Inject
-    protected FtsCoreConfig coreConfig;
+    protected FtsConfig coreConfig;
 
     protected String serverId;
 

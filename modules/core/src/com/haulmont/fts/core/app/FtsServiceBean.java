@@ -18,6 +18,7 @@ import com.haulmont.fts.core.sys.EntityInfo;
 import com.haulmont.fts.core.sys.LuceneSearcher;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.FTS;
+import com.haulmont.fts.global.FtsConfig;
 import com.haulmont.fts.global.SearchResult;
 import org.springframework.stereotype.Service;
 
@@ -47,7 +48,7 @@ public class FtsServiceBean implements FtsService {
     protected Messages messages;
 
     @Inject
-    protected FtsCoreConfig coreConfig;
+    protected FtsConfig coreConfig;
 
     protected LuceneSearcher getSearcher() {
         if (searcher == null) {

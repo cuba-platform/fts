@@ -3,7 +3,7 @@
  * Use is subject to license terms, see http://www.cuba-platform.com/commercial-software-license for details.
  */
 
-package com.haulmont.fts.core.app;
+package com.haulmont.fts.global;
 
 import com.haulmont.cuba.core.config.Config;
 import com.haulmont.cuba.core.config.Property;
@@ -17,7 +17,12 @@ import com.haulmont.cuba.core.config.type.StringListTypeFactory;
 import java.util.List;
 
 @Source(type = SourceType.DATABASE)
-public interface FtsCoreConfig extends Config {
+public interface FtsConfig extends Config {
+
+    @Property("fts.enabled")
+    @DefaultBoolean(false)
+    boolean getEnabled();
+    void setEnabled(boolean enable);
 
     @Property("fts.indexingBatchSize")
     @DefaultInt(300)

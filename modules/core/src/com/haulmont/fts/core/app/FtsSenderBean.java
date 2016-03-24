@@ -16,6 +16,7 @@ import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.fts.core.jmx.FtsManagerMBean;
 
+import com.haulmont.fts.global.FtsConfig;
 import org.springframework.stereotype.Component;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -36,7 +37,7 @@ public class FtsSenderBean implements FtsSender {
     protected Persistence persistence;
 
     @Inject
-    private FtsCoreConfig coreConfig;
+    private FtsConfig coreConfig;
 
     private String serverId;
 
