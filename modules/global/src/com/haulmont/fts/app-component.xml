@@ -4,8 +4,7 @@
   -->
 
 <app-component xmlns="http://schemas.haulmont.com/cuba/app-component.xsd"
-               id="fts"
-               dependsOn="cuba">
+               dependsOn="com.haulmont.cuba">
 
     <module name="global" blocks="*">
         <artifact name="fts-global" appJar="true"/>

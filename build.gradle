@@ -97,8 +97,7 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
 configure(globalModule) {
     jar {
         manifest {
-            attributes('App-Component-Descriptor': 'fts-app-component.xml')
-            attributes('App-Component-Artifact-Group': cuba.artifact.group)
+            attributes('App-Component-Id': cuba.artifact.group)
             attributes('App-Component-Version': cubaVersion)
         }
     }
