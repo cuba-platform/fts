@@ -15,8 +15,6 @@ import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import java.util.Queue;
 
-/**
- */
 @Component("fts_FtsManagerMBean")
 public class FtsManager implements FtsManagerMBean {
 

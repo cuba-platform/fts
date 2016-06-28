@@ -6,11 +6,6 @@ package com.haulmont.fts.core.sys;
 
 import com.haulmont.fts.global.FTS;
 import org.apache.lucene.analysis.util.CharTokenizer;
-import org.apache.lucene.util.AttributeFactory;
-import org.apache.lucene.util.AttributeSource;
-import org.apache.lucene.util.Version;
-
-import java.io.Reader;
 
 public class EntityAttributeTokenizer extends CharTokenizer {
 
@@ -18,6 +13,7 @@ public class EntityAttributeTokenizer extends CharTokenizer {
         super();
     }
 
+    @Override
     protected int normalize(int c) {
         return Character.toLowerCase(c);
     }

@@ -56,6 +56,7 @@ public class SearchResult implements Serializable {
             return id.hashCode();
         }
 
+        @Override
         public int compareTo(Entry o) {
             String c1 = caption == null ? "" : caption;
             String c2 = o.caption == null ? "" : o.caption;

@@ -32,8 +32,6 @@ import org.apache.commons.lang.StringUtils;
 import javax.inject.Inject;
 import java.util.*;
 
-/**
- */
 public class SearchResultsWindow extends AbstractWindow {
 
     protected AbstractOrderedLayout contentLayout;

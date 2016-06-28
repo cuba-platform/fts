@@ -75,6 +75,7 @@ public class LuceneIndexer extends LuceneWriter {
         metadata = AppBeans.get(com.haulmont.cuba.core.global.Metadata.NAME);
     }
 
+    @Override
     public void close() {
         try {
             if (!deleteQueue.isEmpty()) {

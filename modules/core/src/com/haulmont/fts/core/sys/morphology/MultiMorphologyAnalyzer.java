@@ -14,8 +14,6 @@ import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.analyzer.MorphologyFilter;
 import java.util.List;
 
-/**
- */
 public class MultiMorphologyAnalyzer extends Analyzer {
 
     private static Log log = LogFactory.getLog(MultiMorphologyAnalyzer.class);

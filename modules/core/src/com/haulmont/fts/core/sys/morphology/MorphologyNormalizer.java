@@ -13,11 +13,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- */
 public class MorphologyNormalizer implements Normalizer {
 
-    protected static List<LuceneMorphology> morphologies = new ArrayList<LuceneMorphology>();
+    protected static List<LuceneMorphology> morphologies = new ArrayList<>();
 
     static {
         try {
@@ -46,6 +44,7 @@ public class MorphologyNormalizer implements Normalizer {
     public MorphologyNormalizer() {
     }
 
+    @Override
     public String getAnyNormalForm(String word) {
         for (LuceneMorphology morphology : morphologies) {
             if (morphology.checkString(word)) {
@@ -55,6 +54,7 @@ public class MorphologyNormalizer implements Normalizer {
         return word;
     }
 
+    @Override
     public List<String> getAllNormalForms(String word) {
         for (LuceneMorphology morphology : morphologies) {
             if (morphology.checkString(word)) {
@@ -63,5 +63,4 @@ public class MorphologyNormalizer implements Normalizer {
         }
         return Collections.singletonList(word);
     }
-
 }

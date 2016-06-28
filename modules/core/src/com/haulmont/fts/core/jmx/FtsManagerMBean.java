@@ -10,8 +10,6 @@ import org.springframework.jmx.export.annotation.ManagedOperationParameters;
 
 import java.util.Queue;
 
-/**
- */
 public interface FtsManagerMBean {
 
     boolean isEnabled();

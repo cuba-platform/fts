@@ -7,8 +7,6 @@ package com.haulmont.fts.core.sys;
 
 import java.util.UUID;
 
-/**
- */
 public class IndexingException extends Exception {
     private static final long serialVersionUID = -406668009906992897L;
 

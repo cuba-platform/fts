@@ -23,8 +23,6 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.UUID;
 
-/**
- */
 @Component(FtsSender.NAME)
 public class FtsSenderBean implements FtsSender {
 
@@ -51,6 +49,7 @@ public class FtsSenderBean implements FtsSender {
         serverId = serverInfo.getServerId();
     }
 
+    @Override
     public void enqueue(BaseEntity<UUID> entity, FtsChangeType changeType) {
         List<BaseEntity> list = manager.getSearchableEntities(entity);
         if (!list.isEmpty()) {
@@ -66,6 +65,7 @@ public class FtsSenderBean implements FtsSender {
         }
     }
 
+    @Override
     public void enqueue(String entityName, UUID entityId, FtsChangeType changeType) {
         List<String> indexingHosts = coreConfig.getIndexingHosts();
         if (indexingHosts.isEmpty()) {
@@ -97,6 +97,7 @@ public class FtsSenderBean implements FtsSender {
         persistence.getEntityManager().persist(q);
     }
 
+    @Override
     public void emptyQueue(String entityName) {
         EntityManager em = persistence.getEntityManager();
         Query q = em.createQuery("delete from sys$FtsQueue q where q.entityName = ?1");
@@ -112,12 +113,14 @@ public class FtsSenderBean implements FtsSender {
         q.executeUpdate();
     }
 
+    @Override
     public void emptyQueue() {
         EntityManager em = persistence.getEntityManager();
         Query q = em.createQuery("delete from sys$FtsQueue q");
         q.executeUpdate();
     }
 
+    @Override
     public void initDefault() {
         FtsManagerMBean ftsMBean = (FtsManagerMBean) manager;
         ftsMBean.setEnabled(true);

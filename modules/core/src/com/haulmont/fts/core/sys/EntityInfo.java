@@ -58,6 +58,7 @@ public class EntityInfo implements Comparable<EntityInfo> {
         return name + "-" + id;
     }
 
+    @Override
     public int compareTo(EntityInfo o) {
         if (name == null || o.name == null)
             return 0;

@@ -41,8 +41,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- */
 @Component(FtsManagerAPI.NAME)
 public class FtsManager implements FtsManagerAPI {
 
@@ -130,6 +128,7 @@ public class FtsManager implements FtsManagerAPI {
         return descrByClassName;
     }
 
+    @Override
     public Map<String, EntityDescr> getDescrByName() {
         if (descrByName == null) {
             synchronized (this) {
@@ -145,6 +144,7 @@ public class FtsManager implements FtsManagerAPI {
         return descrByName;
     }
 
+    @Override
     public List<BaseEntity> getSearchableEntities(BaseEntity entity) {
         List<BaseEntity> list = new ArrayList<>();
 
@@ -194,6 +194,7 @@ public class FtsManager implements FtsManagerAPI {
         return BooleanUtils.isTrue(value);
     }
 
+    @Override
     public int processQueue() {
         if (!AppContext.isStarted())
             return 0;
@@ -317,6 +318,7 @@ public class FtsManager implements FtsManagerAPI {
         return config;
     }
 
+    @Override
     public String optimize() {
         if (!AppContext.isStarted())
             return "Application is not started";
@@ -359,6 +361,7 @@ public class FtsManager implements FtsManagerAPI {
         return "successful";
     }
 
+    @Override
     public boolean showInResults(String entityName) {
         EntityDescr descr = getDescrByName().get(entityName);
         return descr != null && descr.isShow();
@@ -558,6 +561,7 @@ public class FtsManager implements FtsManagerAPI {
         }
     }
 
+    @Override
     public Directory getDirectory() {
         if (directory == null) {
             synchronized (this) {

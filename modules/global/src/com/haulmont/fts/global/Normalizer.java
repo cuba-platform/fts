@@ -7,8 +7,6 @@ package com.haulmont.fts.global;
 
 import java.util.List;
 
-/**
- */
 public interface Normalizer {
 
     String getAnyNormalForm(String word);

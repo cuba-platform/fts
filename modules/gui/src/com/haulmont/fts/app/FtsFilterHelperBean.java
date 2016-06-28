@@ -16,8 +16,6 @@ import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import java.util.*;
 
-/**
- */
 @Component(FtsFilterHelper.NAME)
 public class FtsFilterHelperBean implements FtsFilterHelper {
 

@@ -19,8 +19,6 @@ import org.apache.commons.lang.StringUtils;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-/**
- */
 public class SearchLauncher implements Callable<Window> {
 
     protected Map<String, Object> params;
