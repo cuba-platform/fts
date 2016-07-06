@@ -15,6 +15,7 @@ import com.haulmont.cuba.core.app.FileStorageAPI;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.entity.FtsChangeType;
+import com.haulmont.cuba.core.entity.HasUuid;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.FileStorageException;
 import com.haulmont.fts.global.FTS;
@@ -287,19 +288,21 @@ public class LuceneIndexer extends LuceneWriter {
     private void addLinkedPropertyEx(StringBuilder sb, Instance instance, String[] propertyPath) {
         String prop = propertyPath[0];
         Object value = instance.getValue(prop);
-        if (value instanceof Instance) {
+        if (value instanceof Instance && value instanceof HasUuid) {
             if (propertyPath.length == 1) {
-                appendString(sb, ((Instance) value).getUuid());
+                appendString(sb, ((HasUuid) value).getUuid());
             } else {
                 addLinkedPropertyEx(sb, (Instance) value, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
             }
         } else if (value instanceof Collection && !((Collection) value).isEmpty()) {
             Collection<Instance> collection = (Collection<Instance>) value;
             for (Instance inst : collection) {
-                if (propertyPath.length == 1) {
-                    appendString(sb, inst.getUuid());
-                } else {
-                    addLinkedPropertyEx(sb, inst, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
+                if (inst instanceof HasUuid) {
+                    if (propertyPath.length == 1) {
+                        appendString(sb, ((HasUuid) inst).getUuid());
+                    } else {
+                        addLinkedPropertyEx(sb, inst, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
+                    }
                 }
             }
         }

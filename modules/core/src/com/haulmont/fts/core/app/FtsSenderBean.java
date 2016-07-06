@@ -10,7 +10,7 @@ import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ServerInfoAPI;
-import com.haulmont.cuba.core.entity.BaseEntity;
+import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.Metadata;
@@ -50,15 +50,15 @@ public class FtsSenderBean implements FtsSender {
     }
 
     @Override
-    public void enqueue(BaseEntity<UUID> entity, FtsChangeType changeType) {
-        List<BaseEntity> list = manager.getSearchableEntities(entity);
+    public void enqueue(Entity<UUID> entity, FtsChangeType changeType) {
+        List<Entity> list = manager.getSearchableEntities(entity);
         if (!list.isEmpty()) {
             if (changeType.equals(FtsChangeType.DELETE)) {
                 MetaClass metaClass = metadata.getSession().getClassNN(entity.getClass());
                 enqueue(metaClass.getName(), entity.getId(), FtsChangeType.DELETE);
             }
 
-            for (BaseEntity e : list) {
+            for (Entity e : list) {
                 MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
                 enqueue(metaClass.getName(), (UUID) e.getId(), FtsChangeType.UPDATE);
             }

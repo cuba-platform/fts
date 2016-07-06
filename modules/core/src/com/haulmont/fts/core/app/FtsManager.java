@@ -12,7 +12,7 @@ import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ServerInfoAPI;
-import com.haulmont.cuba.core.entity.BaseEntity;
+import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.*;
@@ -145,8 +145,8 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     @Override
-    public List<BaseEntity> getSearchableEntities(BaseEntity entity) {
-        List<BaseEntity> list = new ArrayList<>();
+    public List<Entity> getSearchableEntities(Entity entity) {
+        List<Entity> list = new ArrayList<>();
 
         EntityDescr descr = getDescrByClassName().get(entity.getClass().getName());
         if (descr == null) {
@@ -187,7 +187,7 @@ public class FtsManager implements FtsManagerAPI {
         return list;
     }
 
-    protected boolean runSearchableIf(BaseEntity entity, EntityDescr descr) {
+    protected boolean runSearchableIf(Entity entity, EntityDescr descr) {
         Map<String, Object> params = new HashMap<>();
         params.put("entity", entity);
         Boolean value = scripting.evaluateGroovy(descr.getSearchableIfScript(), params);
@@ -431,8 +431,8 @@ public class FtsManager implements FtsManagerAPI {
                 }
             } else {
                 Query q = em.createQuery("select e from " + entityName + " e");
-                List<BaseEntity> list = q.getResultList();
-                for (BaseEntity entity : list) {
+                List<Entity> list = q.getResultList();
+                for (Entity entity : list) {
                     if (runSearchableIf(entity, descr)) {
                         sender.enqueue(entityName, (UUID) entity.getId(), FtsChangeType.INSERT);
                         count++;
@@ -527,13 +527,13 @@ public class FtsManager implements FtsManagerAPI {
                     log.debug(ids.size() + " instances of " + entityName + " was added to the FTS queue");
                     return ids.size();
                 } else {
-                    List<BaseEntity> entities = em.createQuery("select e from " + entityName + " e where e.id not in " +
-                            "(select q.entityId from sys$FtsQueue q where q.entityName = :entityName)", BaseEntity.class)
+                    List<Entity> entities = em.createQuery("select e from " + entityName + " e where e.id not in " +
+                            "(select q.entityId from sys$FtsQueue q where q.entityName = :entityName)", Entity.class)
                             .setParameter("entityName", entityName)
                             .setMaxResults(reindexBatchSize)
                             .getResultList();
                     int count = 0;
-                    for (BaseEntity entity : entities) {
+                    for (Entity entity : entities) {
                         if (runSearchableIf(entity, entityDescr)) {
                             ftsSender.enqueue(entityName, (UUID) entity.getId(), FtsChangeType.INSERT);
                             count++;

@@ -4,7 +4,7 @@
  */
 package com.haulmont.fts.core.app;
 
-import com.haulmont.cuba.core.entity.BaseEntity;
+import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.fts.core.sys.EntityDescr;
 import org.apache.lucene.store.Directory;
 
@@ -18,7 +18,7 @@ public interface FtsManagerAPI {
 
     Directory getDirectory();
 
-    List<BaseEntity> getSearchableEntities(BaseEntity entity);
+    List<Entity> getSearchableEntities(Entity entity);
 
     boolean isReindexing();
 
