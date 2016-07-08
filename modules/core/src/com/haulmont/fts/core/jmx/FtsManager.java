@@ -8,17 +8,17 @@ package com.haulmont.fts.core.jmx;
 import com.haulmont.cuba.security.app.Authenticated;
 import com.haulmont.fts.core.app.FtsManagerAPI;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
 import javax.inject.Inject;
 import java.util.Queue;
 
 @Component("fts_FtsManagerMBean")
 public class FtsManager implements FtsManagerMBean {
 
-    protected Log log = LogFactory.getLog(getClass());
+    private final Logger log = LoggerFactory.getLogger(FtsManager.class);
 
     @Inject
     protected FtsManagerAPI manager;
@@ -111,7 +111,6 @@ public class FtsManager implements FtsManagerMBean {
             return ExceptionUtils.getStackTrace(e);
         }
     }
-
 
     @Authenticated
     @Override

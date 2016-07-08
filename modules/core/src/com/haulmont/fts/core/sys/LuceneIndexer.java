@@ -22,8 +22,6 @@ import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -41,6 +39,8 @@ import org.apache.tika.parser.pdf.PDFParser;
 import org.apache.tika.parser.rtf.RTFParser;
 import org.apache.tika.parser.txt.TXTParser;
 import org.apache.tika.sax.BodyContentHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -50,7 +50,7 @@ import java.util.*;
 
 public class LuceneIndexer extends LuceneWriter {
 
-    private static Log log = LogFactory.getLog(LuceneIndexer.class);
+    private static final Logger log = LoggerFactory.getLogger(LuceneIndexer.class);
 
     private Map<String, EntityDescr> descriptions;
 
@@ -80,7 +80,8 @@ public class LuceneIndexer extends LuceneWriter {
     public void close() {
         try {
             if (!deleteQueue.isEmpty()) {
-                log.debug("Deleting documents " + deleteQueue);
+                log.debug("Deleting documents {}", deleteQueue);
+
                 for (Pair<String, UUID> pair : deleteQueue) {
                     writer.deleteDocuments(new Term(FLD_ID, pair.getSecond().toString()));
                 }

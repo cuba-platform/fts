@@ -18,14 +18,14 @@ import com.haulmont.cuba.core.sys.AppContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrTokenizer;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.dom4j.Document;
 import org.dom4j.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
-
 import org.springframework.stereotype.Component;
+
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +41,7 @@ public class ConfigLoader {
 
     public static final String NAME = "fts_ConfigLoader";
 
-    private Log log = LogFactory.getLog(ConfigLoader.class);
+    private final Logger log = LoggerFactory.getLogger(ConfigLoader.class);
 
     protected static final String DEFAULT_CONFIG = "/cuba-fts.xml";
 

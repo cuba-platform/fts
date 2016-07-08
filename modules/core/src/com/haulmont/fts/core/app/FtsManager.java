@@ -25,11 +25,11 @@ import com.haulmont.fts.global.FtsConfig;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.lucene.index.IndexUpgrader;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
@@ -44,7 +44,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @Component(FtsManagerAPI.NAME)
 public class FtsManager implements FtsManagerAPI {
 
-    private Log log = LogFactory.getLog(FtsManager.class);
+    private final Logger log = LoggerFactory.getLogger(FtsManager.class);
 
     private volatile Map<String, EntityDescr> descrByClassName;
     private volatile Map<String, EntityDescr> descrByName;
