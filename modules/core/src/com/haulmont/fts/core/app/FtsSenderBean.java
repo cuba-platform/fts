@@ -8,6 +8,7 @@ import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
+import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ServerInfoAPI;
 import com.haulmont.cuba.core.entity.Entity;
@@ -67,13 +68,17 @@ public class FtsSenderBean implements FtsSender {
 
     @Override
     public void enqueue(String entityName, UUID entityId, FtsChangeType changeType) {
-        List<String> indexingHosts = coreConfig.getIndexingHosts();
-        if (indexingHosts.isEmpty()) {
-            persistQueueItem(entityName, entityId, changeType, null);
-        } else {
-            for (String indexingHost : indexingHosts) {
-                persistQueueItem(entityName, entityId, changeType, indexingHost);
+        // Join to an existing transaction in main DB or create a new one if we came here with a tx for an additional DB
+        try (Transaction tx = persistence.getTransaction()) {
+            List<String> indexingHosts = coreConfig.getIndexingHosts();
+            if (indexingHosts.isEmpty()) {
+                persistQueueItem(entityName, entityId, changeType, null);
+            } else {
+                for (String indexingHost : indexingHosts) {
+                    persistQueueItem(entityName, entityId, changeType, indexingHost);
+                }
             }
+            tx.commit();
         }
     }
 
