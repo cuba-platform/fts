@@ -15,7 +15,7 @@ public interface FtsService {
     /**
      * Performs a full text search among all entities described in fts
      * configuration file. Number of entities in result is restricted by
-     * {@link com.haulmont.cuba.core.global.FtsConfig#getMaxSearchResults()}
+     * {@link com.haulmont.fts.global.FtsConfig#getMaxSearchResults()}
      */
     SearchResult search(String searchTerm);
 
