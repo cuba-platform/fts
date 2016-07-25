@@ -18,7 +18,6 @@ import com.haulmont.cuba.gui.components.AbstractWindow;
 import com.haulmont.cuba.gui.components.mainwindow.AppWorkArea;
 import com.haulmont.cuba.gui.config.WindowConfig;
 import com.haulmont.cuba.web.App;
-import com.haulmont.cuba.web.AppWindow;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
 import com.haulmont.cuba.web.toolkit.ui.CubaButton;
 import com.haulmont.fts.app.FtsService;
@@ -48,6 +47,8 @@ public class SearchResultsWindow extends AbstractWindow {
 
     @Override
     public void init(Map<String, Object> params) {
+        super.init(params);
+
         fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
 
         contentLayout = (AbstractOrderedLayout) WebComponentsHelper.unwrap(getComponent("contentBox"));
@@ -118,7 +119,7 @@ public class SearchResultsWindow extends AbstractWindow {
         }
     }
 
-    private void displayInstances(String entityName, VerticalLayout instancesLayout) {
+    protected void displayInstances(String entityName, VerticalLayout instancesLayout) {
         List<SearchResult.Entry> entries = searchResult.getEntries(entityName);
 //        Collections.sort(entries);
 
@@ -178,10 +179,10 @@ public class SearchResultsWindow extends AbstractWindow {
         instancesLayout.addComponent(instanceLayout);
     }
 
-    private class InstanceClickListener implements Button.ClickListener {
+    protected class InstanceClickListener implements Button.ClickListener {
 
-        private String entityName;
-        private UUID entityId;
+        protected String entityName;
+        protected UUID entityId;
 
         public InstanceClickListener(String entityName, UUID entityId) {
             this.entityName = entityName;
@@ -193,17 +194,19 @@ public class SearchResultsWindow extends AbstractWindow {
             MetaClass metaClass = metadata.getSession().getClass(entityName);
             Entity entity = reloadEntity(metaClass, entityId);
 
-            AppWindow appWindow = App.getInstance().getAppWindow();
-            AppWorkArea workArea = appWindow.getMainWindow().getWorkArea();
+            TopLevelWindow appWindow = App.getInstance().getTopLevelWindow();
+            if (appWindow instanceof HasWorkArea) {
+                AppWorkArea workArea = ((HasWorkArea) appWindow).getWorkArea();
 
-            if (workArea != null) {
-                WindowManager.OpenType openType = AppWorkArea.Mode.TABBED == workArea.getMode() ?
-                        WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
+                if (workArea != null) {
+                    WindowManager.OpenType openType = AppWorkArea.Mode.TABBED == workArea.getMode() ?
+                            WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
 
-                WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
-                openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
-            } else {
-                throw new IllegalStateException("Application does not have any configured work area");
+                    WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
+                    openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
+                } else {
+                    throw new IllegalStateException("Application does not have any configured work area");
+                }
             }
         }
     }
@@ -217,8 +220,8 @@ public class SearchResultsWindow extends AbstractWindow {
 
     protected class MoreClickListener implements Button.ClickListener {
 
-        private String entityName;
-        private VerticalLayout instancesLayout;
+        protected String entityName;
+        protected VerticalLayout instancesLayout;
 
         public MoreClickListener(String entityName, VerticalLayout instancesLayout) {
             this.entityName = entityName;
