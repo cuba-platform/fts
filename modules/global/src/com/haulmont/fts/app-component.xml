@@ -5,19 +5,18 @@
 
 <app-component xmlns="http://schemas.haulmont.com/cuba/app-component.xsd"
                dependsOn="com.haulmont.cuba">
-
     <module name="global" blocks="*">
         <artifact name="fts-global" appJar="true"/>
 
-        <property name="cuba.metadataConfig" value="fts-metadata.xml"/>
-        <property name="cuba.creditsConfig" value="fts-credits.xml"/>
+        <property name="cuba.metadataConfig" value="+fts-metadata.xml"/>
+        <property name="cuba.creditsConfig" value="+fts-credits.xml"/>
     </module>
 
     <module name="core" dependsOn="global" blocks="core">
         <artifact name="fts-core" appJar="true"/>
 
-        <property name="cuba.springContextConfig" value="fts-spring.xml"/>
-        <property name="cuba.ftsConfig" value="cuba-fts.xml"/>
+        <property name="cuba.springContextConfig" value="+fts-spring.xml"/>
+        <property name="cuba.ftsConfig" value="+cuba-fts.xml"/>
     </module>
 
     <module name="gui" dependsOn="global" blocks="web,desktop">
@@ -27,14 +26,13 @@
     <module name="web" dependsOn="gui" blocks="web">
         <artifact name="fts-web" appJar="true"/>
 
-        <property name="cuba.springContextConfig" value="fts-web-spring.xml"/>
-        <property name="cuba.windowConfig" value="fts-web-screens.xml"/>
+        <property name="cuba.springContextConfig" value="+fts-web-spring.xml"/>
+        <property name="cuba.windowConfig" value="+fts-web-screens.xml"/>
     </module>
 
     <module name="desktop" dependsOn="gui" blocks="desktop">
         <artifact name="fts-desktop"/>
 
-        <property name="cuba.springContextConfig" value="fts-desktop-spring.xml"/>
+        <property name="cuba.springContextConfig" value="+fts-desktop-spring.xml"/>
     </module>
-
 </app-component>
