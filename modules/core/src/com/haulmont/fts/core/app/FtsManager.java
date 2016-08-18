@@ -203,7 +203,7 @@ public class FtsManager implements FtsManagerAPI {
             return 0;
 
         if (!reindexEntitiesQueue.isEmpty()) {
-            log.debug("Unable to process queue: there are entities that are waiting for reindex");
+            log.warn("Unable to process queue: there are entities that are waiting for reindex");
             return 0;
         }
 
