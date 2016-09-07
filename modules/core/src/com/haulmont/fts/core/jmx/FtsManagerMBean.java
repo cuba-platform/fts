@@ -22,17 +22,22 @@ public interface FtsManagerMBean {
 
     Queue<String> getReindexEntitiesQueue();
 
+    @ManagedOperation(description = "@JmxLongOperation")
     String processQueue();
 
+    @ManagedOperation(description = "@JmxLongOperation")
     String optimize();
 
+    @ManagedOperation(description = "@JmxLongOperation")
     String upgrade();
 
-    @ManagedOperation(description = "Reindex the given entity synchronously")
+    @ManagedOperation(description = "Reindex the given entity synchronously" +
+            "@JmxLongOperation")
     @ManagedOperationParameters({@ManagedOperationParameter(name = "entityName", description = "")})
     String reindexEntity(String entityName);
 
-    @ManagedOperation(description = "Reindex all entities synchronously")
+    @ManagedOperation(description = "Reindex all entities synchronously" +
+            "@JmxLongOperation")
     String reindexAll();
 
     @ManagedOperation(description = "Reindex the given entity asynchronously. Entity instances will be added to the queue " +
@@ -44,5 +49,6 @@ public interface FtsManagerMBean {
             "in batches by the invocation of reindexNextBatch method from a scheduled task")
     String asyncReindexAll();
 
+    @ManagedOperation(description = "@JmxLongOperation")
     String processEntireQueue();
 }
