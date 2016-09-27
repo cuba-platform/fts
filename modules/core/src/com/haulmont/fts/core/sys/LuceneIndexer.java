@@ -56,7 +56,7 @@ public class LuceneIndexer extends LuceneWriter {
 
     private boolean storeContentInIndex;
 
-    private List<Pair<String, UUID>> deleteQueue = new ArrayList<>();
+    private List<Pair<String, Object>> deleteQueue = new ArrayList<>();
 
     private ValueFormatter valueFormatter;
 
@@ -82,7 +82,7 @@ public class LuceneIndexer extends LuceneWriter {
             if (!deleteQueue.isEmpty()) {
                 log.debug("Deleting documents {}", deleteQueue);
 
-                for (Pair<String, UUID> pair : deleteQueue) {
+                for (Pair<String, Object> pair : deleteQueue) {
                     writer.deleteDocuments(new Term(FLD_ID, pair.getSecond().toString()));
                 }
             }
@@ -93,52 +93,50 @@ public class LuceneIndexer extends LuceneWriter {
         }
     }
 
-    public void indexEntity(String entityName, UUID entityId, FtsChangeType changeType) throws IndexingException {
+    public void indexEntity(String entityName, Object entityId, FtsChangeType changeType) throws IndexingException {
         if (FtsChangeType.DELETE.equals(changeType)) {
             deleteQueue.add(new Pair<>(entityName, entityId));
             return;
         }
         try {
-            EntityDescr descr = descriptions.get(entityName);
-            if (descr == null) {
-                log.error("No description for entity " + entityName);
+            EntityDescr entityDescr = descriptions.get(entityName);
+            if (entityDescr == null) {
+                log.error("No description for entity {}", entityName);
                 return;
             }
 
-            Field idField, entityField, allField, linksField, morphologyAllField;
-            Entity entity;
             Document doc;
-            Transaction tx = persistence.createTransaction();
-            try {
-                EntityManager em = persistence.getEntityManager();
-                MetaClass metaClass = metadata.getSession().getClass(entityName);
-                entity = em.find(metaClass.getJavaClass(), entityId);
+            MetaClass metaClass = metadata.getSession().getClassNN(entityName);
+            String storeName = metadata.getTools().getStoreName(metaClass);
+            try (Transaction tx = persistence.createTransaction(storeName)) {
+                EntityManager em = persistence.getEntityManager(storeName);
+                Entity entity = em.find(metaClass.getJavaClass(), entityId);
                 if (entity == null) {
-                    log.error("Entity instance not found: " + entityName + "-" + entityId);
+                    log.error("Entity instance not found: {}-{}", entityName, entityId);
                     return;
                 }
 
-                idField = new StringField(FLD_ID, entityId.toString(), Field.Store.YES);
+                Field idField = new StringField(FLD_ID, entityId.toString(), Field.Store.YES);
 
-                entityField = new StringField(FLD_ENTITY, entityName, Field.Store.YES);
+                Field entityField = new StringField(FLD_ENTITY, entityName, Field.Store.YES);
 
-                String allContent = createAllFieldContent(entity, descr);
+                String allContent = createAllFieldContent(entity, entityDescr);
 
-                allField = new TextField(
+                Field allField = new TextField(
                         FLD_ALL,
                         allContent,
                         storeContentInIndex ? Field.Store.YES : Field.Store.NO
                 );
 
-                morphologyAllField = new TextField(
+                Field morphologyAllField = new TextField(
                         FLD_MORPHOLOGY_ALL,
                         allContent,
                         Field.Store.NO
                 );
 
-                linksField = new TextField(
+                Field linksField = new TextField(
                         FLD_LINKS,
-                        createLinksFieldContent(entity, descr),
+                        createLinksFieldContent(entity, entityDescr),
                         Field.Store.YES
                 );
 
@@ -148,29 +146,27 @@ public class LuceneIndexer extends LuceneWriter {
                 doc.add(allField);
                 doc.add(linksField);
                 doc.add(morphologyAllField);
-                documentCreated(doc, entity, descr);
+                documentCreated(doc, entity, entityDescr);
 
                 tx.commit();
-            } finally {
-                tx.end();
             }
 
             if (FtsChangeType.UPDATE.equals(changeType)) {
-                log.debug("Updating document " + entityName + "-" + entityId);
+                log.debug("Updating document {}-{}", entityName, entityId);
                 writer.updateDocument(new Term(FLD_ID, entityId.toString()), doc);
             } else {
-                log.debug("Adding document " + entityName + "-" + entityId);
+                log.debug("Adding document {}-{}", entityName, entityId);
                 writer.addDocument(doc);
             }
 
         } catch (IndexingException e) {
-            log.error("Error indexing " + entityName + "-" + entityId);
+            log.error("Error indexing {}-{}", entityName, entityId);
             throw new IndexingException(entityName, entityId, e.getEntityType(), e);
         } catch (IOException e) {
-            log.error("Error indexing " + entityName + "-" + entityId);
+            log.error("Error indexing {}-{}", entityName, entityId);
             throw new IndexingException(entityName, entityId, IndexingException.EntityType.OTHER, e);
         } catch (RuntimeException e) {
-            log.error("Error indexing " + entityName + "-" + entityId);
+            log.error("Error indexing {}-{}", entityName, entityId);
             throw e;
         }
     }
@@ -196,7 +192,7 @@ public class LuceneIndexer extends LuceneWriter {
         }
 
         if (log.isTraceEnabled())
-            log.trace("Entity " + entity + " all field: " + sb.toString());
+            log.trace("Entity {} all field: {}", entity, sb.toString());
 
         return sb.toString();
     }
@@ -261,7 +257,7 @@ public class LuceneIndexer extends LuceneWriter {
                 parser = new TXTParser();
                 break;
             default:
-                log.warn("Unsupported file extension: " + ext);
+                log.warn("Unsupported file extension: {}", ext);
                 return null;
         }
         return parser;
@@ -276,8 +272,9 @@ public class LuceneIndexer extends LuceneWriter {
             }
             addLinkedPropertyEx(sb, entity, InstanceUtils.parseValuePath(propName));
         }
-        if (log.isTraceEnabled())
-            log.trace("Entity " + entity + " links field: " + sb.toString());
+        if (log.isTraceEnabled()) {
+            log.trace("Entity {} links field: {}", entity, sb.toString());
+        }
 
         return sb.toString();
     }
@@ -291,6 +288,8 @@ public class LuceneIndexer extends LuceneWriter {
         Object value = instance.getValue(prop);
         if (value instanceof Instance && value instanceof HasUuid) {
             if (propertyPath.length == 1) {
+
+                //TODO: ANSU: HAS UUID
                 appendString(sb, ((HasUuid) value).getUuid());
             } else {
                 addLinkedPropertyEx(sb, (Instance) value, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));

@@ -23,15 +23,15 @@ public class SearchResult implements Serializable {
 
         private static final long serialVersionUID = -1033032285547581245L;
 
-        private UUID id;
+        private Object id;
         private String caption;
 
-        public Entry(UUID id, String caption) {
+        public Entry(Object id, String caption) {
             this.caption = caption;
             this.id = id;
         }
 
-        public UUID getId() {
+        public Object getId() {
             return id;
         }
 
@@ -353,9 +353,9 @@ public class SearchResult implements Serializable {
         }
     }
 
-    private Map<String, Set<Entry>> results = new HashMap<String, Set<Entry>>();
-    private Map<String, Set<UUID>> ids = new HashMap<String, Set<UUID>>();
-    private Map<UUID, HitInfo> hitInfos = new HashMap<UUID, HitInfo>();
+    private Map<String, Set<Entry>> results = new HashMap<>();
+    private Map<String, Set> ids = new HashMap<>();
+    private Map<Object, HitInfo> hitInfos = new HashMap<>();
 
     public List<String> getEntities() {
         return new ArrayList(results.keySet());
@@ -380,20 +380,20 @@ public class SearchResult implements Serializable {
         set.add(entry);
     }
 
-    public void addId(String entityName, UUID id) {
-        Set<UUID> set = ids.get(entityName);
+    public void addId(String entityName, Object id) {
+        Set set = ids.get(entityName);
         if (set == null) {
-            set = new LinkedHashSet<UUID>();
+            set = new LinkedHashSet();
             ids.put(entityName, set);
         }
         set.add(id);
     }
 
-    public void addHit(UUID id, String text, String linkedEntityName) {
+    public void addHit(Object id, String text, String linkedEntityName) {
         addHit(id, text, linkedEntityName, null);
     }
 
-    public void addHit(UUID id, String text, String linkedEntityName, Normalizer normalizer) {
+    public void addHit(Object id, String text, String linkedEntityName, Normalizer normalizer) {
         HitInfo hi = hitInfos.get(id);
         if (hi == null) {
             hi = new HitInfo();
@@ -402,13 +402,13 @@ public class SearchResult implements Serializable {
         hi.init(searchTerm, text, linkedEntityName, normalizer);
     }
 
-    public List<UUID> getIds(String entityName) {
-        Set<UUID> set = ids.get(entityName);
+    public List getIds(String entityName) {
+        Set set = ids.get(entityName);
         return set == null ? new ArrayList() : new ArrayList(set);
     }
 
-    public void removeId(String entityName, UUID id) {
-        Set<UUID> set = ids.get(entityName);
+    public void removeId(String entityName, Object id) {
+        Set set = ids.get(entityName);
         if (set != null)
             set.remove(id);
     }
@@ -417,7 +417,7 @@ public class SearchResult implements Serializable {
         return results.isEmpty();
     }
 
-    public boolean hasEntry(String entityName, UUID id) {
+    public boolean hasEntry(String entityName, Object id) {
         Set<Entry> entries = results.get(entityName);
         if (entries == null)
             return false;
@@ -430,7 +430,7 @@ public class SearchResult implements Serializable {
         }
     }
 
-    public HitInfo getHitInfo(UUID id) {
+    public HitInfo getHitInfo(Object id) {
         return hitInfos.get(id);
     }
 }

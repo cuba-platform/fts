@@ -4,6 +4,11 @@
  */
 package com.haulmont.fts.core.sys;
 
+import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.chile.core.model.MetaProperty;
+import com.haulmont.cuba.core.global.AppBeans;
+import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.UuidProvider;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
@@ -50,9 +55,9 @@ public class LuceneSearcher extends Lucene {
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
-                UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
+                String strEntityId = doc.getField(FLD_ID).stringValue();
                 String text = storeContentInIndex ? doc.getField(FLD_ALL).stringValue() : null;
-                EntityInfo entityInfo = new EntityInfo(entityName, entityId, text, false);
+                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName), text, false);
                 set.add(entityInfo);
             }
         } catch (IOException e) {
@@ -72,9 +77,9 @@ public class LuceneSearcher extends Lucene {
             for (Integer docId : collector.getDocIds()) {
                 Document doc = searcher.doc(docId);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
-                UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
+                String strEntityId = doc.getField(FLD_ID).stringValue();
                 String text = storeContentInIndex ? doc.getField(FLD_ALL).stringValue() : null;
-                EntityInfo entityInfo = new EntityInfo(entityName, entityId, text, false);
+                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName), text, false);
                 set.add(entityInfo);
             }
         } catch (IOException e) {
@@ -129,7 +134,7 @@ public class LuceneSearcher extends Lucene {
         return query;
     }
 
-    protected Query createQueryForLinksFieldSearch(UUID id, List<String> entityNames) {
+    protected Query createQueryForLinksFieldSearch(Object id, List<String> entityNames) {
         BooleanQuery query = new BooleanQuery();
         TermQuery idQuery = new TermQuery(new Term(FLD_LINKS, id.toString()));
         BooleanQuery entityNamesQuery = new BooleanQuery();
@@ -162,7 +167,31 @@ public class LuceneSearcher extends Lucene {
         return query;
     }
 
-    public List<EntityInfo> searchLinksField(UUID id, int maxResults) {
+    protected Object parseIdFromString(String strId, String entityName) {
+        Metadata metadata = AppBeans.get(Metadata.class);
+        MetaClass metaClass = metadata.getSession().getClassNN(entityName);
+        MetaProperty primaryKey = metadata.getTools().getPrimaryKeyProperty(metaClass);
+        if (primaryKey != null) {
+            Class type = primaryKey.getJavaType();
+            if (UUID.class.equals(type)) {
+                return UuidProvider.fromString(strId);
+            } else if (Long.class.equals(type)) {
+                return Long.valueOf(strId);
+            } else if (Integer.class.equals(type)) {
+                return Integer.valueOf(strId);
+            } else if (String.class.equals(type)) {
+                return strId;
+            } else {
+                throw new IllegalStateException(
+                        String.format("Unsupported primary key type: %s for %s", type.getSimpleName(), entityName));
+            }
+        } else {
+            throw new IllegalStateException(
+                    String.format("Primary key not found for %s", entityName));
+        }
+    }
+
+    public List<EntityInfo> searchLinksField(Object id, int maxResults) {
         Set<EntityInfo> set = new LinkedHashSet<>();
         Term term = new Term(FLD_LINKS, id.toString());
         Query termQuery = new TermQuery(term);
@@ -171,8 +200,8 @@ public class LuceneSearcher extends Lucene {
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
-                UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
-                EntityInfo entityInfo = new EntityInfo(entityName, entityId, null, true);
+                String strEntityId = doc.getField(FLD_ID).stringValue();
+                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName), null, true);
                 set.add(entityInfo);
             }
         } catch (IOException e) {
@@ -181,7 +210,7 @@ public class LuceneSearcher extends Lucene {
         return new ArrayList(set);
     }
 
-    public List<EntityInfo> searchLinksField(UUID id, List<String> entityNames) {
+    public List<EntityInfo> searchLinksField(Object id, List<String> entityNames) {
         Set<EntityInfo> set = new LinkedHashSet<>();
         Query query = createQueryForLinksFieldSearch(id, entityNames);
         try {
@@ -190,9 +219,9 @@ public class LuceneSearcher extends Lucene {
             for (Integer docId : collector.getDocIds()) {
                 Document doc = searcher.doc(docId);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
-                UUID entityId = UUID.fromString(doc.getField(FLD_ID).stringValue());
+                String strEntityId = doc.getField(FLD_ID).stringValue();
                 String text = storeContentInIndex ? doc.getField(FLD_ALL).stringValue() : null;
-                EntityInfo entityInfo = new EntityInfo(entityName, entityId, text, true);
+                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName), text, true);
                 set.add(entityInfo);
             }
         } catch (IOException e) {

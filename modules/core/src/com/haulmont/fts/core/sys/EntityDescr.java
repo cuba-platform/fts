@@ -61,7 +61,7 @@ public class EntityDescr {
     }
 
     public Set<String> getPropertyNames() {
-        return new HashSet<String>(properties.keySet());
+        return new HashSet<>(properties.keySet());
     }
 
     public List<String> getLocalProperties() {

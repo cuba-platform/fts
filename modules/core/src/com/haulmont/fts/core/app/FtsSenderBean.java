@@ -11,18 +11,23 @@ import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ServerInfoAPI;
+import com.haulmont.cuba.core.entity.BaseIdentityIdEntity;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.PersistenceHelper;
+import com.haulmont.cuba.core.sys.PersistenceImpl;
 import com.haulmont.fts.core.jmx.FtsManagerMBean;
-
 import com.haulmont.fts.global.FtsConfig;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.function.Consumer;
 
 @Component(FtsSender.NAME)
 public class FtsSenderBean implements FtsSender {
@@ -51,7 +56,7 @@ public class FtsSenderBean implements FtsSender {
     }
 
     @Override
-    public void enqueue(Entity<UUID> entity, FtsChangeType changeType) {
+    public void enqueue(Entity entity, FtsChangeType changeType) {
         List<Entity> list = manager.getSearchableEntities(entity);
         if (!list.isEmpty()) {
             if (changeType.equals(FtsChangeType.DELETE)) {
@@ -61,13 +66,26 @@ public class FtsSenderBean implements FtsSender {
 
             for (Entity e : list) {
                 MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
-                enqueue(metaClass.getName(), (UUID) e.getId(), FtsChangeType.UPDATE);
+                if (PersistenceHelper.isNew(e) && e instanceof BaseIdentityIdEntity) {
+                    String storeName = metadata.getTools().getStoreName(metaClass);
+                    List<Consumer<Integer>> runAfterCompletion = persistence.getEntityManagerContext(storeName).getAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR);
+                    if (runAfterCompletion == null) {
+                        runAfterCompletion = new ArrayList<>();
+                        persistence.getEntityManagerContext(storeName).setAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR, runAfterCompletion);
+                    }
+                    runAfterCompletion.add((txStatus) -> {
+                        if (TransactionSynchronization.STATUS_COMMITTED == txStatus)
+                            enqueue(metaClass.getName(), e.getId(), FtsChangeType.UPDATE);
+                    });
+                } else {
+                    enqueue(metaClass.getName(), e.getId(), FtsChangeType.UPDATE);
+                }
             }
         }
     }
 
     @Override
-    public void enqueue(String entityName, UUID entityId, FtsChangeType changeType) {
+    public void enqueue(String entityName, Object entityId, FtsChangeType changeType) {
         // Join to an existing transaction in main DB or create a new one if we came here with a tx for an additional DB
         try (Transaction tx = persistence.getTransaction()) {
             List<String> indexingHosts = coreConfig.getIndexingHosts();
@@ -83,18 +101,18 @@ public class FtsSenderBean implements FtsSender {
     }
 
     @Override
-    public void enqueueFake(String entityName, UUID entityId) {
+    public void enqueueFake(String entityName, Object entityId) {
         FtsQueue q = metadata.create(FtsQueue.class);
-        q.setEntityId(entityId);
+        q.setObjectEntityId(entityId);
         q.setEntityName(entityName);
         q.setFake(true);
         persistence.getEntityManager().persist(q);
     }
 
-    protected void persistQueueItem(String entityName, UUID entityId, FtsChangeType changeType,
+    protected void persistQueueItem(String entityName, Object entityId, FtsChangeType changeType,
                                     @Nullable String indexingHost) {
         FtsQueue q = metadata.create(FtsQueue.class);
-        q.setEntityId(entityId);
+        q.setObjectEntityId(entityId);
         q.setEntityName(entityName);
         q.setChangeType(changeType);
         q.setSourceHost(serverId);

@@ -51,4 +51,8 @@ public interface FtsManagerMBean {
 
     @ManagedOperation(description = "@JmxLongOperation")
     String processEntireQueue();
+
+    @ManagedOperation(description = "Reindex next entity from queue" +
+            "@JmxLongOperation")
+    String reindexNextBatch();
 }

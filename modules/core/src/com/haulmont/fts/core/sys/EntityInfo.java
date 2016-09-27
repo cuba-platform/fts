@@ -4,23 +4,21 @@
  */
 package com.haulmont.fts.core.sys;
 
-import java.util.UUID;
-
 public class EntityInfo implements Comparable<EntityInfo> {
 
     private String name;
-    private UUID id;
+    private Object id;
     private String text;
     private boolean inLinks;
 
-    public EntityInfo(String name, UUID id, String text, boolean inLinks) {
+    public EntityInfo(String name, Object id, String text, boolean inLinks) {
         this.id = id;
         this.name = name;
         this.text = text;
         this.inLinks = inLinks;
     }
 
-    public UUID getId() {
+    public Object getId() {
         return id;
     }
 

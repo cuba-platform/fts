@@ -112,6 +112,17 @@ public class FtsManager implements FtsManagerMBean {
         }
     }
 
+    @Override
+    public String reindexNextBatch() {
+        try {
+            manager.reindexNextBatch();
+            return String.format("Reindex next batch");
+        } catch (Throwable e) {
+            log.error("Error", e);
+            return ExceptionUtils.getStackTrace(e);
+        }
+    }
+
     @Authenticated
     @Override
     public String asyncReindexAll() {

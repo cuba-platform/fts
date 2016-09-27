@@ -5,24 +5,22 @@
 
 package com.haulmont.fts.core.sys;
 
-import java.util.UUID;
-
 public class IndexingException extends Exception {
     private static final long serialVersionUID = -406668009906992897L;
 
     private String entityName;
-    private UUID entityId;
+    private Object entityId;
     private EntityType entityType;
 
     public IndexingException(EntityType entityType, Throwable cause) {
         this(null, null, null, entityType, cause);
     }
 
-    public IndexingException(String entityName, UUID entityId, EntityType entityType, Throwable cause) {
+    public IndexingException(String entityName, Object entityId, EntityType entityType, Throwable cause) {
         this(entityName, entityId, null, entityType, cause);
     }
 
-    public IndexingException(String entityName, UUID entityId, String message, EntityType entityType, Throwable cause) {
+    public IndexingException(String entityName, Object entityId, String message, EntityType entityType, Throwable cause) {
         super(message, cause);
         this.entityName = entityName;
         this.entityId = entityId;
@@ -33,7 +31,7 @@ public class IndexingException extends Exception {
         return entityName;
     }
 
-    public UUID getEntityId() {
+    public Object getEntityId() {
         return entityId;
     }
 

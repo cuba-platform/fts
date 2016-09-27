@@ -182,9 +182,9 @@ public class SearchResultsWindow extends AbstractWindow {
     protected class InstanceClickListener implements Button.ClickListener {
 
         protected String entityName;
-        protected UUID entityId;
+        protected Object entityId;
 
-        public InstanceClickListener(String entityName, UUID entityId) {
+        public InstanceClickListener(String entityName, Object entityId) {
             this.entityName = entityName;
             this.entityId = entityId;
         }
@@ -211,7 +211,7 @@ public class SearchResultsWindow extends AbstractWindow {
         }
     }
 
-    protected Entity reloadEntity(MetaClass metaClass, UUID entityId) {
+    protected Entity reloadEntity(MetaClass metaClass, Object entityId) {
         LoadContext lc = new LoadContext(metaClass);
         lc.setView(View.MINIMAL);
         lc.setId(entityId);

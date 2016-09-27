@@ -5,11 +5,9 @@
 package com.haulmont.fts.core.app;
 
 import com.google.common.base.Strings;
+import com.haulmont.bali.util.Preconditions;
 import com.haulmont.chile.core.model.MetaClass;
-import com.haulmont.cuba.core.EntityManager;
-import com.haulmont.cuba.core.Persistence;
-import com.haulmont.cuba.core.Query;
-import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ServerInfoAPI;
 import com.haulmont.cuba.core.entity.Entity;
@@ -40,6 +38,9 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+
+import static java.lang.String.format;
 
 @Component(FtsManagerAPI.NAME)
 public class FtsManager implements FtsManagerAPI {
@@ -61,10 +62,7 @@ public class FtsManager implements FtsManagerAPI {
     protected static final int DEL_CHUNK = 10;
 
     @Inject
-    protected FtsConfig config;
-
-    @Inject
-    protected FtsConfig coreConfig;
+    protected FtsConfig ftsConfig;
 
     protected String serverId;
 
@@ -93,13 +91,13 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public boolean isEnabled() {
-        return config.getEnabled();
+        return ftsConfig.getEnabled();
     }
 
     @Authenticated
     @Override
     public void setEnabled(boolean value) {
-        config.setEnabled(value);
+        ftsConfig.setEnabled(value);
     }
 
     @Override
@@ -199,7 +197,7 @@ public class FtsManager implements FtsManagerAPI {
         if (!AppContext.isStarted())
             return 0;
 
-        if (!config.getEnabled())
+        if (!ftsConfig.getEnabled())
             return 0;
 
         if (!reindexEntitiesQueue.isEmpty()) {
@@ -230,36 +228,26 @@ public class FtsManager implements FtsManagerAPI {
             writing = false;
             authentication.end();
         }
-        log.debug(count + " queue items successfully processed");
+        log.debug("{} queue items successfully processed", count);
         return count;
     }
 
     protected List<FtsQueue> loadQueuedItems() {
-        List<FtsQueue> list;
-
-        boolean useServerId = !coreConfig.getIndexingHosts().isEmpty();
-        int maxSize = coreConfig.getIndexingBatchSize();
-
-        Transaction tx = persistence.createTransaction();
-        try {
-            EntityManager em = persistence.getEntityManager();
-            String queryString = String.format("select q from sys$FtsQueue q where q.fake = false and %s order by q.createTs",
+        boolean useServerId = !ftsConfig.getIndexingHosts().isEmpty();
+        int maxSize = ftsConfig.getIndexingBatchSize();
+        return persistence.callInTransaction(em -> {
+            String queryString = format("select q from sys$FtsQueue q where q.fake = false and %s order by q.createTs",
                     (useServerId ? "q.indexingHost = ?1" : "q.indexingHost is null"));
-            Query query = em.createQuery(queryString);
+            TypedQuery<FtsQueue> query = em.createQuery(queryString, FtsQueue.class);
             if (useServerId)
                 query.setParameter(1, serverId);
             query.setMaxResults(maxSize);
-            list = query.getResultList();
-            tx.commit();
-        } finally {
-            tx.end();
-        }
-        return list;
+            return query.getResultList();
+        });
     }
 
     protected void removeQueuedItems(List<FtsQueue> list) {
-        Transaction tx = persistence.createTransaction();
-        try {
+        try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
 
             for (int i = 0; i < list.size(); i += DEL_CHUNK) {
@@ -282,27 +270,25 @@ public class FtsManager implements FtsManagerAPI {
             }
 
             tx.commit();
-        } finally {
-            tx.end();
         }
     }
 
     protected int initIndexer(List<FtsQueue> list) {
         LuceneIndexer indexer = createLuceneIndexer();
-        List<FtsQueue> unindexed = new ArrayList<>(list.size());
+        List<FtsQueue> notIndexed = new ArrayList<>(list.size());
         int count = 0;
         try {
             for (FtsQueue ftsQueue : list) {
                 try {
-                    indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getEntityId(), ftsQueue.getChangeType());
+                    indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getObjectEntityId(), ftsQueue.getChangeType());
                     count++;
                 } catch (IndexingException e) {
                     if (e.getEntityType() != IndexingException.EntityType.FILE)
-                        unindexed.add(ftsQueue);
+                        notIndexed.add(ftsQueue);
                 }
             }
-            if (!unindexed.isEmpty()) {
-                list.removeAll(unindexed);
+            if (!notIndexed.isEmpty()) {
+                list.removeAll(notIndexed);
             }
         } finally {
             indexer.close();
@@ -311,11 +297,7 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     protected LuceneIndexer createLuceneIndexer() {
-        return new LuceneIndexer(getDescrByName(), getDirectory(), coreConfig.getStoreContentInIndex());
-    }
-
-    protected FtsConfig getConfig() {
-        return config;
+        return new LuceneIndexer(getDescrByName(), getDirectory(), ftsConfig.getStoreContentInIndex());
     }
 
     @Override
@@ -323,7 +305,7 @@ public class FtsManager implements FtsManagerAPI {
         if (!AppContext.isStarted())
             return "Application is not started";
 
-        if (!config.getEnabled())
+        if (!ftsConfig.getEnabled())
             return "FTS is disabled";
 
         log.debug("Start optimize");
@@ -403,67 +385,42 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public int reindexEntity(String entityName) {
-        int count = 0;
-
-        MetaClass metaClass = metadata.getSession().getClass(entityName);
-        if (metaClass == null)
-            throw new IllegalArgumentException("MetaClass not found for " + entityName);
-
-        Transaction tx = persistence.createTransaction();
-        try {
-            FtsSender sender = AppBeans.get(FtsSender.NAME);
-
-            sender.emptyQueue(entityName);
-            tx.commitRetaining();
-
-            EntityDescr descr = getDescrByName().get(entityName);
-            if (descr == null)
-                return count;
-
-            EntityManager em = persistence.getEntityManager();
-
-            if (StringUtils.isBlank(descr.getSearchableIfScript())) {
-                Query q = em.createQuery("select e.id from " + entityName + " e");
-                List<UUID> list = q.getResultList();
-                for (UUID id : list) {
-                    sender.enqueue(entityName, id, FtsChangeType.INSERT);
+        persistence.runInTransaction(em -> ftsSender.emptyQueue(entityName));
+        return executeReindexInTx(entityName, entityDescr -> {
+            int count = 0;
+            MetaClass metaClass = entityDescr.getMetaClass();
+            EntitiesCollector collector = AppBeans.getPrototype(EntitiesCollector.NAME, metaClass);
+            if (Strings.isNullOrEmpty(entityDescr.getSearchableIfScript())) {
+                collector.setIdOnly(true);
+                for (Object id : collector.loadResults()) {
+                    ftsSender.enqueue(metaClass.getName(), id, FtsChangeType.INSERT);
                     count++;
                 }
+                log.debug("{} instances of {} was added to the FTS queue", count, entityName);
             } else {
-                Query q = em.createQuery("select e from " + entityName + " e");
-                List<Entity> list = q.getResultList();
-                for (Entity entity : list) {
-                    if (runSearchableIf(entity, descr)) {
-                        sender.enqueue(entityName, (UUID) entity.getId(), FtsChangeType.INSERT);
+                List result = collector.loadResults();
+                for (Object obj : result) {
+                    Entity entity = (Entity) obj;
+                    if (runSearchableIf(entity, entityDescr)) {
+                        ftsSender.enqueue(metaClass.getName(), entity.getId(), FtsChangeType.INSERT);
                         count++;
                     }
                 }
+                log.debug("{} instances of {} was processed. {} of them was added to the FTS queue",
+                        result.size(), metaClass.getName(), count);
             }
-            tx.commit();
-        } finally {
-            tx.end();
-        }
-        return count;
+            return count;
+        });
     }
 
     @Override
     public void asyncReindexEntity(String entityName) {
-        MetaClass metaClass = metadata.getSession().getClass(entityName);
-        if (metaClass == null)
-            throw new IllegalArgumentException("MetaClass not found for " + entityName);
-
-        EntityDescr descr = getDescrByName().get(entityName);
-        if (descr == null)
-            throw new IllegalArgumentException("FTS configuration not found for " + entityName);
-
-        Transaction tx = persistence.createTransaction();
-        try {
+        metadata.getSession().getClassNN(entityName);
+        Preconditions.checkNotNullArgument(getDescrByName().get(entityName), "FTS configuration not found for %s", entityName);
+        persistence.runInTransaction(em -> {
             ftsSender.emptyQueue(entityName);
             reindexEntitiesQueue.add(entityName);
-            tx.commit();
-        } finally {
-            tx.end();
-        }
+        });
     }
 
     @Override
@@ -477,9 +434,7 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public void asyncReindexAll() {
-        for (String entityName : getDescrByName().keySet()) {
-            asyncReindexEntity(entityName);
-        }
+        getDescrByName().keySet().forEach(this::asyncReindexEntity);
     }
 
     @Override
@@ -487,7 +442,7 @@ public class FtsManager implements FtsManagerAPI {
         if (!AppContext.isStarted())
             return 0;
 
-        if (!config.getEnabled())
+        if (!ftsConfig.getEnabled())
             return 0;
 
         if (reindexEntitiesQueue.isEmpty())
@@ -499,61 +454,45 @@ public class FtsManager implements FtsManagerAPI {
             log.warn("Unable to reindex next batch of entities: reindexing at the moment");
             return 0;
         }
-
-        authentication.begin();
-        Transaction tx = persistence.createTransaction();
         try {
+            authentication.begin();
             reindexing = true;
-            try {
-                String entityName = reindexEntitiesQueue.element();
-                int reindexBatchSize = coreConfig.getReindexBatchSize();
-                EntityManager em = persistence.getEntityManager();
-
-                EntityDescr entityDescr = getDescrByName().get(entityName);
-                String searchableIfScript = entityDescr.getSearchableIfScript();
-                if (Strings.isNullOrEmpty(searchableIfScript)) {
-                    List<UUID> ids = em.createQuery("select e.id from " + entityName + " e where e.id not in " +
-                            "(select q.entityId from sys$FtsQueue q where q.entityName = :entityName)", UUID.class)
-                            .setParameter("entityName", entityName)
-                            .setMaxResults(reindexBatchSize)
-                            .getResultList();
-                    for (UUID id : ids) {
-                        ftsSender.enqueue(entityName, id, FtsChangeType.INSERT);
+            return executeReindexInTx(reindexEntitiesQueue.element(), entityDescr -> {
+                int count = 0;
+                MetaClass metaClass = entityDescr.getMetaClass();
+                EntitiesCollector collector = AppBeans.getPrototype(EntitiesCollector.NAME, metaClass);
+                collector.setExcludeFromQueue(true);
+                if (Strings.isNullOrEmpty(entityDescr.getSearchableIfScript())) {
+                    collector.setIdOnly(true);
+                    List result = collector.loadResults();
+                    for (Object id : result) {
+                        ftsSender.enqueue(entityDescr.getMetaClass().getName(), id, FtsChangeType.INSERT);
+                        count++;
                     }
-                    tx.commit();
-                    if (ids.size() < reindexBatchSize) {
+                    if (result.size() < ftsConfig.getReindexBatchSize()) {
                         reindexEntitiesQueue.remove();
                     }
-                    log.debug(ids.size() + " instances of " + entityName + " was added to the FTS queue");
-                    return ids.size();
+                    log.debug("{} instances of {} was added to the FTS queue", count, metaClass.getName());
                 } else {
-                    List<Entity> entities = em.createQuery("select e from " + entityName + " e where e.id not in " +
-                            "(select q.entityId from sys$FtsQueue q where q.entityName = :entityName)", Entity.class)
-                            .setParameter("entityName", entityName)
-                            .setMaxResults(reindexBatchSize)
-                            .getResultList();
-                    int count = 0;
-                    for (Entity entity : entities) {
+                    List result = collector.loadResults();
+                    for (Object obj : result) {
+                        Entity entity = (Entity) obj;
                         if (runSearchableIf(entity, entityDescr)) {
-                            ftsSender.enqueue(entityName, (UUID) entity.getId(), FtsChangeType.INSERT);
+                            ftsSender.enqueue(metaClass.getName(), entity.getId(), FtsChangeType.INSERT);
                             count++;
                         } else {
-                            ftsSender.enqueueFake(entityName, (UUID) entity.getId());
+                            ftsSender.enqueueFake(metaClass.getName(), entity.getId());
                         }
                     }
-                    if (entities.size() < reindexBatchSize) {
+                    if (result.size() < ftsConfig.getReindexBatchSize()) {
                         reindexEntitiesQueue.remove();
-                        ftsSender.emptyFakeQueue(entityName);
+                        ftsSender.emptyFakeQueue(metaClass.getName());
                     }
-                    tx.commit();
-                    log.debug(entities.size() + " instances of " + entityName + " was processed. "
-                            + count + " of them was added to the FTS queue");
-                    return entities.size();
-
+                    log.debug("{} instances of {} was processed. {} of them was added to the FTS queue",
+                            result.size(), metaClass.getName(), count);
                 }
-            } finally {
-                tx.end();
-            }
+                return count;
+            });
         } finally {
             reindexLock.unlock();
             reindexing = false;
@@ -561,12 +500,34 @@ public class FtsManager implements FtsManagerAPI {
         }
     }
 
+    protected int executeReindexInTx(String entityName, Function<EntityDescr, Integer> indexAction) {
+        MetaClass metaClass = metadata.getSession().getClassNN(entityName);
+        String storeName = metadata.getTools().getStoreName(metaClass);
+        Preconditions.checkNotNullArgument(storeName, "Storage not found for %s", metaClass.getName());
+        EntityDescr entityDescr = getDescrByName().get(metaClass.getName());
+        int count = 0;
+        if (entityDescr != null) {
+            try (Transaction tx = persistence.createTransaction()) {
+                if (Stores.isMain(storeName)) {
+                    count = indexAction.apply(entityDescr);
+                } else {
+                    try (Transaction storeTx = persistence.createTransaction(storeName)) {
+                        count = indexAction.apply(entityDescr);
+                        storeTx.commit();
+                    }
+                }
+                tx.commit();
+            }
+        }
+        return count;
+    }
+
     @Override
     public Directory getDirectory() {
         if (directory == null) {
             synchronized (this) {
                 if (directory == null) {
-                    String dir = coreConfig.getIndexDir();
+                    String dir = ftsConfig.getIndexDir();
                     if (StringUtils.isBlank(dir)) {
                         Configuration configuration = AppBeans.get(Configuration.NAME);
                         dir = configuration.getConfig(GlobalConfig.class).getDataDir() + "/ftsindex";

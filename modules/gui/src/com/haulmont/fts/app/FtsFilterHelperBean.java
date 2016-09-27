@@ -37,8 +37,8 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
     public FtsSearchResult search(String searchTerm, String entityName) {
         List<String> entityNames = ftsService.collectEntityHierarchyNames(entityName);
         SearchResult searchResult = ftsService.search(searchTerm.toLowerCase(), entityNames);
-        List<UUID> ids = new ArrayList<>();
-        Map<UUID, String> resultHitInfos = new HashMap<>();
+        List ids = new ArrayList<>();
+        Map<Object, String> resultHitInfos = new HashMap<>();
         for (String entity : searchResult.getEntities()) {
             for (SearchResult.Entry entry : searchResult.getEntries(entity)) {
                 ids.add(entry.getId());
