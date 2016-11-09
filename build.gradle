@@ -55,11 +55,12 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
     apply(plugin: 'idea')
     apply(plugin: 'maven')
     apply(plugin: 'checkstyle')
-    apply(plugin: CubaPlugin)
+    apply(plugin: 'cuba')
 
     dependencies {
         compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: baseVersion)
-        testCompile('junit:junit:4.12')
+
+        testCompile('junit:junit')
     }
 
     task sourceJar(type: Jar) {
@@ -107,13 +108,16 @@ configure(coreModule) {
     dependencies {
         compile(globalModule)
         compile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion)
-        compile(group: 'org.apache.lucene', name: 'lucene-core', version: '5.3.0')
-        compile(group: 'org.apache.lucene', name: 'lucene-analyzers-common', version: '5.3.0')
-        compile(group: 'org.apache.lucene', name: 'lucene-backward-codecs', version: '5.3.0')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morphology-ru', version: '1.1')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morphology-en', version: '1.1')
-        compile(group: 'com.haulmont.thirdparty.lucene.morphology', name: 'morph', version: '1.1')
-        compile(group: 'org.apache.tika', name: 'tika-parsers', version: '1.9') {
+
+        compile(bom['org.apache.lucene:lucene-core'])
+        compile(bom['org.apache.lucene:lucene-analyzers-common'])
+        compile(bom['org.apache.lucene:lucene-backward-codecs'])
+
+        compile(bom['com.haulmont.thirdparty.lucene.morphology:morphology-ru'])
+        compile(bom['com.haulmont.thirdparty.lucene.morphology:morphology-en'])
+        compile(bom['com.haulmont.thirdparty.lucene.morphology:morph'])
+
+        compile(bom['org.apache.tika:tika-parsers']) {
             exclude(group: 'junit', module: 'junit')
             exclude(group: 'org.apache.poi', module: 'poi')
         }
