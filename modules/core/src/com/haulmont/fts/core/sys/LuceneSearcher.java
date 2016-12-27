@@ -10,11 +10,13 @@ import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.UuidProvider;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
+import com.haulmont.fts.exception.LuceneIndexNotFoundException;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.ValueFormatter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
@@ -33,6 +35,8 @@ public class LuceneSearcher extends Lucene {
         this.storeContentInIndex = storeContentInIndex;
         try {
             searcher = new IndexSearcher(DirectoryReader.open(directory));
+        } catch (IndexNotFoundException e) {
+            throw new LuceneIndexNotFoundException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
