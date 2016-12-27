@@ -113,9 +113,8 @@ configure(coreModule) {
         compile(bom['org.apache.lucene:lucene-analyzers-common'])
         compile(bom['org.apache.lucene:lucene-backward-codecs'])
 
-        compile(bom['com.haulmont.thirdparty.lucene.morphology:morphology-ru'])
-        compile(bom['com.haulmont.thirdparty.lucene.morphology:morphology-en'])
-        compile(bom['com.haulmont.thirdparty.lucene.morphology:morph'])
+        compile(bom['org.apache.lucene.morphology:russian'])
+        compile(bom['org.apache.lucene.morphology:english'])
 
         compile(bom['org.apache.tika:tika-parsers']) {
             exclude(group: 'junit', module: 'junit')
