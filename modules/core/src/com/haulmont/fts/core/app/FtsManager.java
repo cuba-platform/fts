@@ -7,12 +7,14 @@ package com.haulmont.fts.core.app;
 import com.google.common.base.Strings;
 import com.haulmont.bali.util.Preconditions;
 import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ServerInfoAPI;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
+import com.haulmont.cuba.core.entity.HasUuid;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.core.sys.persistence.DbTypeConverter;
@@ -31,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
+import javax.persistence.EmbeddedId;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -553,4 +556,18 @@ public class FtsManager implements FtsManagerAPI {
         }
         return directory;
     }
+
+    @Override
+    public boolean isEntityCanBeIndexed(MetaClass metaClass) {
+        return !(metadata.getTools().hasCompositePrimaryKey(metaClass) && !HasUuid.class.isAssignableFrom(metaClass.getJavaClass()));
+    }
+
+    @Override
+    public MetaProperty getPrimaryKeyPropertyForFts(MetaClass metaClass) {
+        if (metadata.getTools().hasCompositePrimaryKey(metaClass) && HasUuid.class.isAssignableFrom(metaClass.getJavaClass())) {
+            return metaClass.getPropertyNN("uuid");
+        }
+        return metadata.getTools().getPrimaryKeyProperty(metaClass);
+    }
+
 }

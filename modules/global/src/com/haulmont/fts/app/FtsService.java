@@ -4,6 +4,8 @@
  */
 package com.haulmont.fts.app;
 
+import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.fts.global.SearchResult;
 
 import java.util.List;
@@ -43,4 +45,9 @@ public interface FtsService {
      * @return a caption for entity property that was found by fts
      */
     String getHitPropertyCaption(String entityName, String hitProperty);
+
+    /**
+     * See {@code FtsManagerAPI#getPrimaryKeyPropertyForFts()} javadoc for details
+     */
+    MetaProperty getPrimaryKeyPropertyForFts(MetaClass metaClass);
 }

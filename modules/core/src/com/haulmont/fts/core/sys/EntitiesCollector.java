@@ -10,8 +10,11 @@ import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
+import com.haulmont.cuba.core.entity.HasUuid;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.Stores;
+import com.haulmont.fts.core.app.FtsManager;
+import com.haulmont.fts.core.app.FtsManagerAPI;
 import com.haulmont.fts.global.FtsConfig;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Scope;
@@ -41,6 +44,8 @@ public class EntitiesCollector {
     protected Metadata metadata;
     @Inject
     protected FtsConfig ftsConfig;
+    @Inject
+    protected FtsManagerAPI ftsManager;
 
     public EntitiesCollector(MetaClass metaClass) {
         this.metaClass = metaClass;
@@ -61,6 +66,8 @@ public class EntitiesCollector {
 
     @SuppressWarnings("unchecked")
     public List loadResults() {
+        if (!ftsManager.isEntityCanBeIndexed(metaClass)) return new ArrayList();
+
         if (!Stores.isMain(storeName)) {
             EntityManager storeEm = persistence.getEntityManager(storeName);
             if (excludeFromQueue) {
@@ -101,11 +108,11 @@ public class EntitiesCollector {
         }
     }
 
-
     protected String getQueryString() {
         StringBuilder query = new StringBuilder();
+        String primaryKeyName = ftsManager.getPrimaryKeyPropertyForFts(metaClass).getName();
         if (idOnly) {
-            query.append(format("select e.%s from %s e", metadata.getTools().getPrimaryKeyName(metaClass), metaClass.getName()));
+            query.append(format("select e.%s from %s e", primaryKeyName, metaClass.getName()));
         } else {
             query.append(format("select e from %s e", metaClass.getName()));
         }
@@ -113,11 +120,11 @@ public class EntitiesCollector {
             query.append(" where ");
             if (Stores.isMain(storeName)) {
                 query.append(format("e.%s not in (%s)",
-                        metadata.getTools().getPrimaryKeyName(metaClass),
+                        primaryKeyName,
                         getExcludeIdsQueryString()));
             } else {
                 query.append(format("e.%s not in (:ids)",
-                        metadata.getTools().getPrimaryKeyName(metaClass)));
+                        primaryKeyName));
             }
         }
         return query.toString();
@@ -128,7 +135,7 @@ public class EntitiesCollector {
     }
 
     protected String getQueueIdPropertyName() {
-        MetaProperty primaryKey = metadata.getTools().getPrimaryKeyProperty(metaClass);
+        MetaProperty primaryKey = ftsManager.getPrimaryKeyPropertyForFts(metaClass);
         if (primaryKey != null) {
             Class type = primaryKey.getJavaType();
             if (UUID.class.equals(type)) {

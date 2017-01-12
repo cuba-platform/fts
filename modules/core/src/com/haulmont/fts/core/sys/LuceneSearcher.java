@@ -9,6 +9,7 @@ import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.UuidProvider;
+import com.haulmont.fts.core.app.FtsManagerAPI;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.exception.LuceneIndexNotFoundException;
 import com.haulmont.fts.global.FTS;
@@ -174,7 +175,7 @@ public class LuceneSearcher extends Lucene {
     protected Object parseIdFromString(String strId, String entityName) {
         Metadata metadata = AppBeans.get(Metadata.class);
         MetaClass metaClass = metadata.getSession().getClassNN(entityName);
-        MetaProperty primaryKey = metadata.getTools().getPrimaryKeyProperty(metaClass);
+        MetaProperty primaryKey = AppBeans.get(FtsManagerAPI.class).getPrimaryKeyPropertyForFts(metaClass);
         if (primaryKey != null) {
             Class type = primaryKey.getJavaType();
             if (UUID.class.equals(type)) {

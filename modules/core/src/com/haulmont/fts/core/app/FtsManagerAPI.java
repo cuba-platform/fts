@@ -4,6 +4,8 @@
  */
 package com.haulmont.fts.core.app;
 
+import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.fts.core.sys.EntityDescr;
 import org.apache.lucene.store.Directory;
@@ -53,4 +55,23 @@ public interface FtsManagerAPI {
     void asyncReindexAll();
 
     int reindexNextBatch();
+
+    /**
+     * Method checks whether entities of the given MetaClass can be indexed. For example, indexing of entities that
+     * have composite primary key and don't implement {@link com.haulmont.cuba.core.entity.HasUuid} interface is not
+     * possible.
+     */
+    boolean isEntityCanBeIndexed(MetaClass metaClass);
+
+    /**
+     * From FTS point of view there are cases when non-PK field must be treated as primary key for building JPQL
+     * queries, for example.
+     * <p>
+     * When indexing or performing a full-text search on an entity with composite key, its 'uuid' field (if presented)
+     * must be used instead of its real primary key (embedded entity).
+     *
+     * @return a MetaProperty with a primary key or a MetaProperty for 'uuid' field (in case of entity with composite
+     * primary key
+     */
+    MetaProperty getPrimaryKeyPropertyForFts(MetaClass metaClass);
 }

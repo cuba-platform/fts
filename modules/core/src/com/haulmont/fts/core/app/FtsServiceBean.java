@@ -254,7 +254,8 @@ public class FtsServiceBean implements FtsService {
     protected Entity getReloadedEntity(Object entityId, MetaClass metaClass) {
         EntityManager em = persistence.getEntityManager(metadata.getTools().getStoreName(metaClass));
 
-        Query query = em.createQuery(String.format("select e from %s e where e.%s = :id", metaClass.getName(), metadata.getTools().getPrimaryKeyName(metaClass)));
+        MetaProperty primaryKeyForFts = manager.getPrimaryKeyPropertyForFts(metaClass);
+        Query query = em.createQuery(String.format("select e from %s e where e.%s = :id", metaClass.getName(), primaryKeyForFts.getName()));
         security.applyConstraints(query);
 
         query.setParameter("id", entityId);
@@ -320,6 +321,11 @@ public class FtsServiceBean implements FtsService {
             return messages.getTools().getEntityCaption(metaClass) + "."
                     + messages.getTools().getPropertyCaption(metaProperty);
         }
+    }
+
+    @Override
+    public MetaProperty getPrimaryKeyPropertyForFts(MetaClass metaClass) {
+        return manager.getPrimaryKeyPropertyForFts(metaClass);
     }
 
     protected void createTransactionOnStore(Map<String, Transaction> storeTransactions, MetaClass metaClass) {

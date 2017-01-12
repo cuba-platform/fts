@@ -211,11 +211,17 @@ public class SearchResultsWindow extends AbstractWindow {
         }
     }
 
+    /**
+     * For entities with composite keys there will be a value of the 'uuid' property in the {@code entityId} parameter.
+     */
     protected Entity reloadEntity(MetaClass metaClass, Object entityId) {
-        LoadContext lc = new LoadContext(metaClass);
-        lc.setView(View.MINIMAL);
-        lc.setId(entityId);
-        return getDsContext().getDataSupplier().load(lc);
+        String ftsPrimaryKeyName = service.getPrimaryKeyPropertyForFts(metaClass).getName();
+        String queryStr = String.format("select e from %s e where e.%s = :id", metaClass.getName(), ftsPrimaryKeyName);
+        LoadContext lc = new LoadContext(metaClass)
+                .setView(View.MINIMAL)
+                .setQuery(LoadContext.createQuery(queryStr).setParameter("id", entityId));
+        List list = getDsContext().getDataSupplier().loadList(lc);
+        return list.isEmpty() ? null : (Entity) list.get(0);
     }
 
     protected class MoreClickListener implements Button.ClickListener {

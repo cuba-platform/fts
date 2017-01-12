@@ -110,7 +110,15 @@ public class LuceneIndexer extends LuceneWriter {
             String storeName = metadata.getTools().getStoreName(metaClass);
             try (Transaction tx = persistence.createTransaction(storeName)) {
                 EntityManager em = persistence.getEntityManager(storeName);
-                Entity entity = em.find(metaClass.getJavaClass(), entityId);
+                Entity entity;
+
+                if (metadata.getTools().hasCompositePrimaryKey(metaClass) && HasUuid.class.isAssignableFrom(metaClass.getJavaClass())) {
+                    entity = (Entity) em.createQuery("select e from " + metaClass.getName() + " e where e.uuid = :uuid")
+                            .setParameter("uuid", entityId)
+                            .getFirstResult();
+                } else {
+                    entity = em.find(metaClass.getJavaClass(), entityId);
+                }
                 if (entity == null) {
                     log.error("Entity instance not found: {}-{}", entityName, entityId);
                     return;

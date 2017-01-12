@@ -11,10 +11,7 @@ import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.app.FtsSender;
 import com.haulmont.cuba.core.app.ServerInfoAPI;
-import com.haulmont.cuba.core.entity.BaseIdentityIdEntity;
-import com.haulmont.cuba.core.entity.Entity;
-import com.haulmont.cuba.core.entity.FtsChangeType;
-import com.haulmont.cuba.core.entity.FtsQueue;
+import com.haulmont.cuba.core.entity.*;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.PersistenceHelper;
 import com.haulmont.cuba.core.sys.PersistenceImpl;
@@ -57,6 +54,7 @@ public class FtsSenderBean implements FtsSender {
 
     @Override
     public void enqueue(Entity entity, FtsChangeType changeType) {
+        if (!manager.isEntityCanBeIndexed(entity.getMetaClass())) return;
         List<Entity> list = manager.getSearchableEntities(entity);
         if (!list.isEmpty()) {
             if (changeType.equals(FtsChangeType.DELETE)) {
@@ -66,6 +64,7 @@ public class FtsSenderBean implements FtsSender {
 
             for (Entity e : list) {
                 MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
+                Object entityId = e.getId();
                 if (PersistenceHelper.isNew(e) && e instanceof BaseIdentityIdEntity) {
                     String storeName = metadata.getTools().getStoreName(metaClass);
                     List<Consumer<Integer>> runAfterCompletion = persistence.getEntityManagerContext(storeName).getAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR);
@@ -73,12 +72,16 @@ public class FtsSenderBean implements FtsSender {
                         runAfterCompletion = new ArrayList<>();
                         persistence.getEntityManagerContext(storeName).setAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR, runAfterCompletion);
                     }
+                    Object finalEntityId = entityId;
                     runAfterCompletion.add((txStatus) -> {
                         if (TransactionSynchronization.STATUS_COMMITTED == txStatus)
-                            enqueue(metaClass.getName(), e.getId(), FtsChangeType.UPDATE);
+                            enqueue(metaClass.getName(), finalEntityId, FtsChangeType.UPDATE);
                     });
                 } else {
-                    enqueue(metaClass.getName(), e.getId(), FtsChangeType.UPDATE);
+                    if (metadata.getTools().hasCompositePrimaryKey(metaClass) && HasUuid.class.isAssignableFrom(metaClass.getJavaClass())) {
+                        entityId = ((HasUuid) e).getUuid();
+                    }
+                    enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
                 }
             }
         }
@@ -86,6 +89,8 @@ public class FtsSenderBean implements FtsSender {
 
     @Override
     public void enqueue(String entityName, Object entityId, FtsChangeType changeType) {
+        if (!manager.isEntityCanBeIndexed(metadata.getClassNN(entityName))) return;
+
         // Join to an existing transaction in main DB or create a new one if we came here with a tx for an additional DB
         try (Transaction tx = persistence.getTransaction()) {
             List<String> indexingHosts = coreConfig.getIndexingHosts();
