@@ -93,6 +93,11 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
             attributes("Implementation-Version": cubaVersion)
         }
     }
+
+    javadoc {
+        // move to plugin ?
+        options.addStringOption("sourcepath", "")
+    }
 }
 
 configure(globalModule) {
