@@ -5,16 +5,22 @@
 
 package com.haulmont.fts.app;
 
+import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.app.QueryResultsService;
+import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.UserSessionSource;
 import com.haulmont.cuba.gui.components.filter.FtsFilterHelper;
 import com.haulmont.cuba.gui.components.filter.condition.CustomCondition;
 import com.haulmont.cuba.security.global.UserSession;
 import com.haulmont.fts.global.SearchResult;
-
 import org.springframework.stereotype.Component;
+
 import javax.inject.Inject;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component(FtsFilterHelper.NAME)
 public class FtsFilterHelperBean implements FtsFilterHelper {
@@ -27,6 +33,9 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
 
     @Inject
     protected UserSessionSource userSessionSource;
+
+    @Inject
+    protected Metadata metadata;
 
     @Override
     public boolean isEntityIndexed(String entityName) {
@@ -67,9 +76,23 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
     }
 
     @Override
-    public CustomCondition createFtsCondition(int queryKey) {
+    public CustomCondition createFtsCondition(String entityName, int queryKey) {
+        MetaClass metaClass = metadata.getClassNN(entityName);
+        MetaProperty primaryKeyForFts = ftsService.getPrimaryKeyPropertyForFts(metaClass);
+        Class type = primaryKeyForFts.getJavaType();
+        String entityIdField;
+        if (Long.class.equals(type)) {
+            entityIdField = "longEntityId";
+        } else if (Integer.class.equals(type)) {
+            entityIdField = "intEntityId";
+        } else if (String.class.equals(type)) {
+            entityIdField = "stringEntityId";
+        } else {
+            entityIdField = "entityId";
+        }
         CustomCondition condition = new CustomCondition();
-        condition.setWhere("exists (select qr from sys$QueryResult qr where qr.entityId = {E}.id and qr.queryKey = :custom$queryKey and qr.sessionId = :custom$sessionId)");
+        condition.setWhere(String.format("exists (select qr from sys$QueryResult qr where qr.%s = {E}.%s and qr.queryKey = :custom$queryKey and qr.sessionId = :custom$sessionId)",
+                entityIdField, primaryKeyForFts.getName()));
         condition.setUnary(true);
         return condition;
     }
