@@ -121,6 +121,11 @@ configure(coreModule) {
         compile(bom['org.apache.lucene.morphology:russian'])
         compile(bom['org.apache.lucene.morphology:english'])
 
+        //all "poi-*" dependencies must be the same version as "poi" dependency from the cuba
+        compile(group: 'org.apache.poi', name: 'poi-ooxml', version: bom.getVersion('org.apache.poi', 'poi'))
+        compile(group: 'org.apache.poi', name: 'poi-ooxml-schemas', version: bom.getVersion('org.apache.poi', 'poi'))
+        compile(group: 'org.apache.poi', name: 'poi-scratchpad', version: bom.getVersion('org.apache.poi', 'poi'))
+
         compile(bom['org.apache.tika:tika-parsers']) {
             exclude(group: 'junit', module: 'junit')
             exclude(group: 'org.apache.poi', module: 'poi')
