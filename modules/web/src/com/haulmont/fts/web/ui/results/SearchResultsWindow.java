@@ -31,6 +31,11 @@ import org.apache.commons.lang.StringUtils;
 import javax.inject.Inject;
 import java.util.*;
 
+/**
+ * Screen that displays Full-Text Search results.
+ * <p>
+ * XML-descriptor: com/haulmont/fts/web/ui/results/search-results.xml
+ */
 public class SearchResultsWindow extends AbstractWindow {
 
     protected AbstractOrderedLayout contentLayout;
@@ -47,36 +52,39 @@ public class SearchResultsWindow extends AbstractWindow {
 
     @Override
     public void init(Map<String, Object> params) {
-        super.init(params);
-
         fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
 
         contentLayout = (AbstractOrderedLayout) WebComponentsHelper.unwrap(getComponent("contentBox"));
 
         String searchTerm = (String) params.get("searchTerm");
         if (StringUtils.isBlank(searchTerm)) {
-            setCaption(getMessage("caption"));
-            Label label = new Label(getMessage("noSearchTerm"));
-            label.setStyleName("h2");
-            contentLayout.addComponent(label);
-
+            initNoSearchTerm();
         } else {
-            searchTerm = searchTerm.trim();
-            setCaption(getMessage("caption") + ": " + searchTerm);
-
-            searchResult = (SearchResult) params.get("searchResult");
-            if (searchResult == null)
-                searchResult = service.search(searchTerm.toLowerCase());
-
-            paintResult(searchResult);
+            initSearchResults(params, searchTerm);
         }
+    }
+
+    protected void initNoSearchTerm() {
+        setCaption(getMessage("caption"));
+        Label label = new Label(getMessage("noSearchTerm"));
+        label.setStyleName("h2");
+        contentLayout.addComponent(label);
+    }
+
+    protected void initSearchResults(Map<String, Object> params, String searchTerm) {
+        searchTerm = searchTerm.trim();
+        setCaption(getMessage("caption") + ": " + searchTerm);
+
+        searchResult = (SearchResult) params.get("searchResult");
+        if (searchResult == null)
+            searchResult = service.search(searchTerm.toLowerCase());
+
+        paintResult(searchResult);
     }
 
     protected void paintResult(SearchResult searchResult) {
         if (searchResult.isEmpty()) {
-            Label label = new Label(getMessage("notFound"));
-            label.setStyleName("h2");
-            contentLayout.addComponent(label);
+            contentLayout.addComponent(createNotFoundLabel());
         } else {
             Session session = metadata.getSession();
 
@@ -87,28 +95,14 @@ public class SearchResultsWindow extends AbstractWindow {
                         messages.getTools().getEntityCaption(session.getClass(entityName))
                 ));
             }
-            Collections.sort(
-                    entities,
-                    new Comparator<Pair<String, String>>() {
-                        @Override
-                        public int compare(Pair<String, String> o1, Pair<String, String> o2) {
-                            return o1.getSecond().compareTo(o2.getSecond());
-                        }
-                    }
-            );
+            entities.sort(Comparator.comparing(Pair::getSecond));
 
             for (Pair<String, String> entityPair : entities) {
-                Label separator = new Label("<hr/>");
-                separator.setContentMode(ContentMode.HTML);
-
-                contentLayout.addComponent(separator);
+                contentLayout.addComponent(createSeparator());
 
                 GridLayout grid = new GridLayout(2, 1);
 
-                Label entityLabel = new Label(entityPair.getSecond());
-                entityLabel.setStyleName("h2");
-                entityLabel.setWidth(200, Sizeable.Unit.PIXELS);
-                grid.addComponent(entityLabel, 0, 0);
+                grid.addComponent(createEntityLabel(entityPair.getSecond()), 0, 0);
 
                 VerticalLayout instancesLayout = new VerticalLayout();
                 displayInstances(entityPair.getFirst(), instancesLayout);
@@ -119,18 +113,32 @@ public class SearchResultsWindow extends AbstractWindow {
         }
     }
 
+    protected Label createNotFoundLabel() {
+        Label label = new Label(getMessage("notFound"));
+        label.setStyleName("h2");
+        return label;
+    }
+
+    protected Label createSeparator() {
+        Label separator = new Label("<hr/>");
+        separator.setContentMode(ContentMode.HTML);
+        return separator;
+    }
+
+    protected Label createEntityLabel(String caption) {
+        Label entityLabel = new Label(caption);
+        entityLabel.setStyleName("h2");
+        entityLabel.setWidth(200, Sizeable.Unit.PIXELS);
+        return entityLabel;
+    }
+
     protected void displayInstances(String entityName, VerticalLayout instancesLayout) {
         List<SearchResult.Entry> entries = searchResult.getEntries(entityName);
-//        Collections.sort(entries);
 
         for (SearchResult.Entry entry : entries) {
             HorizontalLayout instanceLayout = new HorizontalLayout();
 
-            Button instanceBtn = new CubaButton(entry.getCaption());
-            instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
-            instanceBtn.addStyleName("fts-found-instance");
-            instanceBtn.addClickListener(new InstanceClickListener(entityName, entry.getId()));
-
+            Button instanceBtn = createInstanceButton(entityName, entry);
             instanceLayout.addComponent(instanceBtn);
             instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
 
@@ -149,10 +157,7 @@ public class SearchResultsWindow extends AbstractWindow {
                     HorizontalLayout hitLayout = new HorizontalLayout();
                     hitLayout.addStyleName("fts-hit");
 
-                    Label hitLabel = new Label(caption);
-                    hitLabel.setContentMode(ContentMode.HTML);
-                    hitLabel.addStyleName("fts-hit");
-
+                    Label hitLabel = createHitLabel(caption);
                     hitLayout.addComponent(hitLabel);
                     hitLayout.setComponentAlignment(hitLabel, com.vaadin.ui.Alignment.MIDDLE_LEFT);
 
@@ -165,50 +170,67 @@ public class SearchResultsWindow extends AbstractWindow {
         }
     }
 
-    protected void displayMore(String entityName, VerticalLayout instancesLayout) {
-        HorizontalLayout instanceLayout = new HorizontalLayout();
+    protected Button createInstanceButton(String entityName, SearchResult.Entry entry) {
+        Button instanceBtn = new CubaButton(entry.getCaption());
+        instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
+        instanceBtn.addStyleName("fts-found-instance");
+        instanceBtn.addClickListener(event -> onInstanceClick(entityName, entry));
+        return instanceBtn;
+    }
 
+    protected void onInstanceClick(String entityName, SearchResult.Entry entry) {
+        TopLevelWindow appWindow = App.getInstance().getTopLevelWindow();
+        if (appWindow instanceof HasWorkArea) {
+            AppWorkArea workArea = ((HasWorkArea) appWindow).getWorkArea();
+
+            if (workArea != null) {
+                WindowManager.OpenType openType = AppWorkArea.Mode.TABBED == workArea.getMode() ?
+                        WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
+
+                openEntityWindow(entry, entityName, openType);
+            } else {
+                throw new IllegalStateException("Application does not have any configured work area");
+            }
+        }
+    }
+
+    protected Label createHitLabel(String caption) {
+        Label hitLabel = new Label(caption);
+        hitLabel.setContentMode(ContentMode.HTML);
+        hitLabel.addStyleName("fts-hit");
+        return hitLabel;
+    }
+
+    protected void openEntityWindow(SearchResult.Entry entry, String entityName, WindowManager.OpenType openType) {
+        WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
+        MetaClass metaClass = metadata.getSession().getClass(entityName);
+        Entity entity = reloadEntity(metaClass, entry.getId());
+        openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
+    }
+
+    protected void displayMore(String entityName, VerticalLayout instancesLayout) {
+        HorizontalLayout layout = new HorizontalLayout();
+
+        Button moreBtn = createMoreButton(entityName, instancesLayout);
+        layout.addComponent(moreBtn);
+        layout.setComponentAlignment(moreBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
+
+        instancesLayout.addComponent(layout);
+    }
+
+    protected Button createMoreButton(String entityName, VerticalLayout instancesLayout) {
         Button instanceBtn = new CubaButton(getMessage("more"));
         instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
         instanceBtn.addStyleName("fts-found-instance");
-        instanceBtn.addClickListener(new MoreClickListener(entityName, instancesLayout));
-
-        instanceLayout.addComponent(instanceBtn);
-        instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
-
-        instancesLayout.addComponent(instanceLayout);
+        instanceBtn.addClickListener(event -> onMoreClick(entityName, instancesLayout));
+        return instanceBtn;
     }
 
-    protected class InstanceClickListener implements Button.ClickListener {
+    protected void onMoreClick(String entityName, VerticalLayout instancesLayout) {
+        searchResult = service.expandResult(searchResult, entityName);
 
-        protected String entityName;
-        protected Object entityId;
-
-        public InstanceClickListener(String entityName, Object entityId) {
-            this.entityName = entityName;
-            this.entityId = entityId;
-        }
-
-        @Override
-        public void buttonClick(Button.ClickEvent event) {
-            MetaClass metaClass = metadata.getSession().getClass(entityName);
-            Entity entity = reloadEntity(metaClass, entityId);
-
-            TopLevelWindow appWindow = App.getInstance().getTopLevelWindow();
-            if (appWindow instanceof HasWorkArea) {
-                AppWorkArea workArea = ((HasWorkArea) appWindow).getWorkArea();
-
-                if (workArea != null) {
-                    WindowManager.OpenType openType = AppWorkArea.Mode.TABBED == workArea.getMode() ?
-                            WindowManager.OpenType.NEW_TAB : WindowManager.OpenType.THIS_TAB;
-
-                    WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
-                    openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
-                } else {
-                    throw new IllegalStateException("Application does not have any configured work area");
-                }
-            }
-        }
+        instancesLayout.removeAllComponents();
+        displayInstances(entityName, instancesLayout);
     }
 
     /**
@@ -222,24 +244,5 @@ public class SearchResultsWindow extends AbstractWindow {
                 .setQuery(LoadContext.createQuery(queryStr).setParameter("id", entityId));
         List list = getDsContext().getDataSupplier().loadList(lc);
         return list.isEmpty() ? null : (Entity) list.get(0);
-    }
-
-    protected class MoreClickListener implements Button.ClickListener {
-
-        protected String entityName;
-        protected VerticalLayout instancesLayout;
-
-        public MoreClickListener(String entityName, VerticalLayout instancesLayout) {
-            this.entityName = entityName;
-            this.instancesLayout = instancesLayout;
-        }
-
-        @Override
-        public void buttonClick(Button.ClickEvent event) {
-            searchResult = service.expandResult(searchResult, entityName);
-
-            instancesLayout.removeAllComponents();
-            displayInstances(entityName, instancesLayout);
-        }
     }
 }
