@@ -94,7 +94,12 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public boolean isEnabled() {
-        return ftsConfig.getEnabled();
+        try {
+            return ftsConfig.getEnabled();
+        } catch (Exception e) {
+            log.error("Unable to find out if FTS is enabled: {}", e.toString());
+            return false;
+        }
     }
 
     @Authenticated
@@ -200,7 +205,7 @@ public class FtsManager implements FtsManagerAPI {
         if (!AppContext.isStarted())
             return 0;
 
-        if (!ftsConfig.getEnabled())
+        if (!isEnabled())
             return 0;
 
         if (!reindexEntitiesQueue.isEmpty()) {
