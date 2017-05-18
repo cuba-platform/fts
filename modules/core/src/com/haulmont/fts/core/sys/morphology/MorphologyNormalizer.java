@@ -15,7 +15,7 @@ import java.util.List;
 
 public class MorphologyNormalizer implements Normalizer {
 
-    protected static List<LuceneMorphology> morphologies = new ArrayList<>();
+    protected static final List<LuceneMorphology> morphologies = new ArrayList<>();
 
     static {
         try {
@@ -38,7 +38,7 @@ public class MorphologyNormalizer implements Normalizer {
     }
 
     public static List<LuceneMorphology> getAvailableMorphologies() {
-        return morphologies;
+        return new ArrayList<>(morphologies);
     }
 
     public MorphologyNormalizer() {
