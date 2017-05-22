@@ -4,6 +4,7 @@
  */
 package com.haulmont.fts.core.jmx;
 
+import com.haulmont.cuba.core.sys.jmx.JmxRunAsync;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedOperationParameters;
@@ -22,22 +23,22 @@ public interface FtsManagerMBean {
 
     Queue<String> getReindexEntitiesQueue();
 
-    @ManagedOperation(description = "@JmxLongOperation")
+    @JmxRunAsync
     String processQueue();
 
-    @ManagedOperation(description = "@JmxLongOperation")
+    @JmxRunAsync
     String optimize();
 
-    @ManagedOperation(description = "@JmxLongOperation")
+    @JmxRunAsync
     String upgrade();
 
-    @ManagedOperation(description = "Reindex the given entity synchronously" +
-            "@JmxLongOperation")
+    @JmxRunAsync
+    @ManagedOperation(description = "Reindex the given entity synchronously")
     @ManagedOperationParameters({@ManagedOperationParameter(name = "entityName", description = "")})
     String reindexEntity(String entityName);
 
-    @ManagedOperation(description = "Reindex all entities synchronously" +
-            "@JmxLongOperation")
+    @JmxRunAsync
+    @ManagedOperation(description = "Reindex all entities synchronously")
     String reindexAll();
 
     @ManagedOperation(description = "Reindex the given entity asynchronously. Entity instances will be added to the queue " +
@@ -49,10 +50,10 @@ public interface FtsManagerMBean {
             "in batches by the invocation of reindexNextBatch method from a scheduled task")
     String asyncReindexAll();
 
-    @ManagedOperation(description = "@JmxLongOperation")
+    @JmxRunAsync
     String processEntireQueue();
 
-    @ManagedOperation(description = "Reindex next entity from queue" +
-            "@JmxLongOperation")
+    @JmxRunAsync
+    @ManagedOperation(description = "Reindex next entity from queue")
     String reindexNextBatch();
 }
