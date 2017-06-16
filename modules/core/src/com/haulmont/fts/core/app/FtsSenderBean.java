@@ -65,7 +65,7 @@ public class FtsSenderBean implements FtsSender {
             for (Entity e : list) {
                 MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
                 Object entityId = e.getId();
-                if (PersistenceHelper.isNew(e) && e instanceof BaseIdentityIdEntity) {
+                if (PersistenceHelper.isNew(e) && e instanceof BaseDbGeneratedIdEntity) {
                     String storeName = metadata.getTools().getStoreName(metaClass);
                     List<Consumer<Integer>> runAfterCompletion = persistence.getEntityManagerContext(storeName).getAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR);
                     if (runAfterCompletion == null) {
