@@ -41,6 +41,8 @@ import org.apache.tika.parser.txt.TXTParser;
 import org.apache.tika.sax.BodyContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -48,7 +50,9 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.*;
 
-public class LuceneIndexer extends LuceneWriter {
+@Component(LuceneIndexerAPI.NAME)
+@Scope("prototype")
+public class LuceneIndexer extends LuceneWriter implements LuceneIndexerAPI {
 
     private static final Logger log = LoggerFactory.getLogger(LuceneIndexer.class);
 
@@ -93,6 +97,7 @@ public class LuceneIndexer extends LuceneWriter {
         }
     }
 
+    @Override
     public void indexEntity(String entityName, Object entityId, FtsChangeType changeType) throws IndexingException {
         if (FtsChangeType.DELETE.equals(changeType)) {
             deleteQueue.add(new Pair<>(entityName, entityId));
@@ -271,7 +276,7 @@ public class LuceneIndexer extends LuceneWriter {
         return parser;
     }
 
-    private String createLinksFieldContent(Entity entity, EntityDescr descr) {
+    protected String createLinksFieldContent(Entity entity, EntityDescr descr) {
         StringBuilder sb = new StringBuilder();
 
         for (String propName : descr.getLinkProperties()) {
@@ -287,11 +292,11 @@ public class LuceneIndexer extends LuceneWriter {
         return sb.toString();
     }
 
-    private String makeFieldName(String propName) {
+    protected String makeFieldName(String propName) {
         return FTS.FIELD_START + propName.replace(".", FTS.FIELD_SEP);
     }
 
-    private void addLinkedPropertyEx(StringBuilder sb, Instance instance, String[] propertyPath) {
+    protected void addLinkedPropertyEx(StringBuilder sb, Instance instance, String[] propertyPath) {
         String prop = propertyPath[0];
         Object value = instance.getValue(prop);
         if (value instanceof Instance && value instanceof HasUuid) {
@@ -322,6 +327,7 @@ public class LuceneIndexer extends LuceneWriter {
         sb.append(obj.toString());
     }
 
+    @Override
     public void addListener(DocumentCreatedListener documentCreatedListener) {
         this.documentCreatedListeners.add(documentCreatedListener);
     }
@@ -330,9 +336,5 @@ public class LuceneIndexer extends LuceneWriter {
         for (DocumentCreatedListener documentCreatedListener : documentCreatedListeners) {
             documentCreatedListener.onDocumentCreated(document, entity, descr);
         }
-    }
-
-    public interface DocumentCreatedListener {
-        void onDocumentCreated(Document document, Entity entity, EntityDescr descr);
     }
 }

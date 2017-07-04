@@ -282,7 +282,7 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     protected int initIndexer(List<FtsQueue> list) {
-        LuceneIndexer indexer = createLuceneIndexer();
+        LuceneIndexerAPI indexer = createLuceneIndexer();
         List<FtsQueue> notIndexed = new ArrayList<>(list.size());
         int count = 0;
         try {
@@ -304,8 +304,8 @@ public class FtsManager implements FtsManagerAPI {
         return count;
     }
 
-    protected LuceneIndexer createLuceneIndexer() {
-        return new LuceneIndexer(getDescrByName(), getDirectory(), ftsConfig.getStoreContentInIndex());
+    protected LuceneIndexerAPI createLuceneIndexer() {
+        return AppBeans.getPrototype(LuceneIndexerAPI.NAME, getDescrByName(), getDirectory(), ftsConfig.getStoreContentInIndex());
     }
 
     @Override

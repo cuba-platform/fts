@@ -21,11 +21,15 @@ import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.*;
 
-public class LuceneSearcher extends Lucene {
+@Component(LuceneSearcherAPI.NAME)
+@Scope("prototype")
+public class LuceneSearcher extends Lucene implements LuceneSearcherAPI {
 
     protected IndexSearcher searcher;
 
@@ -43,6 +47,7 @@ public class LuceneSearcher extends Lucene {
         }
     }
 
+    @Override
     public boolean isCurrent() {
         try {
             return ((DirectoryReader) searcher.getIndexReader()).isCurrent();
@@ -51,6 +56,7 @@ public class LuceneSearcher extends Lucene {
         }
     }
 
+    @Override
     public List<EntityInfo> searchAllField(String searchTerm, int maxResults) {
         Set<EntityInfo> set = new LinkedHashSet<>();
 
@@ -71,6 +77,7 @@ public class LuceneSearcher extends Lucene {
         return new ArrayList(set);
     }
 
+    @Override
     public List<EntityInfo> searchAllField(String searchTerm, Collection<String> entityNames) {
         Set<EntityInfo> set = new LinkedHashSet<>();
 
@@ -97,59 +104,62 @@ public class LuceneSearcher extends Lucene {
     protected Query createQueryForAllFieldSearch(String searchTerm) {
         Query query;
 
-        ValueFormatter valueFormatter = new ValueFormatter();
-
         if (searchTerm.startsWith("\"") && searchTerm.endsWith("\"")) {
             searchTerm = searchTerm.substring(1, searchTerm.length() - 1);
-            query = new PhraseQuery();
+            PhraseQuery.Builder builder = new PhraseQuery.Builder();
             FTS.Tokenizer tokenizer = new FTS.Tokenizer(searchTerm);
             while (tokenizer.hasMoreTokens()) {
-                Term term = new Term(FLD_ALL, tokenizer.nextToken());
-                ((PhraseQuery) query).add(term);
+                builder.add(new Term(FLD_ALL, tokenizer.nextToken()));
             }
+            query = builder.build();
         } else {
+            ValueFormatter valueFormatter = new ValueFormatter();
             String[] strings = searchTerm.split("\\s");
             if (strings.length == 1) {
                 query = createQuery(searchTerm, valueFormatter);
             } else {
-                query = new BooleanQuery();
+                BooleanQuery.Builder builder = new BooleanQuery.Builder();
                 for (String string : strings) {
                     if (StringUtils.isNotEmpty(string)) {
                         Query q = createQuery(string, valueFormatter);
-                        ((BooleanQuery) query).add(q, BooleanClause.Occur.SHOULD);
+                        builder.add(q, BooleanClause.Occur.SHOULD);
                     }
                 }
+                query = builder.build();
             }
         }
+
         return query;
     }
 
     protected Query createQueryForAllFieldSearch(String searchTerm, Collection<String> entityNames) {
-        BooleanQuery query = new BooleanQuery();
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+
         Query queryForAllFieldSearch = createQueryForAllFieldSearch(searchTerm);
 
-        BooleanQuery entityNamesQuery = new BooleanQuery();
+        BooleanQuery.Builder entityNamesQueryBuilder = new BooleanQuery.Builder();
         for (String entityName : entityNames) {
             Term term = new Term(FLD_ENTITY, entityName);
-            entityNamesQuery.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
+            entityNamesQueryBuilder.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
         }
+        BooleanQuery entityNamesQuery = entityNamesQueryBuilder.build();
 
-        query.add(queryForAllFieldSearch, BooleanClause.Occur.MUST);
-        query.add(entityNamesQuery, BooleanClause.Occur.MUST);
-        return query;
+        builder.add(queryForAllFieldSearch, BooleanClause.Occur.MUST);
+        builder.add(entityNamesQuery, BooleanClause.Occur.MUST);
+        return builder.build();
     }
 
     protected Query createQueryForLinksFieldSearch(Object id, List<String> entityNames) {
-        BooleanQuery query = new BooleanQuery();
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
         TermQuery idQuery = new TermQuery(new Term(FLD_LINKS, id.toString()));
-        BooleanQuery entityNamesQuery = new BooleanQuery();
+        BooleanQuery.Builder entityNamesQueryBuilder = new BooleanQuery.Builder();
         for (String entityName : entityNames) {
             Term term = new Term(FLD_ENTITY, entityName);
-            entityNamesQuery.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
+            entityNamesQueryBuilder.add(new TermQuery(term), BooleanClause.Occur.SHOULD);
         }
-        query.add(idQuery, BooleanClause.Occur.MUST);
-        query.add(entityNamesQuery, BooleanClause.Occur.MUST);
-        return query;
+        builder.add(idQuery, BooleanClause.Occur.MUST);
+        builder.add(entityNamesQueryBuilder.build(), BooleanClause.Occur.MUST);
+        return builder.build();
     }
 
     protected Query createQuery(String searchStr, ValueFormatter valueFormatter) {
@@ -161,13 +171,13 @@ public class LuceneSearcher extends Lucene {
             Term term = new Term(FLD_ALL, s);
             query = new WildcardQuery(term);
         } else {
-            BooleanQuery booleanQuery = new BooleanQuery();
+            BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
             Term term = new Term(FLD_ALL, s);
             MorphologyNormalizer morphologyNormalizer = new MorphologyNormalizer();
             Term morphologyTerm = new Term(FLD_MORPHOLOGY_ALL, morphologyNormalizer.getAnyNormalForm(s));
-            booleanQuery.add(new PrefixQuery(term), BooleanClause.Occur.SHOULD);
-            booleanQuery.add(new TermQuery(morphologyTerm), BooleanClause.Occur.SHOULD);
-            query = booleanQuery;
+            booleanQueryBuilder.add(new PrefixQuery(term), BooleanClause.Occur.SHOULD);
+            booleanQueryBuilder.add(new TermQuery(morphologyTerm), BooleanClause.Occur.SHOULD);
+            query = booleanQueryBuilder.build();
         }
         return query;
     }
@@ -196,6 +206,7 @@ public class LuceneSearcher extends Lucene {
         }
     }
 
+    @Override
     public List<EntityInfo> searchLinksField(Object id, int maxResults) {
         Set<EntityInfo> set = new LinkedHashSet<>();
         Term term = new Term(FLD_LINKS, id.toString());
@@ -215,6 +226,7 @@ public class LuceneSearcher extends Lucene {
         return new ArrayList(set);
     }
 
+    @Override
     public List<EntityInfo> searchLinksField(Object id, List<String> entityNames) {
         Set<EntityInfo> set = new LinkedHashSet<>();
         Query query = createQueryForLinksFieldSearch(id, entityNames);

@@ -11,15 +11,12 @@ import com.haulmont.chile.core.model.MetadataObject;
 import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
-import com.haulmont.cuba.core.global.Messages;
-import com.haulmont.cuba.core.global.Metadata;
-import com.haulmont.cuba.core.global.Stores;
-import com.haulmont.cuba.core.global.View;
+import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.security.entity.EntityOp;
 import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.core.sys.EntityDescr;
 import com.haulmont.fts.core.sys.EntityInfo;
-import com.haulmont.fts.core.sys.LuceneSearcher;
+import com.haulmont.fts.core.sys.LuceneSearcherAPI;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.FtsConfig;
@@ -35,7 +32,7 @@ import java.util.stream.Collectors;
 @Service(FtsService.NAME)
 public class FtsServiceBean implements FtsService {
 
-    protected LuceneSearcher searcher;
+    protected LuceneSearcherAPI searcher;
 
     @Inject
     protected FtsManagerAPI manager;
@@ -57,11 +54,11 @@ public class FtsServiceBean implements FtsService {
 
     private final Logger log = LoggerFactory.getLogger(FtsService.class);
 
-    protected LuceneSearcher getSearcher() {
+    protected LuceneSearcherAPI getSearcher() {
         if (searcher == null) {
             synchronized (this) {
                 if (searcher == null) {
-                    searcher = new LuceneSearcher(manager.getDirectory(), coreConfig.getStoreContentInIndex());
+                    searcher = AppBeans.getPrototype(LuceneSearcherAPI.NAME, manager.getDirectory(), coreConfig.getStoreContentInIndex());
                 }
             }
         }
