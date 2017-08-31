@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 @Service(FtsService.NAME)
 public class FtsServiceBean implements FtsService {
 
-    protected LuceneSearcherAPI searcher;
+    protected LuceneSearcherAPI sharedSearcher;
 
     @Inject
     protected FtsManagerAPI manager;
@@ -54,35 +54,28 @@ public class FtsServiceBean implements FtsService {
 
     private final Logger log = LoggerFactory.getLogger(FtsService.class);
 
-    protected LuceneSearcherAPI getSearcher() {
-        if (searcher == null) {
-            synchronized (this) {
-                if (searcher == null) {
-                    searcher = AppBeans.getPrototype(LuceneSearcherAPI.NAME, manager.getDirectory(), coreConfig.getStoreContentInIndex());
-                }
-            }
+    protected synchronized LuceneSearcherAPI getSearcher() {
+        if (sharedSearcher == null || !sharedSearcher.isCurrent()) {
+            sharedSearcher = AppBeans.getPrototype(LuceneSearcherAPI.NAME, manager.getDirectory(), coreConfig.getStoreContentInIndex());
         }
-        return searcher;
+        return sharedSearcher;
     }
 
     @Override
     public SearchResult search(String searchTerm) {
-        if (searcher != null && !searcher.isCurrent())
-            searcher = null;
-
+        LuceneSearcherAPI searcher = getSearcher();
         int maxResults = coreConfig.getMaxSearchResults();
-        List<EntityInfo> allFieldResults = getSearcher().searchAllField(searchTerm, maxResults);
+        List<EntityInfo> allFieldResults = searcher.searchAllField(searchTerm, maxResults);
 
-        return makeSearchResult(searchTerm, maxResults, allFieldResults);
+        return makeSearchResult(searcher, searchTerm, maxResults, allFieldResults);
     }
 
     @Override
     public SearchResult search(String searchTerm, List<String> entityNames) {
-        if (searcher != null && !searcher.isCurrent())
-            searcher = null;
+        LuceneSearcherAPI searcher = getSearcher();
 
         //first search among entities with names from entityNames method parameter
-        List<EntityInfo> allFieldResults = getSearcher().searchAllField(searchTerm, entityNames);
+        List<EntityInfo> allFieldResults = searcher.searchAllField(searchTerm, entityNames);
 
         SearchResult searchResult = new SearchResult(searchTerm);
         for (EntityInfo entityInfo : allFieldResults) {
@@ -99,9 +92,9 @@ public class FtsServiceBean implements FtsService {
             linkedEntitiesNames.addAll(findLinkedEntitiesNames(entityName));
         }
 
-        List<EntityInfo> linkedEntitiesInfos = getSearcher().searchAllField(searchTerm, linkedEntitiesNames);
+        List<EntityInfo> linkedEntitiesInfos = searcher.searchAllField(searchTerm, linkedEntitiesNames);
         for (EntityInfo linkedEntitiesInfo : linkedEntitiesInfos) {
-            List<EntityInfo> entitiesWithLinkInfos = getSearcher().searchLinksField(linkedEntitiesInfo.getId(), entityNames);
+            List<EntityInfo> entitiesWithLinkInfos = searcher.searchLinksField(linkedEntitiesInfo.getId(), entityNames);
             for (EntityInfo entityWithLinkInfo : entitiesWithLinkInfos) {
                 searchResult.addHit(entityWithLinkInfo.getId(), linkedEntitiesInfo.getText(), linkedEntitiesInfo.getName(),
                         new MorphologyNormalizer());
@@ -135,7 +128,7 @@ public class FtsServiceBean implements FtsService {
         return result;
     }
 
-    protected SearchResult makeSearchResult(String searchTerm, int maxResults, List<EntityInfo> allFieldResults) {
+    protected SearchResult makeSearchResult(LuceneSearcherAPI searcher, String searchTerm, int maxResults, List<EntityInfo> allFieldResults) {
         SearchResult result = new SearchResult(searchTerm);
         if (!allFieldResults.isEmpty()) {
             Map<String, Transaction> storeTransactions = new LinkedHashMap<>();
@@ -168,7 +161,7 @@ public class FtsServiceBean implements FtsService {
             }
 
             for (EntityInfo entityInfo : allFieldResults) {
-                List<EntityInfo> linksFieldResults = getSearcher().searchLinksField(entityInfo.getId(), maxResults);
+                List<EntityInfo> linksFieldResults = searcher.searchLinksField(entityInfo.getId(), maxResults);
                 if (!linksFieldResults.isEmpty()) {
                     storeTransactions.clear();
                     tx = persistence.createTransaction();
