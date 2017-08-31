@@ -10,6 +10,9 @@ import com.haulmont.fts.global.SearchResult;
 
 import java.util.List;
 
+/**
+ * Provides search functionality to clients.
+ */
 public interface FtsService {
 
     String NAME = "cuba_FtsService";
@@ -28,6 +31,9 @@ public interface FtsService {
      */
     SearchResult search(String searchTerm, List<String> entityNames);
 
+    /**
+     * Loads more results.
+     */
     SearchResult expandResult(SearchResult result, String entityName);
 
     /**

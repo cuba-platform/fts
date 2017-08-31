@@ -43,7 +43,7 @@ public class LuceneSearcher extends Lucene implements LuceneSearcherAPI {
         } catch (IndexNotFoundException e) {
             throw new LuceneIndexNotFoundException(e);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error creating searcher", e);
         }
     }
 
@@ -52,7 +52,7 @@ public class LuceneSearcher extends Lucene implements LuceneSearcherAPI {
         try {
             return ((DirectoryReader) searcher.getIndexReader()).isCurrent();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error checking if searcher is current", e);
         }
     }
 
@@ -72,9 +72,9 @@ public class LuceneSearcher extends Lucene implements LuceneSearcherAPI {
                 set.add(entityInfo);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Search error", e);
         }
-        return new ArrayList(set);
+        return new ArrayList<>(set);
     }
 
     @Override
@@ -95,7 +95,7 @@ public class LuceneSearcher extends Lucene implements LuceneSearcherAPI {
                 set.add(entityInfo);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Search error", e);
         }
         return new ArrayList<>(set);
     }
@@ -221,9 +221,9 @@ public class LuceneSearcher extends Lucene implements LuceneSearcherAPI {
                 set.add(entityInfo);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Search error", e);
         }
-        return new ArrayList(set);
+        return new ArrayList<>(set);
     }
 
     @Override
@@ -242,7 +242,7 @@ public class LuceneSearcher extends Lucene implements LuceneSearcherAPI {
                 set.add(entityInfo);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Search error", e);
         }
         return new ArrayList<>(set);
     }

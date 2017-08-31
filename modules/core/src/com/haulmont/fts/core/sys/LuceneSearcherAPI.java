@@ -9,10 +9,15 @@ import java.util.Collection;
 import java.util.List;
 
 /**
+ * INTERNAL.
+ * Used by {@code FtsService} to search with Lucene.
  */
 public interface LuceneSearcherAPI {
     String NAME = "fts_LuceneSearcher";
 
+    /**
+     * Check whether any new changes have occurred to the index since this searcher was created.
+     */
     boolean isCurrent();
 
     List<EntityInfo> searchAllField(String searchTerm, int maxResults);
