@@ -6,9 +6,6 @@ package com.haulmont.fts.core.sys;
 
 import com.haulmont.bali.util.Dom4j;
 import com.haulmont.bali.util.ReflectionHelper;
-import com.haulmont.chile.core.datatypes.Datatype;
-import com.haulmont.chile.core.datatypes.Datatypes;
-import com.haulmont.chile.core.datatypes.impl.*;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.global.Configuration;
@@ -29,6 +26,7 @@ import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -205,12 +203,12 @@ public class ConfigLoader {
             return false;
 
         if (metaProperty.getRange().isDatatype()) {
-            Datatype dt = metaProperty.getRange().asDatatype();
-            return (Datatypes.get(StringDatatype.NAME).equals(dt)
-                    || Datatypes.get(DateDatatype.NAME).equals(dt)
-                    || Datatypes.get(BigDecimalDatatype.NAME).equals(dt)
-                    || Datatypes.get(IntegerDatatype.NAME).equals(dt)
-                    || Datatypes.get(DoubleDatatype.NAME).equals(dt));
+            Class type = metaProperty.getRange().asDatatype().getJavaClass();
+            return (type.equals(String.class)
+                    || type.equals(java.sql.Date.class)
+                    || type.equals(BigDecimal.class)
+                    || type.equals(Integer.class)
+                    || type.equals(Double.class));
 
         } else if (metaProperty.getRange().isEnum() || metaProperty.getRange().isClass()) {
             return true;
