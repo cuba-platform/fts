@@ -208,6 +208,7 @@ public class ConfigLoader {
                     || type.equals(java.sql.Date.class)
                     || type.equals(BigDecimal.class)
                     || type.equals(Integer.class)
+                    || type.equals(Long.class)
                     || type.equals(Double.class));
 
         } else if (metaProperty.getRange().isEnum() || metaProperty.getRange().isClass()) {
