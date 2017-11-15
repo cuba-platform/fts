@@ -188,6 +188,15 @@ configure(coreModule) {
         compile(bom['org.apache.tika:tika-parsers']) {
             exclude(group: 'junit', module: 'junit')
             exclude(group: 'org.apache.poi', module: 'poi')
+            exclude (group: 'edu.ucar')
+            exclude (group: 'com.github.junrar', module: 'junrar')
+            exclude (group: 'edu.usc.ir', module: 'sentiment-analysis-parser')
+            exclude (group: 'org.apache.cxf')
+            exclude (group: 'org.apache.sis.core')
+            exclude (group: 'org.apache.sis.storage')
+            exclude (group: 'org.gagravarre', module: 'vorbis-java-tika')
+            exclude (group: 'org.gagravarr', module: 'vorbis-java-core')
+            exclude (group: 'org.opengis', module: 'geoapi')
         }
         testCompile(group: 'com.haulmont.cuba', name: 'cuba-core-tests', version: baseVersion)
     }
