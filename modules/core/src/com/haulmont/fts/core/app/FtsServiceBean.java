@@ -94,7 +94,11 @@ public class FtsServiceBean implements FtsService {
 
         List<EntityInfo> linkedEntitiesInfos = searcher.searchAllField(searchTerm, linkedEntitiesNames);
         for (EntityInfo linkedEntitiesInfo : linkedEntitiesInfos) {
-            List<EntityInfo> entitiesWithLinkInfos = searcher.searchLinksField(linkedEntitiesInfo.getId(), entityNames);
+            List<EntityInfo> entitiesWithLinkInfos = searcher.searchLinksField(linkedEntitiesInfo.toString(), entityNames);
+            //for backward compatibility. Previously "links" field of the Lucene document contained a set of linked entities ids.
+            //Now a set of {@link EntityInfo} objects is stored there. We need to make a second search to find entities,
+            //that were indexed before this modification.
+            linkedEntitiesInfos.addAll(searcher.searchLinksField(linkedEntitiesInfo.getId(), entityNames));
             for (EntityInfo entityWithLinkInfo : entitiesWithLinkInfos) {
                 searchResult.addHit(entityWithLinkInfo.getId(), linkedEntitiesInfo.getText(), linkedEntitiesInfo.getName(),
                         new MorphologyNormalizer());
@@ -161,7 +165,11 @@ public class FtsServiceBean implements FtsService {
             }
 
             for (EntityInfo entityInfo : allFieldResults) {
-                List<EntityInfo> linksFieldResults = searcher.searchLinksField(entityInfo.getId(), maxResults);
+                List<EntityInfo> linksFieldResults = searcher.searchLinksField(entityInfo.toString(), maxResults);
+                //for backward compatibility. Previously "links" field of the Lucene document contained a set of linked entities ids.
+                //Now a set of {@link EntityInfo} strings is stored there. We need to make a second search to find entities,
+                //that were indexed before this modification.
+                linksFieldResults.addAll(searcher.searchLinksField(entityInfo.getId(), maxResults));
                 if (!linksFieldResults.isEmpty()) {
                     storeTransactions.clear();
                     tx = persistence.createTransaction();

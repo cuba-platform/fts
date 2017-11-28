@@ -296,26 +296,26 @@ public class LuceneIndexer extends LuceneWriter implements LuceneIndexerAPI {
         return FTS.FIELD_START + propName.replace(".", FTS.FIELD_SEP);
     }
 
-    protected void addLinkedPropertyEx(StringBuilder sb, Instance instance, String[] propertyPath) {
+    protected void addLinkedPropertyEx(StringBuilder sb, Entity entity, String[] propertyPath) {
         String prop = propertyPath[0];
-        Object value = instance.getValue(prop);
-        if (value instanceof Instance && value instanceof HasUuid) {
+        Object value = entity.getValue(prop);
+        if (value instanceof Entity) {
             if (propertyPath.length == 1) {
-
-                //TODO: ANSU: HAS UUID
-                appendString(sb, ((HasUuid) value).getUuid());
+                String originalMetaClassName = metadata.getExtendedEntities().getEffectiveMetaClass(((Entity) value).getMetaClass()).getName();
+                String entityInfoStr = new EntityInfo(originalMetaClassName, ((Entity) value).getId(), null, true).toString();
+                appendString(sb, entityInfoStr);
             } else {
-                addLinkedPropertyEx(sb, (Instance) value, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
+                addLinkedPropertyEx(sb, (Entity) value, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
             }
         } else if (value instanceof Collection && !((Collection) value).isEmpty()) {
-            Collection<Instance> collection = (Collection<Instance>) value;
-            for (Instance inst : collection) {
-                if (inst instanceof HasUuid) {
-                    if (propertyPath.length == 1) {
-                        appendString(sb, ((HasUuid) inst).getUuid());
-                    } else {
-                        addLinkedPropertyEx(sb, inst, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
-                    }
+            Collection<Entity> collection = (Collection<Entity>) value;
+            for (Entity inst : collection) {
+                if (propertyPath.length == 1) {
+                    String originalMetaClassName = metadata.getExtendedEntities().getEffectiveMetaClass(inst.getMetaClass()).getName();
+                    String entityInfoStr = new EntityInfo(originalMetaClassName, inst.getId(), null, true).toString();
+                    appendString(sb, entityInfoStr);
+                } else {
+                    addLinkedPropertyEx(sb, inst, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
                 }
             }
         }
