@@ -85,6 +85,11 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
 
     @Override
     public String createFtsWhereClause(String entityName) {
+        return createFtsWhereClause(entityName, QUERY_KEY_PARAM_NAME, SESSION_ID_PARAM_NAME);
+    }
+
+    @Override
+    public String createFtsWhereClause(String entityName, String queryKeyParamName, String sessionIdParamName) {
         MetaClass metaClass = metadata.getClassNN(entityName);
         MetaProperty primaryKeyForFts = ftsService.getPrimaryKeyPropertyForFts(metaClass);
         Class type = primaryKeyForFts.getJavaType();
@@ -99,7 +104,7 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
             entityIdField = "entityId";
         }
         return String.format("exists (select qr from sys$QueryResult qr where qr.%s = {E}.%s and qr.queryKey = :custom$%s and qr.sessionId = :custom$%s)",
-                entityIdField, primaryKeyForFts.getName(), FtsFilterHelper.QUERY_KEY_PARAM_NAME, FtsFilterHelper.SESSION_ID_PARAM_NAME);
+                entityIdField, primaryKeyForFts.getName(), queryKeyParamName, sessionIdParamName);
     }
 
     protected int getNextQueryKey() {
