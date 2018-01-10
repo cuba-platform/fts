@@ -4,6 +4,7 @@
  */
 package com.haulmont.fts.core.sys;
 
+import com.google.common.base.Strings;
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.chile.core.model.Instance;
 import com.haulmont.chile.core.model.MetaClass;
@@ -247,6 +248,10 @@ public class LuceneIndexer extends LuceneWriter implements LuceneIndexerAPI {
     protected Parser getParser(FileDescriptor fileDescriptor) {
         Parser parser;
         String ext = fileDescriptor.getExtension();
+        if (Strings.isNullOrEmpty(ext)) {
+            log.warn("Unable to create a parser ffor a file without extension");
+            return null;
+        }
         switch (ext) {
             case "pdf":
                 parser = new PDFParser();
