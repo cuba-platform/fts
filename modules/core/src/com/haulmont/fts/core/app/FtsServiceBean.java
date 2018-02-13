@@ -98,7 +98,7 @@ public class FtsServiceBean implements FtsService {
             //for backward compatibility. Previously "links" field of the Lucene document contained a set of linked entities ids.
             //Now a set of {@link EntityInfo} objects is stored there. We need to make a second search to find entities,
             //that were indexed before this modification.
-            linkedEntitiesInfos.addAll(searcher.searchLinksField(linkedEntitiesInfo.getId(), entityNames));
+            entitiesWithLinkInfos.addAll(searcher.searchLinksField(linkedEntitiesInfo.getId(), entityNames));
             for (EntityInfo entityWithLinkInfo : entitiesWithLinkInfos) {
                 searchResult.addHit(entityWithLinkInfo.getId(), linkedEntitiesInfo.getText(), linkedEntitiesInfo.getName(),
                         new MorphologyNormalizer());
