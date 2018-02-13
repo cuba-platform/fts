@@ -39,7 +39,7 @@ public class ConfigLoader {
 
     public static final String NAME = "fts_ConfigLoader";
 
-    private final Logger log = LoggerFactory.getLogger(ConfigLoader.class);
+    private static final Logger log = LoggerFactory.getLogger(ConfigLoader.class);
 
     protected static final String DEFAULT_CONFIG = "/cuba-fts.xml";
 

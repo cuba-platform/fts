@@ -52,7 +52,7 @@ public class FtsServiceBean implements FtsService {
     @Inject
     protected FtsConfig coreConfig;
 
-    private final Logger log = LoggerFactory.getLogger(FtsService.class);
+    private static final Logger log = LoggerFactory.getLogger(FtsService.class);
 
     protected synchronized LuceneSearcherAPI getSearcher() {
         if (sharedSearcher == null || !sharedSearcher.isCurrent()) {

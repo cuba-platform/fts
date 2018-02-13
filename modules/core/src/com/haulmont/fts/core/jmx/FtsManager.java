@@ -18,7 +18,7 @@ import java.util.Queue;
 @Component("fts_FtsManagerMBean")
 public class FtsManager implements FtsManagerMBean {
 
-    private final Logger log = LoggerFactory.getLogger(FtsManager.class);
+    private static final Logger log = LoggerFactory.getLogger(FtsManager.class);
 
     @Inject
     protected FtsManagerAPI manager;

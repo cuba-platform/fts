@@ -48,7 +48,7 @@ import static java.lang.String.format;
 @Component(FtsManagerAPI.NAME)
 public class FtsManager implements FtsManagerAPI {
 
-    private final Logger log = LoggerFactory.getLogger(FtsManager.class);
+    private static final Logger log = LoggerFactory.getLogger(FtsManager.class);
 
     private volatile Map<String, EntityDescr> descrByClassName;
     private volatile Map<String, EntityDescr> descrByName;
