@@ -249,7 +249,7 @@ public class LuceneIndexer extends LuceneWriter implements LuceneIndexerAPI {
         Parser parser;
         String ext = fileDescriptor.getExtension();
         if (Strings.isNullOrEmpty(ext)) {
-            log.warn("Unable to create a parser ffor a file without extension");
+            log.warn("Unable to create a parser for a file without extension");
             return null;
         }
         switch (ext) {
