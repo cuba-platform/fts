@@ -126,7 +126,7 @@ public class LuceneIndexer extends LuceneWriter implements LuceneIndexerAPI {
                     entity = em.find(metaClass.getJavaClass(), entityId);
                 }
                 if (entity == null) {
-                    log.error("Entity instance not found: {}-{}", entityName, entityId);
+                    log.info("Entity instance not found (could be deleted): {}-{}", entityName, entityId);
                     return;
                 }
 
