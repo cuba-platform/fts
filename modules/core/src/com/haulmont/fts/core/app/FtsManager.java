@@ -50,6 +50,8 @@ public class FtsManager implements FtsManagerAPI {
 
     private static final Logger log = LoggerFactory.getLogger(FtsManager.class);
 
+    protected LuceneSearcherAPI sharedSearcher;
+
     private volatile Map<String, EntityDescr> descrByClassName;
     private volatile Map<String, EntityDescr> descrByName;
 
@@ -383,6 +385,12 @@ public class FtsManager implements FtsManagerAPI {
         LuceneWriter writer = new LuceneWriter(getDirectory());
         try {
             writing = true;
+            //on Windows IndexSearcher holds a log on index files, so before deleting the index,
+            //the index reader must be explicitly closed to release this file lock
+            if (sharedSearcher != null) {
+                sharedSearcher.close();
+                sharedSearcher = null;
+            }
             writer.deleteAll();
         } finally {
             writer.close();
@@ -575,4 +583,11 @@ public class FtsManager implements FtsManagerAPI {
         return metadata.getTools().getPrimaryKeyProperty(metaClass);
     }
 
+    @Override
+    public synchronized LuceneSearcherAPI getSearcher() {
+        if (sharedSearcher == null || !sharedSearcher.isCurrent()) {
+            sharedSearcher = AppBeans.getPrototype(LuceneSearcherAPI.NAME, getDirectory(), ftsConfig.getStoreContentInIndex());
+        }
+        return sharedSearcher;
+    }
 }

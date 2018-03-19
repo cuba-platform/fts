@@ -32,8 +32,6 @@ import java.util.stream.Collectors;
 @Service(FtsService.NAME)
 public class FtsServiceBean implements FtsService {
 
-    protected LuceneSearcherAPI sharedSearcher;
-
     @Inject
     protected FtsManagerAPI manager;
 
@@ -55,10 +53,7 @@ public class FtsServiceBean implements FtsService {
     private static final Logger log = LoggerFactory.getLogger(FtsService.class);
 
     protected synchronized LuceneSearcherAPI getSearcher() {
-        if (sharedSearcher == null || !sharedSearcher.isCurrent()) {
-            sharedSearcher = AppBeans.getPrototype(LuceneSearcherAPI.NAME, manager.getDirectory(), coreConfig.getStoreContentInIndex());
-        }
-        return sharedSearcher;
+        return manager.getSearcher();
     }
 
     @Override

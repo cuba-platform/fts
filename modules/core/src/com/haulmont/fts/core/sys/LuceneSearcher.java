@@ -247,4 +247,13 @@ public class LuceneSearcher extends Lucene implements LuceneSearcherAPI {
         return new ArrayList<>(set);
     }
 
+    @Override
+    public void close() {
+        try {
+            searcher.getIndexReader().close();
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot close lucene index reader", e);
+        }
+    }
+
 }

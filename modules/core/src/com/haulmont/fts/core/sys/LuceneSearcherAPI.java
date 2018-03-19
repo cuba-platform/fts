@@ -27,4 +27,6 @@ public interface LuceneSearcherAPI {
     List<EntityInfo> searchLinksField(Object id, int maxResults);
 
     List<EntityInfo> searchLinksField(Object id, List<String> entityNames);
+
+    void close();
 }
