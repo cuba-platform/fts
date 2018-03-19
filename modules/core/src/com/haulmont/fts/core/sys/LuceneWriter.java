@@ -10,6 +10,7 @@ import com.haulmont.fts.core.sys.morphology.MultiMorphologyAnalyzer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
@@ -31,7 +32,7 @@ public class LuceneWriter extends Lucene {
         writer = createWriter(directory);
     }
 
-    public static IndexWriter createWriter(Directory directory) {
+    public IndexWriter createWriter(Directory directory) {
         List<LuceneMorphology> morphologies = MorphologyNormalizer.getAvailableMorphologies();
 
         Map<String, Analyzer> analyzerPerField = new HashMap<>();
