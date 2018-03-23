@@ -16,61 +16,24 @@ import java.io.IOException;
 /**
  * The class is used for obtaining instances of {@link IndexSearcher} and {@link SearcherManager}.
  */
-@Component("fts_IndexSearcherProvider")
-public class IndexSearcherProvider {
+public interface IndexSearcherProvider {
 
-    protected volatile SearcherManager searcherManager;
-
-    @Inject
-    protected IndexWriterProvider indexWriterProvider;
+    String NAME = "fts_IndexSearcherProvider";
 
     /**
      * Returns an instance of the {@link SearcherManager}. Application uses the single instance of this class.
      */
-    public SearcherManager getSearcherManager() {
-        if (searcherManager == null) {
-            synchronized (this) {
-                if (searcherManager == null) {
-                    try {
-                        searcherManager = createSearcherManager();
-                    } catch (IOException e) {
-                        throw new RuntimeException("Error on creating SearcherManager", e);
-                    }
-                }
-            }
-        }
-        return searcherManager;
-    }
+    SearcherManager getSearcherManager();
 
     /**
      * Returns an instance of the {@link IndexSearcher}. After search operations are completed, the {@link
      * #releaseIndexSearcher(IndexSearcher)} must be invoked.
      */
-    public IndexSearcher acquireIndexSearcher() {
-        SearcherManager searcherManager = getSearcherManager();
-        IndexSearcher indexSearcher = null;
-        try {
-            indexSearcher = searcherManager.acquire();
-        } catch (IOException e) {
-            throw new RuntimeException("Error on acquiring an IndexSearcher", e);
-        }
-        return indexSearcher;
-    }
+    IndexSearcher acquireIndexSearcher();
 
     /**
      * The method must be invoked for {@link IndexSearcher} got with the {@link #acquireIndexSearcher()} after all
      * search operations are completed
      */
-    public void releaseIndexSearcher(IndexSearcher indexSearcher) {
-        SearcherManager searcherManager = getSearcherManager();
-        try {
-            searcherManager.release(indexSearcher);
-        } catch (IOException e) {
-            throw new RuntimeException("Error on releasing an IndexSearcher", e);
-        }
-    }
-
-    protected SearcherManager createSearcherManager() throws IOException {
-        return new SearcherManager(indexWriterProvider.getIndexWriter(), new SearcherFactory());
-    }
+    void releaseIndexSearcher(IndexSearcher indexSearcher);
 }

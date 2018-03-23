@@ -10,6 +10,7 @@ import com.haulmont.fts.core.sys.morphology.MultiMorphologyAnalyzer;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
@@ -35,40 +36,12 @@ import static com.haulmont.fts.core.sys.LuceneConstants.*;
  * <p>
  * The application uses a single instance of the {@link IndexWriter}
  */
-@Component("fts_IndexWriterProvider")
-public class IndexWriterProvider {
+public interface IndexWriterProvider {
 
-    @Inject
-    protected DirectoryProvider directoryProvider;
-
-    protected volatile IndexWriter indexWriter;
+    String NAME = "fts_IndexWriterProvider";
 
     /**
      * Method returns an instance of the Lucene {@link IndexWriter}.
      */
-    public IndexWriter getIndexWriter() {
-        if (indexWriter == null) {
-            synchronized (this) {
-                if (indexWriter == null) {
-                    indexWriter = createWriter();
-                }
-            }
-        }
-        return indexWriter;
-    }
-
-    protected IndexWriter createWriter() {
-        List<LuceneMorphology> morphologies = MorphologyNormalizer.getAvailableMorphologies();
-        Map<String, Analyzer> analyzerPerField = new HashMap<>();
-        analyzerPerField.put(FLD_LINKS, new WhitespaceAnalyzer());
-        analyzerPerField.put(FLD_MORPHOLOGY_ALL, new MultiMorphologyAnalyzer(morphologies));
-        PerFieldAnalyzerWrapper analyzer = new PerFieldAnalyzerWrapper(new EntityAttributeAnalyzer(), analyzerPerField);
-        try {
-            IndexWriterConfig config = new IndexWriterConfig(analyzer);
-            config.setIndexDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy());
-            return new IndexWriter(directoryProvider.getDirectory(), config);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    IndexWriter getIndexWriter();
 }

@@ -21,52 +21,11 @@ import java.io.IOException;
 /**
  * Class contains methods for lucene index maintenance
  */
-@Component("fts_LuceneIndexMaintenance")
-public class LuceneIndexMaintenance {
+public interface LuceneIndexMaintenance {
 
-    @Inject
-    protected FtsConfig ftsConfig;
+    String NAME = "fts_LuceneIndexMaintenance";
 
-    @Inject
-    protected IndexWriterProvider indexWriterProvider;
+    String optimize();
 
-    @Inject
-    protected DirectoryProvider directoryProvider;
-
-    @Inject
-    protected Authentication authentication;
-
-    private final Logger log = LoggerFactory.getLogger(LuceneIndexMaintenance.class);
-
-    public String optimize() {
-        if (!AppContext.isStarted())
-            return "Application is not started";
-        if (!ftsConfig.getEnabled())
-            return "FTS is disabled";
-
-        log.debug("Start optimize");
-        authentication.begin();
-        try {
-            IndexWriter indexWriter = indexWriterProvider.getIndexWriter();
-            indexWriter.forceMerge(1);
-            indexWriter.commit();
-            return "Done";
-        } catch (Throwable e) {
-            log.error("Error", e);
-            return ExceptionUtils.getStackTrace(e);
-        } finally {
-            authentication.end();
-        }
-    }
-
-    public String upgrade() {
-        IndexUpgrader upgrader = new IndexUpgrader(directoryProvider.getDirectory());
-        try {
-            upgrader.upgrade();
-        } catch (IOException e) {
-            log.error("Error", e);
-            return ExceptionUtils.getStackTrace(e);
-        }
-        return "successful";
-    }
+    String upgrade();
 }
