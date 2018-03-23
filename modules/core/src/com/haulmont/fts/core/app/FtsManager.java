@@ -15,7 +15,10 @@ import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.FtsQueue;
 import com.haulmont.cuba.core.entity.HasUuid;
-import com.haulmont.cuba.core.global.*;
+import com.haulmont.cuba.core.global.AppBeans;
+import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.Scripting;
+import com.haulmont.cuba.core.global.Stores;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.core.sys.persistence.DbTypeConverter;
 import com.haulmont.cuba.security.app.Authenticated;
@@ -24,20 +27,13 @@ import com.haulmont.fts.core.sys.*;
 import com.haulmont.fts.global.FtsConfig;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.lucene.index.IndexUpgrader;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.index.IndexWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
-import javax.persistence.EmbeddedId;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
@@ -50,19 +46,12 @@ public class FtsManager implements FtsManagerAPI {
 
     private static final Logger log = LoggerFactory.getLogger(FtsManager.class);
 
-    protected LuceneSearcherAPI sharedSearcher;
-
-    private volatile Map<String, EntityDescr> descrByClassName;
-    private volatile Map<String, EntityDescr> descrByName;
-
     protected final ReentrantLock writeLock = new ReentrantLock();
     protected volatile boolean writing;
 
     protected final ReentrantLock reindexLock = new ReentrantLock();
     protected volatile boolean reindexing;
     protected volatile Queue<String> reindexEntitiesQueue = new ConcurrentLinkedQueue<>();
-
-    protected volatile Directory directory;
 
     protected static final int DEL_CHUNK = 10;
 
@@ -84,10 +73,22 @@ public class FtsManager implements FtsManagerAPI {
     protected Metadata metadata;
 
     @Inject
-    protected ConfigLoader configLoader;
+    protected FtsSender ftsSender;
 
     @Inject
-    protected FtsSender ftsSender;
+    protected LuceneIndexer luceneIndexer;
+
+    @Inject
+    protected IndexWriterProvider indexWriterProvider;
+
+    @Inject
+    protected IndexSearcherProvider indexSearcherProvider;
+
+    @Inject
+    protected EntityDescrsManager entityDescrsManager;
+
+    @Inject
+    protected LuceneIndexMaintenance luceneIndexMaintenance;
 
     @Inject
     public void setServerInfo(ServerInfoAPI serverInfo) {
@@ -125,42 +126,15 @@ public class FtsManager implements FtsManagerAPI {
         return reindexEntitiesQueue;
     }
 
-    protected Map<String, EntityDescr> getDescrByClassName() {
-        if (descrByClassName == null) {
-            synchronized (this) {
-                if (descrByClassName == null) {
-                    descrByClassName = configLoader.loadConfiguration();
-                }
-            }
-        }
-        return descrByClassName;
-    }
-
-    @Override
-    public Map<String, EntityDescr> getDescrByName() {
-        if (descrByName == null) {
-            synchronized (this) {
-                if (descrByName == null) {
-                    descrByName = new HashMap<>(getDescrByClassName().size());
-                    for (EntityDescr descr : getDescrByClassName().values()) {
-                        String name = descr.getMetaClass().getName();
-                        descrByName.put(name, descr);
-                    }
-                }
-            }
-        }
-        return descrByName;
-    }
-
     @Override
     public List<Entity> getSearchableEntities(Entity entity) {
         List<Entity> list = new ArrayList<>();
 
-        EntityDescr descr = getDescrByClassName().get(entity.getClass().getName());
+        EntityDescr descr = entityDescrsManager.getDescrByEntityName(entity.getMetaClass().getName());
         if (descr == null) {
-            Class originalClass = metadata.getExtendedEntities().getOriginalClass(entity.getMetaClass());
-            if (originalClass != null)
-                descr = getDescrByClassName().get(originalClass.getName());
+            MetaClass originalMetaClass = metadata.getExtendedEntities().getOriginalMetaClass(entity.getMetaClass());
+            if (originalMetaClass != null)
+                descr = entityDescrsManager.getDescrByEntityName(originalMetaClass.getName());
             if (descr == null)
                 return list;
         }
@@ -211,7 +185,7 @@ public class FtsManager implements FtsManagerAPI {
             return 0;
 
         if (!reindexEntitiesQueue.isEmpty()) {
-            log.warn("Unable to process queue: there are entities that are waiting for reindex");
+            log.info("Unable to process queue: there are entities that are waiting for reindex");
             return 0;
         }
 
@@ -219,7 +193,7 @@ public class FtsManager implements FtsManagerAPI {
         int count = 0;
         boolean locked = writeLock.tryLock();
         if (!locked) {
-            log.warn("Unable to process queue: writing at the moment");
+            log.info("Unable to process queue: writing at the moment");
             return count;
         }
 
@@ -230,7 +204,7 @@ public class FtsManager implements FtsManagerAPI {
             List<FtsQueue> list = loadQueuedItems();
             list = new ArrayList<>(list);
             if (!list.isEmpty()) {
-                count = initIndexer(list);
+                count = indexFtsQueueItems(list);
                 removeQueuedItems(list);
             }
         } finally {
@@ -283,14 +257,14 @@ public class FtsManager implements FtsManagerAPI {
         }
     }
 
-    protected int initIndexer(List<FtsQueue> list) {
-        LuceneIndexerAPI indexer = createLuceneIndexer();
+    protected int indexFtsQueueItems(List<FtsQueue> list) {
         List<FtsQueue> notIndexed = new ArrayList<>(list.size());
         int count = 0;
+        IndexWriter indexWriter = indexWriterProvider.getIndexWriter();
         try {
             for (FtsQueue ftsQueue : list) {
                 try {
-                    indexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getObjectEntityId(), ftsQueue.getChangeType());
+                    luceneIndexer.indexEntity(ftsQueue.getEntityName(), ftsQueue.getObjectEntityId(), ftsQueue.getChangeType(), indexWriter);
                     count++;
                 } catch (IndexingException e) {
                     if (e.getEntityType() != IndexingException.EntityType.FILE)
@@ -301,102 +275,40 @@ public class FtsManager implements FtsManagerAPI {
                 list.removeAll(notIndexed);
             }
         } finally {
-            indexer.close();
+            try {
+                indexWriter.commit();
+                indexSearcherProvider.getSearcherManager().maybeRefresh();
+            } catch (IOException e) {
+                throw new RuntimeException("Error on index writer commit", e);
+            }
         }
         return count;
     }
 
-    protected LuceneIndexerAPI createLuceneIndexer() {
-        return AppBeans.getPrototype(LuceneIndexerAPI.NAME, getDescrByName(), getDirectory(), ftsConfig.getStoreContentInIndex());
-    }
-
     @Override
     public String optimize() {
-        if (!AppContext.isStarted())
-            return "Application is not started";
-
-        if (!ftsConfig.getEnabled())
-            return "FTS is disabled";
-
-        log.debug("Start optimize");
-        boolean locked = writeLock.tryLock();
-        if (!locked) {
-            return "Unable to optimize: writing at the moment";
-        }
-
-        authentication.begin();
-        LuceneWriter luceneWriter = new LuceneWriter(getDirectory());
-        try {
-            writing = true;
-            luceneWriter.optimize();
-            return "Done";
-        } catch (Throwable e) {
-            log.error("Error", e);
-            return ExceptionUtils.getStackTrace(e);
-        } finally {
-            luceneWriter.close();
-            writeLock.unlock();
-            writing = false;
-            authentication.end();
-        }
+        return luceneIndexMaintenance.optimize();
     }
 
     @Override
     public String upgrade() {
-        IndexUpgrader upgrader = new IndexUpgrader(getDirectory());
-        try {
-            upgrader.upgrade();
-        } catch (IOException e) {
-            log.error("Error", e);
-            return ExceptionUtils.getStackTrace(e);
-        }
-        return "successful";
+        return luceneIndexMaintenance.upgrade();
     }
 
     @Override
     public boolean showInResults(String entityName) {
-        EntityDescr descr = getDescrByName().get(entityName);
+        EntityDescr descr = entityDescrsManager.getDescrByEntityName(entityName);
         return descr != null && descr.isShow();
     }
 
     @Override
     public void deleteIndexForEntity(String entityName) {
-        boolean locked = writeLock.tryLock();
-        if (!locked) {
-            throw new IllegalStateException("Unable to delete index: writing at the moment");
-        }
-        LuceneWriter writer = new LuceneWriter(getDirectory());
-        try {
-            writing = true;
-            writer.deleteIndexForEntity(entityName);
-        } finally {
-            writer.close();
-            writeLock.unlock();
-            writing = false;
-        }
+        luceneIndexer.deleteDocumentsForEntity(entityName);
     }
 
     @Override
     public void deleteIndex() {
-        boolean locked = writeLock.tryLock();
-        if (!locked) {
-            throw new IllegalStateException("Unable to delete index: writing at the moment");
-        }
-        LuceneWriter writer = new LuceneWriter(getDirectory());
-        try {
-            writing = true;
-            //on Windows IndexSearcher holds a log on index files, so before deleting the index,
-            //the index reader must be explicitly closed to release this file lock
-            if (sharedSearcher != null) {
-                sharedSearcher.close();
-                sharedSearcher = null;
-            }
-            writer.deleteAll();
-        } finally {
-            writer.close();
-            writeLock.unlock();
-            writing = false;
-        }
+        luceneIndexer.deleteAllDocuments();
     }
 
     @Override
@@ -432,7 +344,7 @@ public class FtsManager implements FtsManagerAPI {
     @Override
     public void asyncReindexEntity(String entityName) {
         metadata.getSession().getClassNN(entityName);
-        Preconditions.checkNotNullArgument(getDescrByName().get(entityName), "FTS configuration not found for %s", entityName);
+        Preconditions.checkNotNullArgument(entityDescrsManager.getDescrByEntityName(entityName), "FTS configuration not found for %s", entityName);
         persistence.runInTransaction(em -> {
             ftsSender.emptyQueue(entityName);
             reindexEntitiesQueue.add(entityName);
@@ -442,7 +354,7 @@ public class FtsManager implements FtsManagerAPI {
     @Override
     public int reindexAll() {
         int count = 0;
-        for (String entityName : getDescrByName().keySet()) {
+        for (String entityName : entityDescrsManager.getDescrByNameMap().keySet()) {
             count += reindexEntity(entityName);
         }
         return count;
@@ -450,7 +362,7 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public void asyncReindexAll() {
-        getDescrByName().keySet().forEach(this::asyncReindexEntity);
+        entityDescrsManager.getDescrByNameMap().keySet().forEach(this::asyncReindexEntity);
     }
 
     @Override
@@ -467,7 +379,7 @@ public class FtsManager implements FtsManagerAPI {
         log.debug("Start reindexing next entities batch");
         boolean locked = reindexLock.tryLock();
         if (!locked) {
-            log.warn("Unable to reindex next batch of entities: reindexing at the moment");
+            log.info("Unable to reindex next batch of entities: reindexing at the moment");
             return 0;
         }
         try {
@@ -520,7 +432,7 @@ public class FtsManager implements FtsManagerAPI {
         MetaClass metaClass = metadata.getSession().getClassNN(entityName);
         String storeName = metadata.getTools().getStoreName(metaClass);
         Preconditions.checkNotNullArgument(storeName, "Storage not found for %s", metaClass.getName());
-        EntityDescr entityDescr = getDescrByName().get(metaClass.getName());
+        EntityDescr entityDescr = entityDescrsManager.getDescrByEntityName(metaClass.getName());
         int count = 0;
         if (entityDescr != null) {
             try (Transaction tx = persistence.createTransaction()) {
@@ -539,38 +451,6 @@ public class FtsManager implements FtsManagerAPI {
     }
 
     @Override
-    public Directory getDirectory() {
-        if (directory == null) {
-            synchronized (this) {
-                if (directory == null) {
-                    String dir = ftsConfig.getIndexDir();
-                    if (StringUtils.isBlank(dir)) {
-                        Configuration configuration = AppBeans.get(Configuration.NAME);
-                        dir = configuration.getConfig(GlobalConfig.class).getDataDir() + "/ftsindex";
-                    }
-                    Path file = Paths.get(dir);
-                    if (!Files.exists(file)) {
-                        try {
-                            Files.createDirectory(file);
-                        } catch (IOException e) {
-                            throw new RuntimeException("Directory " + dir + " doesn't exist and can not be created");
-                        }
-                    }
-                    try {
-                        directory = FSDirectory.open(file);
-                        if (Files.exists(file.resolve("write.lock"))) {
-                            directory.deleteFile("write.lock");
-                        }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        }
-        return directory;
-    }
-
-    @Override
     public boolean isEntityCanBeIndexed(MetaClass metaClass) {
         return !(metadata.getTools().hasCompositePrimaryKey(metaClass) && !HasUuid.class.isAssignableFrom(metaClass.getJavaClass()));
     }
@@ -581,13 +461,5 @@ public class FtsManager implements FtsManagerAPI {
             return metaClass.getPropertyNN("uuid");
         }
         return metadata.getTools().getPrimaryKeyProperty(metaClass);
-    }
-
-    @Override
-    public synchronized LuceneSearcherAPI getSearcher() {
-        if (sharedSearcher == null || !sharedSearcher.isCurrent()) {
-            sharedSearcher = AppBeans.getPrototype(LuceneSearcherAPI.NAME, getDirectory(), ftsConfig.getStoreContentInIndex());
-        }
-        return sharedSearcher;
     }
 }

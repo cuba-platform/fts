@@ -7,12 +7,8 @@ package com.haulmont.fts.core.app;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.entity.Entity;
-import com.haulmont.fts.core.sys.EntityDescr;
-import com.haulmont.fts.core.sys.LuceneSearcherAPI;
-import org.apache.lucene.store.Directory;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 
 /**
@@ -22,15 +18,11 @@ public interface FtsManagerAPI {
 
     String NAME = "cuba_FtsManager";
 
-    Directory getDirectory();
-
     List<Entity> getSearchableEntities(Entity entity);
 
     boolean isReindexing();
 
     Queue<String> getReindexEntitiesQueue();
-
-    Map<String, EntityDescr> getDescrByName();
 
     int processQueue();
 
@@ -78,6 +70,4 @@ public interface FtsManagerAPI {
      * primary key
      */
     MetaProperty getPrimaryKeyPropertyForFts(MetaClass metaClass);
-
-    LuceneSearcherAPI getSearcher();
 }

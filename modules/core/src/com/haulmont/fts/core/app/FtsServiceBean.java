@@ -15,8 +15,9 @@ import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.security.entity.EntityOp;
 import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.core.sys.EntityDescr;
+import com.haulmont.fts.core.sys.EntityDescrsManager;
 import com.haulmont.fts.core.sys.EntityInfo;
-import com.haulmont.fts.core.sys.LuceneSearcherAPI;
+import com.haulmont.fts.core.sys.LuceneSearcher;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.FtsConfig;
@@ -50,27 +51,26 @@ public class FtsServiceBean implements FtsService {
     @Inject
     protected FtsConfig coreConfig;
 
-    private static final Logger log = LoggerFactory.getLogger(FtsService.class);
+    @Inject
+    protected LuceneSearcher luceneSearcher;
 
-    protected synchronized LuceneSearcherAPI getSearcher() {
-        return manager.getSearcher();
-    }
+    @Inject
+    protected EntityDescrsManager entityDescrsManager;
+
+    private static final Logger log = LoggerFactory.getLogger(FtsService.class);
 
     @Override
     public SearchResult search(String searchTerm) {
-        LuceneSearcherAPI searcher = getSearcher();
         int maxResults = coreConfig.getMaxSearchResults();
-        List<EntityInfo> allFieldResults = searcher.searchAllField(searchTerm, maxResults);
+        List<EntityInfo> allFieldResults = luceneSearcher.searchAllField(searchTerm, maxResults);
 
-        return makeSearchResult(searcher, searchTerm, maxResults, allFieldResults);
+        return makeSearchResult(searchTerm, maxResults, allFieldResults);
     }
 
     @Override
     public SearchResult search(String searchTerm, List<String> entityNames) {
-        LuceneSearcherAPI searcher = getSearcher();
-
         //first search among entities with names from entityNames method parameter
-        List<EntityInfo> allFieldResults = searcher.searchAllField(searchTerm, entityNames);
+        List<EntityInfo> allFieldResults = luceneSearcher.searchAllField(searchTerm, entityNames);
 
         SearchResult searchResult = new SearchResult(searchTerm);
         for (EntityInfo entityInfo : allFieldResults) {
@@ -87,13 +87,13 @@ public class FtsServiceBean implements FtsService {
             linkedEntitiesNames.addAll(findLinkedEntitiesNames(entityName));
         }
 
-        List<EntityInfo> linkedEntitiesInfos = searcher.searchAllField(searchTerm, linkedEntitiesNames);
+        List<EntityInfo> linkedEntitiesInfos = luceneSearcher.searchAllField(searchTerm, linkedEntitiesNames);
         for (EntityInfo linkedEntitiesInfo : linkedEntitiesInfos) {
-            List<EntityInfo> entitiesWithLinkInfos = searcher.searchLinksField(linkedEntitiesInfo.toString(), entityNames);
+            List<EntityInfo> entitiesWithLinkInfos = luceneSearcher.searchLinksField(linkedEntitiesInfo.toString(), entityNames);
             //for backward compatibility. Previously "links" field of the Lucene document contained a set of linked entities ids.
             //Now a set of {@link EntityInfo} objects is stored there. We need to make a second search to find entities,
             //that were indexed before this modification.
-            entitiesWithLinkInfos.addAll(searcher.searchLinksField(linkedEntitiesInfo.getId(), entityNames));
+            entitiesWithLinkInfos.addAll(luceneSearcher.searchLinksField(linkedEntitiesInfo.getId(), entityNames));
             for (EntityInfo entityWithLinkInfo : entitiesWithLinkInfos) {
                 searchResult.addHit(entityWithLinkInfo.getId(), linkedEntitiesInfo.getText(), linkedEntitiesInfo.getName(),
                         new MorphologyNormalizer());
@@ -110,7 +110,7 @@ public class FtsServiceBean implements FtsService {
      */
     protected Set<String> findLinkedEntitiesNames(String entityName) {
         Set<String> result = new HashSet<>();
-        EntityDescr entityDescr = manager.getDescrByName().get(entityName);
+        EntityDescr entityDescr = entityDescrsManager.getDescrByEntityName(entityName);
         if (entityDescr == null)
             return result;
         List<String> linkProperties = entityDescr.getLinkProperties();
@@ -127,7 +127,7 @@ public class FtsServiceBean implements FtsService {
         return result;
     }
 
-    protected SearchResult makeSearchResult(LuceneSearcherAPI searcher, String searchTerm, int maxResults, List<EntityInfo> allFieldResults) {
+    protected SearchResult makeSearchResult(String searchTerm, int maxResults, List<EntityInfo> allFieldResults) {
         SearchResult result = new SearchResult(searchTerm);
         if (!allFieldResults.isEmpty()) {
             Map<String, Transaction> storeTransactions = new LinkedHashMap<>();
@@ -160,11 +160,11 @@ public class FtsServiceBean implements FtsService {
             }
 
             for (EntityInfo entityInfo : allFieldResults) {
-                List<EntityInfo> linksFieldResults = searcher.searchLinksField(entityInfo.toString(), maxResults);
+                List<EntityInfo> linksFieldResults = luceneSearcher.searchLinksField(entityInfo.toString(), maxResults);
                 //for backward compatibility. Previously "links" field of the Lucene document contained a set of linked entities ids.
                 //Now a set of {@link EntityInfo} strings is stored there. We need to make a second search to find entities,
                 //that were indexed before this modification.
-                linksFieldResults.addAll(searcher.searchLinksField(entityInfo.getId(), maxResults));
+                linksFieldResults.addAll(luceneSearcher.searchLinksField(entityInfo.getId(), maxResults));
                 if (!linksFieldResults.isEmpty()) {
                     storeTransactions.clear();
                     tx = persistence.createTransaction();
