@@ -16,6 +16,8 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.PersistenceHelper;
 import com.haulmont.cuba.core.sys.PersistenceImpl;
 import com.haulmont.fts.core.jmx.FtsManagerMBean;
+import com.haulmont.fts.core.sys.EntityDescr;
+import com.haulmont.fts.core.sys.EntityDescrsManager;
 import com.haulmont.fts.global.FtsConfig;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -43,6 +45,9 @@ public class FtsSenderBean implements FtsSender {
     private String serverId;
 
     @Inject
+    protected EntityDescrsManager entityDescrsManager;
+
+    @Inject
     public void setManager(FtsManagerAPI manager) {
         this.manager = manager;
     }
@@ -55,33 +60,36 @@ public class FtsSenderBean implements FtsSender {
     @Override
     public void enqueue(Entity entity, FtsChangeType changeType) {
         if (!manager.isEntityCanBeIndexed(entity.getMetaClass())) return;
-        List<Entity> list = manager.getSearchableEntities(entity);
-        if (!list.isEmpty()) {
-            if (changeType.equals(FtsChangeType.DELETE)) {
-                MetaClass metaClass = metadata.getSession().getClassNN(entity.getClass());
-                enqueue(metaClass.getName(), entity.getId(), FtsChangeType.DELETE);
-            }
 
-            for (Entity e : list) {
-                MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
-                Object entityId = e.getId();
-                if (PersistenceHelper.isNew(e) && e instanceof BaseDbGeneratedIdEntity) {
-                    String storeName = metadata.getTools().getStoreName(metaClass);
-                    List<Consumer<Integer>> runAfterCompletion = persistence.getEntityManagerContext(storeName).getAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR);
-                    if (runAfterCompletion == null) {
-                        runAfterCompletion = new ArrayList<>();
-                        persistence.getEntityManagerContext(storeName).setAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR, runAfterCompletion);
+        if (changeType.equals(FtsChangeType.DELETE)) {
+            EntityDescr descr = entityDescrsManager.getDescrByMetaClass(entity.getMetaClass());
+            if (descr != null) {
+                enqueue(entity.getMetaClass().getName(), entity.getId(), FtsChangeType.DELETE);
+            }
+        } else {
+            List<Entity> list = manager.getSearchableEntities(entity);
+            if (!list.isEmpty()) {
+                for (Entity e : list) {
+                    MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
+                    Object entityId = e.getId();
+                    if (PersistenceHelper.isNew(e) && e instanceof BaseDbGeneratedIdEntity) {
+                        String storeName = metadata.getTools().getStoreName(metaClass);
+                        List<Consumer<Integer>> runAfterCompletion = persistence.getEntityManagerContext(storeName).getAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR);
+                        if (runAfterCompletion == null) {
+                            runAfterCompletion = new ArrayList<>();
+                            persistence.getEntityManagerContext(storeName).setAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR, runAfterCompletion);
+                        }
+                        Object finalEntityId = entityId;
+                        runAfterCompletion.add((txStatus) -> {
+                            if (TransactionSynchronization.STATUS_COMMITTED == txStatus)
+                                enqueue(metaClass.getName(), finalEntityId, FtsChangeType.UPDATE);
+                        });
+                    } else {
+                        if (metadata.getTools().hasCompositePrimaryKey(metaClass) && HasUuid.class.isAssignableFrom(metaClass.getJavaClass())) {
+                            entityId = ((HasUuid) e).getUuid();
+                        }
+                        enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
                     }
-                    Object finalEntityId = entityId;
-                    runAfterCompletion.add((txStatus) -> {
-                        if (TransactionSynchronization.STATUS_COMMITTED == txStatus)
-                            enqueue(metaClass.getName(), finalEntityId, FtsChangeType.UPDATE);
-                    });
-                } else {
-                    if (metadata.getTools().hasCompositePrimaryKey(metaClass) && HasUuid.class.isAssignableFrom(metaClass.getJavaClass())) {
-                        entityId = ((HasUuid) e).getUuid();
-                    }
-                    enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
                 }
             }
         }

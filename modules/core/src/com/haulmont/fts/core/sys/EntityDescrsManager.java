@@ -5,8 +5,11 @@
 
 package com.haulmont.fts.core.sys;
 
+import com.haulmont.chile.core.model.MetaClass;
+import com.haulmont.cuba.core.global.Metadata;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,43 +18,21 @@ import java.util.Map;
  * Class is used for getting an information about what entities and their attributes must be indexed from the FTS
  * configuration file
  */
-@Component("fts_EntityDescrsManager")
-public class EntityDescrsManager {
+public interface EntityDescrsManager {
 
-    @Inject
-    protected ConfigLoader configLoader;
+    String NAME = "fts_EntityDescrsManager";
 
-    protected volatile Map<String, EntityDescr> descrByClassNameMap;
-    protected volatile Map<String, EntityDescr> descrByNameMap;
+    Map<String, EntityDescr> getDescrByNameMap();
 
-    public Map<String, EntityDescr> getDescrByNameMap() {
-        if (descrByNameMap == null) {
-            synchronized (this) {
-                if (descrByNameMap == null) {
-                    descrByNameMap = new HashMap<>(getDescrByClassNameMap().size());
-                    for (EntityDescr descr : getDescrByClassNameMap().values()) {
-                        String name = descr.getMetaClass().getName();
-                        descrByNameMap.put(name, descr);
-                    }
-                }
-            }
-        }
-        return descrByNameMap;
-    }
+    @Nullable
+    EntityDescr getDescrByEntityName(String entityName);
 
-    public EntityDescr getDescrByEntityName(String entityName) {
-        Map<String, EntityDescr> descrByNameMap = getDescrByNameMap();
-        return descrByNameMap.get(entityName);
-    }
+    /**
+     * Finds the {@link EntityDescr object} by the metaclass. If the result for the given metaclass is not found, then a
+     * search for the original metaclass of the given class is performed
+     */
+    @Nullable
+    EntityDescr getDescrByMetaClass(MetaClass metaClass);
 
-    protected Map<String, EntityDescr> getDescrByClassNameMap() {
-        if (descrByClassNameMap == null) {
-            synchronized (this) {
-                if (descrByClassNameMap == null) {
-                    descrByClassNameMap = configLoader.loadConfiguration();
-                }
-            }
-        }
-        return descrByClassNameMap;
-    }
+    Map<String, EntityDescr> getDescrByClassNameMap();
 }
