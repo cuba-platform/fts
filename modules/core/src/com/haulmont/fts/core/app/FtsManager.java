@@ -403,18 +403,22 @@ public class FtsManager implements FtsManagerAPI {
                     log.debug("{} instances of {} was added to the FTS queue", count, metaClass.getName());
                 } else {
                     List result = collector.loadResults();
+                    List<FtsQueue> currentFakeQueueItems = new ArrayList<>();
                     for (Object obj : result) {
                         Entity entity = (Entity) obj;
                         if (runSearchableIf(entity, entityDescr)) {
                             ftsSender.enqueue(metaClass.getName(), entity.getId(), FtsChangeType.INSERT);
                             count++;
                         } else {
-                            ftsSender.enqueueFake(metaClass.getName(), entity.getId());
+                            FtsQueue fakeFtsQueueItem = createFakeFtsQueue(metaClass.getName(), entity.getId());
+                            currentFakeQueueItems.add(fakeFtsQueueItem);
                         }
                     }
                     if (result.size() < ftsConfig.getReindexBatchSize()) {
                         reindexEntitiesQueue.remove();
                         ftsSender.emptyFakeQueue(metaClass.getName());
+                    } else {
+                        currentFakeQueueItems.forEach(q -> persistence.getEntityManager().persist(q));
                     }
                     log.debug("{} instances of {} was processed. {} of them was added to the FTS queue",
                             result.size(), metaClass.getName(), count);
@@ -426,6 +430,14 @@ public class FtsManager implements FtsManagerAPI {
             reindexing = false;
             authentication.end();
         }
+    }
+
+    protected FtsQueue createFakeFtsQueue(String entityName, Object entityId) {
+        FtsQueue q = metadata.create(FtsQueue.class);
+        q.setObjectEntityId(entityId);
+        q.setEntityName(entityName);
+        q.setFake(true);
+        return q;
     }
 
     protected int executeReindexInTx(String entityName, Function<EntityDescr, Integer> indexAction) {
