@@ -8,7 +8,7 @@ import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.chile.core.model.MetaPropertyPath;
 import com.haulmont.chile.core.model.MetadataObject;
-import com.haulmont.cuba.core.*;
+import com.haulmont.cuba.core.PersistenceSecurity;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.global.*;
@@ -27,7 +27,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service(FtsService.NAME)
@@ -38,9 +41,6 @@ public class FtsServiceBean implements FtsService {
 
     @Inject
     protected PersistenceSecurity security;
-
-    @Inject
-    protected Persistence persistence;
 
     @Inject
     protected Metadata metadata;
@@ -55,9 +55,12 @@ public class FtsServiceBean implements FtsService {
     protected LuceneSearcher luceneSearcher;
 
     @Inject
-    protected EntityDescrsManager entityDescrsManager;
+    protected DataManager dataManager;
 
-    private static final Logger log = LoggerFactory.getLogger(FtsService.class);
+    private final Logger log = LoggerFactory.getLogger(FtsService.class);
+
+    @Inject
+    protected EntityDescrsManager entityDescrsManager;
 
     @Override
     public SearchResult search(String searchTerm) {
@@ -105,8 +108,7 @@ public class FtsServiceBean implements FtsService {
     }
 
     /**
-     * Iterates through entity indexed link properties and returns a collection of
-     * these properties entity names
+     * Iterates through entity indexed link properties and returns a collection of these properties entity names
      */
     protected Set<String> findLinkedEntitiesNames(String entityName) {
         Set<String> result = new HashSet<>();
@@ -130,33 +132,23 @@ public class FtsServiceBean implements FtsService {
     protected SearchResult makeSearchResult(String searchTerm, int maxResults, List<EntityInfo> allFieldResults) {
         SearchResult result = new SearchResult(searchTerm);
         if (!allFieldResults.isEmpty()) {
-            Map<String, Transaction> storeTransactions = new LinkedHashMap<>();
-            Transaction tx = persistence.createTransaction();
-            try {
-                for (EntityInfo entityInfo : allFieldResults) {
-                    if (!manager.showInResults(entityInfo.getName()))
-                        continue;
+            for (EntityInfo entityInfo : allFieldResults) {
+                if (!manager.showInResults(entityInfo.getName()))
+                    continue;
 
-                    if (result.getEntriesCount(entityInfo.getName()) < coreConfig.getSearchResultsBatchSize()) {
-                        MetaClass metaClass = metadata.getSession().getClassNN(entityInfo.getName());
-                        createTransactionOnStore(storeTransactions, metaClass);
-                        SearchResult.Entry entry = createEntry(metaClass, entityInfo.getId());
-                        if (entry != null) {
-                            result.addEntry(entityInfo.getName(), entry);
-                        }
-                    } else {
-                        if (!result.hasEntry(entityInfo.getName(), entityInfo.getId())) {
-                            result.addId(entityInfo.getName(), entityInfo.getId());
-                        }
+                if (result.getEntriesCount(entityInfo.getName()) < coreConfig.getSearchResultsBatchSize()) {
+                    MetaClass metaClass = metadata.getSession().getClassNN(entityInfo.getName());
+                    SearchResult.Entry entry = createEntry(metaClass, entityInfo.getId());
+                    if (entry != null) {
+                        result.addEntry(entityInfo.getName(), entry);
                     }
-                    result.addHit(entityInfo.getId(), entityInfo.getText(), null,
-                            new MorphologyNormalizer());
+                } else {
+                    if (!result.hasEntry(entityInfo.getName(), entityInfo.getId())) {
+                        result.addId(entityInfo.getName(), entityInfo.getId());
+                    }
                 }
-                commitTransactionsOnStore(storeTransactions.values());
-                tx.commit();
-            } finally {
-                tx.end();
-                endTransactionsOnStore(storeTransactions.values());
+                result.addHit(entityInfo.getId(), entityInfo.getText(), null,
+                        new MorphologyNormalizer());
             }
 
             for (EntityInfo entityInfo : allFieldResults) {
@@ -166,33 +158,23 @@ public class FtsServiceBean implements FtsService {
                 //that were indexed before this modification.
                 linksFieldResults.addAll(luceneSearcher.searchLinksField(entityInfo.getId(), maxResults));
                 if (!linksFieldResults.isEmpty()) {
-                    storeTransactions.clear();
-                    tx = persistence.createTransaction();
-                    try {
-                        for (EntityInfo linkEntityInfo : linksFieldResults) {
-                            if (!manager.showInResults(linkEntityInfo.getName()))
-                                continue;
+                    for (EntityInfo linkEntityInfo : linksFieldResults) {
+                        if (!manager.showInResults(linkEntityInfo.getName()))
+                            continue;
 
-                            if (result.getEntriesCount(linkEntityInfo.getName()) < coreConfig.getSearchResultsBatchSize()) {
-                                MetaClass metaClass = metadata.getSession().getClassNN(linkEntityInfo.getName());
-                                createTransactionOnStore(storeTransactions, metaClass);
-                                SearchResult.Entry entry = createEntry(metaClass, linkEntityInfo.getId());
-                                if (entry != null) {
-                                    result.addEntry(linkEntityInfo.getName(), entry);
-                                }
-                            } else {
-                                if (!result.hasEntry(linkEntityInfo.getName(), linkEntityInfo.getId())) {
-                                    result.addId(linkEntityInfo.getName(), linkEntityInfo.getId());
-                                }
+                        if (result.getEntriesCount(linkEntityInfo.getName()) < coreConfig.getSearchResultsBatchSize()) {
+                            MetaClass metaClass = metadata.getSession().getClassNN(linkEntityInfo.getName());
+                            SearchResult.Entry entry = createEntry(metaClass, linkEntityInfo.getId());
+                            if (entry != null) {
+                                result.addEntry(linkEntityInfo.getName(), entry);
                             }
-                            result.addHit(linkEntityInfo.getId(), entityInfo.getText(), entityInfo.getName(),
-                                    new MorphologyNormalizer());
+                        } else {
+                            if (!result.hasEntry(linkEntityInfo.getName(), linkEntityInfo.getId())) {
+                                result.addId(linkEntityInfo.getName(), linkEntityInfo.getId());
+                            }
                         }
-                        commitTransactionsOnStore(storeTransactions.values());
-                        tx.commit();
-                    } finally {
-                        endTransactionsOnStore(storeTransactions.values());
-                        tx.end();
+                        result.addHit(linkEntityInfo.getId(), entityInfo.getText(), entityInfo.getName(),
+                                new MorphologyNormalizer());
                     }
                 }
             }
@@ -203,26 +185,16 @@ public class FtsServiceBean implements FtsService {
     @Override
     public SearchResult expandResult(SearchResult result, String entityName) {
         int max = result.getEntriesCount(entityName) + coreConfig.getSearchResultsBatchSize();
-        Map<String, Transaction> storeTransactions = new LinkedHashMap<>();
-        Transaction tx = persistence.createTransaction();
-        try {
-            for (Object id : result.getIds(entityName)) {
-                if (result.getEntriesCount(entityName) >= max)
-                    break;
-                MetaClass metaClass = metadata.getSession().getClassNN(entityName);
-                createTransactionOnStore(storeTransactions, metaClass);
-                SearchResult.Entry entry = createEntry(metaClass, id);
-                if (entry != null) {
-                    result.addEntry(entityName, entry);
-                }
-
-                result.removeId(entityName, id);
+        for (Object id : result.getIds(entityName)) {
+            if (result.getEntriesCount(entityName) >= max)
+                break;
+            MetaClass metaClass = metadata.getSession().getClassNN(entityName);
+            SearchResult.Entry entry = createEntry(metaClass, id);
+            if (entry != null) {
+                result.addEntry(entityName, entry);
             }
-            commitTransactionsOnStore(storeTransactions.values());
-            tx.commit();
-        } finally {
-            endTransactionsOnStore(storeTransactions.values());
-            tx.end();
+
+            result.removeId(entityName, id);
         }
         return result;
     }
@@ -245,17 +217,13 @@ public class FtsServiceBean implements FtsService {
     }
 
     protected Entity getReloadedEntity(Object entityId, MetaClass metaClass) {
-        EntityManager em = persistence.getEntityManager(metadata.getTools().getStoreName(metaClass));
-
         MetaProperty primaryKeyForFts = manager.getPrimaryKeyPropertyForFts(metaClass);
-        Query query = em.createQuery(String.format("select e from %s e where e.%s = :id", metaClass.getName(), primaryKeyForFts.getName()));
-        security.applyConstraints(query);
-
-        query.setParameter("id", entityId);
-
-        query.setView(metadata.getViewRepository().getView(metaClass.getJavaClass(), View.MINIMAL));
-
-        List list = query.getResultList();
+        LoadContext.Query query = LoadContext.createQuery(String.format("select e from %s e where e.%s = :id", metaClass.getName(), primaryKeyForFts.getName()))
+                .setParameter("id", entityId);
+        LoadContext ctx = new LoadContext(metaClass)
+                .setQuery(query)
+                .setView(metadata.getViewRepository().getView(metaClass, View.MINIMAL));
+        List list = dataManager.secure().loadList(ctx);
         return list.isEmpty() ? null : (Entity) list.get(0);
     }
 
@@ -319,32 +287,5 @@ public class FtsServiceBean implements FtsService {
     @Override
     public MetaProperty getPrimaryKeyPropertyForFts(MetaClass metaClass) {
         return manager.getPrimaryKeyPropertyForFts(metaClass);
-    }
-
-    protected void createTransactionOnStore(Map<String, Transaction> storeTransactions, MetaClass metaClass) {
-        String storeName = metadata.getTools().getStoreName(metaClass);
-        if (!Stores.isMain(storeName) && !storeTransactions.containsKey(storeName)) {
-            storeTransactions.put(storeName, persistence.createTransaction(storeName));
-        }
-    }
-
-    protected void commitTransactionsOnStore(Collection<Transaction> storeTransactions) {
-        for (Transaction storeTx: storeTransactions) {
-            try {
-                storeTx.commit();
-            } catch (Exception e) {
-                log.error("Error while commit tx on add store", e);
-            }
-        }
-    }
-
-    protected void endTransactionsOnStore(Collection<Transaction> storeTransactions) {
-        for (Transaction storeTx: storeTransactions) {
-            try {
-                storeTx.end();
-            } catch (Exception e) {
-                log.error("Error while end tx on add store", e);
-            }
-        }
     }
 }
