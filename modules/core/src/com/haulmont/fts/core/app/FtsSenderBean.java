@@ -71,7 +71,6 @@ public class FtsSenderBean implements FtsSender {
             if (!list.isEmpty()) {
                 for (Entity e : list) {
                     MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
-                    Object entityId = e.getId();
                     if (PersistenceHelper.isNew(e) && e instanceof BaseDbGeneratedIdEntity) {
                         String storeName = metadata.getTools().getStoreName(metaClass);
                         List<Consumer<Integer>> runAfterCompletion = persistence.getEntityManagerContext(storeName).getAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR);
@@ -79,12 +78,17 @@ public class FtsSenderBean implements FtsSender {
                             runAfterCompletion = new ArrayList<>();
                             persistence.getEntityManagerContext(storeName).setAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR, runAfterCompletion);
                         }
-                        Object finalEntityId = entityId;
                         runAfterCompletion.add((txStatus) -> {
-                            if (TransactionSynchronization.STATUS_COMMITTED == txStatus)
-                                enqueue(metaClass.getName(), finalEntityId, FtsChangeType.UPDATE);
+                            if (TransactionSynchronization.STATUS_COMMITTED == txStatus) {
+                                Object entityId = e.getId();
+                                try (Transaction tx = persistence.createTransaction()) {
+                                    enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
+                                    tx.commit();
+                                }
+                            }
                         });
                     } else {
+                        Object entityId = e.getId();
                         if (metadata.getTools().hasCompositePrimaryKey(metaClass) && HasUuid.class.isAssignableFrom(metaClass.getJavaClass())) {
                             entityId = ((HasUuid) e).getUuid();
                         }
