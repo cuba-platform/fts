@@ -19,14 +19,14 @@ import com.haulmont.cuba.gui.components.mainwindow.AppWorkArea;
 import com.haulmont.cuba.gui.config.WindowConfig;
 import com.haulmont.cuba.web.App;
 import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
-import com.haulmont.cuba.web.toolkit.ui.CubaButton;
+import com.haulmont.cuba.web.widgets.CubaButton;
 import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.global.SearchResult;
 import com.vaadin.server.Sizeable;
-import com.vaadin.shared.ui.label.ContentMode;
+import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.*;
-import com.vaadin.ui.themes.BaseTheme;
-import org.apache.commons.lang.StringUtils;
+import com.vaadin.ui.themes.ValoTheme;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -172,7 +172,7 @@ public class SearchResultsWindow extends AbstractWindow {
 
     protected Button createInstanceButton(String entityName, SearchResult.Entry entry) {
         Button instanceBtn = new CubaButton(entry.getCaption());
-        instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
+        instanceBtn.setStyleName(ValoTheme.BUTTON_LINK);
         instanceBtn.addStyleName("fts-found-instance");
         instanceBtn.addClickListener(event -> onInstanceClick(entityName, entry));
         return instanceBtn;
@@ -220,7 +220,7 @@ public class SearchResultsWindow extends AbstractWindow {
 
     protected Button createMoreButton(String entityName, VerticalLayout instancesLayout) {
         Button instanceBtn = new CubaButton(getMessage("more"));
-        instanceBtn.setStyleName(BaseTheme.BUTTON_LINK);
+        instanceBtn.setStyleName(ValoTheme.BUTTON_LINK);
         instanceBtn.addStyleName("fts-found-instance");
         instanceBtn.addClickListener(event -> onMoreClick(entityName, instancesLayout));
         return instanceBtn;

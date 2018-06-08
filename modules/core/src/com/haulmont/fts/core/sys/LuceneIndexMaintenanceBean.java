@@ -8,7 +8,7 @@ package com.haulmont.fts.core.sys;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
 import com.haulmont.fts.global.FtsConfig;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.lucene.index.IndexUpgrader;
 import org.apache.lucene.index.IndexWriter;
 import org.slf4j.Logger;

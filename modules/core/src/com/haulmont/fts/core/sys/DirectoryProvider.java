@@ -7,7 +7,7 @@ package com.haulmont.fts.core.sys;
 
 import com.haulmont.cuba.core.global.GlobalConfig;
 import com.haulmont.fts.global.FtsConfig;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.stereotype.Component;
