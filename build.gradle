@@ -57,7 +57,8 @@ def webModule = project(':fts-web')
 def guiModule = project(':fts-gui')
 def desktopModule = project(':fts-desktop')
 
-def baseVersion = cuba.artifact.version + (cuba.artifact.isSnapshot ? '-SNAPSHOT' : '')
+def artifactVersion = cuba.artifact.version + (cuba.artifact.isSnapshot ? '-SNAPSHOT' : '')
+def baseVersion = rootProject.hasProperty('cuba.version') ? rootProject['cuba.version'] : artifactVersion
 
 configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
     apply(plugin: 'java')
@@ -84,7 +85,7 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
 
     jar {
         manifest {
-            attributes("Implementation-Version": cubaVersion)
+            attributes("Implementation-Version": artifactVersion)
         }
     }
 
@@ -163,7 +164,7 @@ configure(globalModule) {
     jar {
         manifest {
             attributes('App-Component-Id': cuba.artifact.group)
-            attributes('App-Component-Version': cubaVersion)
+            attributes('App-Component-Version': artifactVersion)
         }
     }
 }
