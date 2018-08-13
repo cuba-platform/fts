@@ -14,19 +14,17 @@ import com.haulmont.cuba.core.app.ServerInfoAPI;
 import com.haulmont.cuba.core.entity.*;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.PersistenceHelper;
-import com.haulmont.cuba.core.sys.PersistenceImpl;
 import com.haulmont.fts.core.jmx.FtsManagerMBean;
 import com.haulmont.fts.core.sys.EntityDescr;
 import com.haulmont.fts.core.sys.EntityDescrsManager;
 import com.haulmont.fts.global.FtsConfig;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 @Component(FtsSender.NAME)
 public class FtsSenderBean implements FtsSender {
@@ -72,14 +70,9 @@ public class FtsSenderBean implements FtsSender {
                 for (Entity e : list) {
                     MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
                     if (PersistenceHelper.isNew(e) && e instanceof BaseDbGeneratedIdEntity) {
-                        String storeName = metadata.getTools().getStoreName(metaClass);
-                        List<Consumer<Integer>> runAfterCompletion = persistence.getEntityManagerContext(storeName).getAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR);
-                        if (runAfterCompletion == null) {
-                            runAfterCompletion = new ArrayList<>();
-                            persistence.getEntityManagerContext(storeName).setAttribute(PersistenceImpl.RUN_AFTER_COMPLETION_ATTR, runAfterCompletion);
-                        }
-                        runAfterCompletion.add((txStatus) -> {
-                            if (TransactionSynchronization.STATUS_COMMITTED == txStatus) {
+                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+                            @Override
+                            public void afterCommit() {
                                 Object entityId = e.getId();
                                 try (Transaction tx = persistence.createTransaction()) {
                                     enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
