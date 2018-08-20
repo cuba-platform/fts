@@ -115,17 +115,21 @@ public class EntitiesCollector {
             query.append(format("select e from %s e", metaClass.getName()));
         }
         if (excludeFromQueue) {
-            query.append(" where ");
             if (Stores.isMain(storeName)) {
-                query.append(format("e.%s not in (%s)",
-                        primaryKeyName,
-                        getExcludeIdsQueryString()));
+                query.append(getExcludeIdsJoinString(primaryKeyName));
+                query.append(" where ");
+                query.append("q.id is null");
             } else {
+                query.append(" where ");
                 query.append(format("e.%s not in (:ids)",
                         primaryKeyName));
             }
         }
         return query.toString();
+    }
+
+    protected String getExcludeIdsJoinString(String primaryKey) {
+        return format(" left join sys$FtsQueue q on q.%s = e.%s and q.entityName = :entityName", getQueueIdPropertyName(), primaryKey);
     }
 
     protected String getExcludeIdsQueryString() {
