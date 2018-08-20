@@ -10,6 +10,7 @@ import com.haulmont.chile.core.model.utils.InstanceUtils;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.core.TransactionParams;
 import com.haulmont.cuba.core.app.FileStorageAPI;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
@@ -100,7 +101,7 @@ public class LuceneIndexerBean implements LuceneIndexer {
             Document doc;
             MetaClass metaClass = metadata.getSession().getClassNN(entityName);
             String storeName = metadata.getTools().getStoreName(metaClass);
-            try (Transaction tx = persistence.createTransaction(storeName)) {
+            try (Transaction tx = persistence.createTransaction(storeName, new TransactionParams().setReadOnly(true))) {
                 EntityManager em = persistence.getEntityManager(storeName);
                 Entity entity;
 
