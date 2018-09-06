@@ -178,7 +178,7 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public int processQueue() {
-        if (!AppContext.isStarted())
+        if (!isApplicationContextStarted())
             return 0;
 
         if (!isEnabled())
@@ -214,6 +214,10 @@ public class FtsManager implements FtsManagerAPI {
         }
         log.debug("{} queue items successfully processed", count);
         return count;
+    }
+
+    protected boolean isApplicationContextStarted() {
+        return AppContext.isStarted();
     }
 
     protected List<FtsQueue> loadQueuedItems() {
@@ -367,8 +371,7 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public int reindexNextBatch() {
-        if (!AppContext.isStarted())
-            return 0;
+        if (isApplicationContextStarted()) return 0;
 
         if (!ftsConfig.getEnabled())
             return 0;

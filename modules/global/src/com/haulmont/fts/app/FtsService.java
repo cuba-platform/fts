@@ -6,6 +6,7 @@ package com.haulmont.fts.app;
 
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaProperty;
+import com.haulmont.fts.global.QueryKey;
 import com.haulmont.fts.global.SearchResult;
 
 import java.util.List;
@@ -17,12 +18,22 @@ public interface FtsService {
 
     String NAME = "cuba_FtsService";
 
+
     /**
      * Performs a full text search among all entities described in fts
      * configuration file. Number of entities in result is restricted by
      * {@link com.haulmont.fts.global.FtsConfig#getMaxSearchResults()}
      */
-    SearchResult search(String searchTerm);
+    default SearchResult search(String searchTerm) {
+        return search(searchTerm, (QueryKey) null);
+    }
+
+    /**
+     * Performs a full text search among all entities described in fts
+     * configuration file. Number of entities in result is restricted by
+     * {@link com.haulmont.fts.global.FtsConfig#getMaxSearchResults()}
+     */
+    SearchResult search(String searchTerm, QueryKey queryKey);
 
     /**
      * Performs a full text search. SearchResult will contain only entities with
@@ -30,11 +41,6 @@ public interface FtsService {
      * <p>Please notice that the result will contain all entities that match a search criteria</p>
      */
     SearchResult search(String searchTerm, List<String> entityNames);
-
-    /**
-     * Loads more results.
-     */
-    SearchResult expandResult(SearchResult result, String entityName);
 
     /**
      * Checks whether an entity is indexed by full text search engine

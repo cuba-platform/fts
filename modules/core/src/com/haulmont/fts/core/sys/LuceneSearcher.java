@@ -5,8 +5,6 @@
 
 package com.haulmont.fts.core.sys;
 
-import org.apache.lucene.search.SearcherManager;
-
 import java.util.Collection;
 import java.util.List;
 
@@ -18,11 +16,19 @@ public interface LuceneSearcher {
 
     String NAME = "fts_LuceneSearcher";
 
-    List<EntityInfo> searchAllField(String searchTerm, int maxResults);
+    default List<EntityInfo> searchAllField(String searchTerm, int maxResults) {
+        return searchAllField(searchTerm, 0, maxResults);
+    }
+
+    List<EntityInfo> searchAllField(String searchTerm, int firstResult, int maxResults);
 
     List<EntityInfo> searchAllField(String searchTerm, Collection<String> entityNames);
 
-    List<EntityInfo> searchLinksField(Object id, int maxResults);
+    default List<EntityInfo> searchLinksField(Object id, int maxResults) {
+        return searchLinksField(id, 0, maxResults);
+    }
+
+    List<EntityInfo> searchLinksField(Object id, int firstResult, int maxResults);
 
     List<EntityInfo> searchLinksField(Object id, List<String> entityNames);
 }

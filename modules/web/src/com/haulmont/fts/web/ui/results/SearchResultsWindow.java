@@ -4,6 +4,7 @@
  */
 package com.haulmont.fts.web.ui.results;
 
+import com.google.common.collect.EvictingQueue;
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.Session;
@@ -14,13 +15,17 @@ import com.haulmont.cuba.core.global.LoadContext;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.View;
 import com.haulmont.cuba.gui.WindowManager;
-import com.haulmont.cuba.gui.components.AbstractWindow;
+import com.haulmont.cuba.gui.components.*;
+import com.haulmont.cuba.gui.components.Button;
+import com.haulmont.cuba.gui.components.CssLayout;
+import com.haulmont.cuba.gui.components.Label;
+import com.haulmont.cuba.gui.components.actions.BaseAction;
 import com.haulmont.cuba.gui.components.mainwindow.AppWorkArea;
 import com.haulmont.cuba.gui.config.WindowConfig;
+import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 import com.haulmont.cuba.web.App;
-import com.haulmont.cuba.web.gui.components.WebComponentsHelper;
-import com.haulmont.cuba.web.widgets.CubaButton;
 import com.haulmont.fts.app.FtsService;
+import com.haulmont.fts.global.*;
 import com.haulmont.fts.global.SearchResult;
 import com.vaadin.server.Sizeable;
 import com.vaadin.shared.ui.ContentMode;
@@ -38,23 +43,58 @@ import java.util.*;
  */
 public class SearchResultsWindow extends AbstractWindow {
 
-    protected AbstractOrderedLayout contentLayout;
+    @Inject
+    protected BoxLayout navigationBox;
 
     @Inject
-    protected FtsService service;
+    protected ScrollBoxLayout contentBox;
+
+    @Inject
+    protected FtsService ftsService;
 
     @Inject
     protected Metadata metadata;
 
-    protected SearchResult searchResult;
+    @Inject
+    protected ComponentsFactory componentsFactory;
+
+    @Inject
+    protected FtsConfig ftsConfig;
 
     protected MetaClass fileMetaClass;
+
+
+    protected Page currentPage;
+    protected Queue<Page> pages;
+
+    protected static class Page {
+        protected int pageNumber;
+        protected SearchResult searchResult;
+
+        public Page(int pageNumber) {
+            this.pageNumber = pageNumber;
+        }
+
+        public void setSearchResult(SearchResult searchResult) {
+            this.searchResult = searchResult;
+        }
+
+        public SearchResult getSearchResult() {
+            return searchResult;
+        }
+
+        public int getPageNumber() {
+            return pageNumber;
+        }
+
+        public String getDisplayedPageNumber() {
+            return String.valueOf(pageNumber + 1);
+        }
+    }
 
     @Override
     public void init(Map<String, Object> params) {
         fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
-
-        contentLayout = (AbstractOrderedLayout) WebComponentsHelper.unwrap(getComponent("contentBox"));
 
         String searchTerm = (String) params.get("searchTerm");
         if (StringUtils.isBlank(searchTerm)) {
@@ -66,30 +106,40 @@ public class SearchResultsWindow extends AbstractWindow {
 
     protected void initNoSearchTerm() {
         setCaption(getMessage("caption"));
-        Label label = new Label(getMessage("noSearchTerm"));
+        Label<String> label = componentsFactory.createComponent(Label.class);
+        label.setValue(getMessage("noSearchTerm"));
         label.setStyleName("h2");
-        contentLayout.addComponent(label);
+        contentBox.add(label);
     }
 
     protected void initSearchResults(Map<String, Object> params, String searchTerm) {
         searchTerm = searchTerm.trim();
         setCaption(getMessage("caption") + ": " + searchTerm);
 
-        searchResult = (SearchResult) params.get("searchResult");
-        if (searchResult == null)
-            searchResult = service.search(searchTerm.toLowerCase());
+        SearchResult searchResult = (SearchResult) params.get("searchResult");
+        //noinspection UnstableApiUsage
+        pages = EvictingQueue.create(ftsConfig.getPagesCount());
+        currentPage = new Page(0);
+        if (searchResult == null) {
+            searchResult = ftsService.search(searchTerm.toLowerCase(), (QueryKey) null);
+        }
+        currentPage.setSearchResult(searchResult);
+        pages.add(currentPage);
 
-        paintResult(searchResult);
+        paintResult(currentPage);
+        paintNavigationControls(pages);
     }
 
-    protected void paintResult(SearchResult searchResult) {
+    protected void paintResult(Page page) {
+        contentBox.removeAll();
+        SearchResult searchResult = page.getSearchResult();
         if (searchResult.isEmpty()) {
-            contentLayout.addComponent(createNotFoundLabel());
+            contentBox.add(createNotFoundLabel());
         } else {
             Session session = metadata.getSession();
 
             List<Pair<String, String>> entities = new ArrayList<>();
-            for (String entityName : searchResult.getEntities()) {
+            for (String entityName : searchResult.getEntityNames()) {
                 entities.add(new Pair<>(
                         entityName,
                         messages.getTools().getEntityCaption(session.getClass(entityName))
@@ -98,87 +148,152 @@ public class SearchResultsWindow extends AbstractWindow {
             entities.sort(Comparator.comparing(Pair::getSecond));
 
             for (Pair<String, String> entityPair : entities) {
-                contentLayout.addComponent(createSeparator());
+                CssLayout container = componentsFactory.createComponent(CssLayout.class);
+                container.setStyleName("c-fts-entities-container");
+                container.setWidth("100%");
 
-                GridLayout grid = new GridLayout(2, 1);
+                CssLayout entityLabelLayout = componentsFactory.createComponent(CssLayout.class);
+                entityLabelLayout.setStyleName("c-fts-entities-type");
+                entityLabelLayout.add(createEntityLabel(entityPair.getSecond()));
 
-                grid.addComponent(createEntityLabel(entityPair.getSecond()), 0, 0);
+                container.add(entityLabelLayout);
 
-                VerticalLayout instancesLayout = new VerticalLayout();
-                displayInstances(entityPair.getFirst(), instancesLayout);
-                grid.addComponent(instancesLayout, 1, 0);
+                CssLayout instancesLayout = componentsFactory.createComponent(CssLayout.class);
+                instancesLayout.setWidth("100%");
+                displayInstances(searchResult, entityPair.getFirst(), instancesLayout);
+                container.add(instancesLayout);
 
-                contentLayout.addComponent(grid);
+                contentBox.add(container);
             }
         }
     }
 
+    protected void paintNavigationControls(Queue<Page> pages) {
+        navigationBox.removeAll();
+        for (Page page : pages) {
+            LinkButton pageButton = componentsFactory.createComponent(LinkButton.class);
+            BaseAction action = new BaseAction("page_" + page.getPageNumber())
+                    .withCaption(page.getDisplayedPageNumber())
+                    .withHandler(e -> openPage(page));
+            pageButton.setAction(action);
+            if (page == currentPage) {
+                pageButton.setStyleName("c-fts-current-page");
+            } else {
+                pageButton.setStyleName("c-fts-page");
+            }
+            navigationBox.add(pageButton);
+        }
+
+        boolean showNextPage = true;
+        Page lastPage = getLastPage();
+        if (lastPage != null && lastPage.getSearchResult() != null) {
+            SearchResult lastSearchResult = lastPage.getSearchResult();
+            showNextPage = lastSearchResult.getCount() != 0;
+        }
+
+        if (showNextPage) {
+            LinkButton nextPageButton = componentsFactory.createComponent(LinkButton.class);
+            BaseAction action = new BaseAction("nextPage")
+                    .withCaption(getMessage("nextPage"))
+                    .withHandler(e -> openNextPage());
+            nextPageButton.setAction(action);
+            nextPageButton.setStyleName("c-fts-page");
+            navigationBox.add(nextPageButton);
+        }
+    }
+
+    protected void openPage(Page page) {
+        currentPage = page;
+        paintResult(page);
+        paintNavigationControls(pages);
+    }
+
+    protected void openNextPage() {
+        Page lastPage = getLastPage();
+        if (lastPage != null) {
+            SearchResult lastSearchResult = lastPage.getSearchResult();
+            currentPage = new Page(lastPage.getPageNumber() + 1);
+            SearchResult searchResult = ftsService.search(lastSearchResult.getSearchTerm(), lastSearchResult.getQueryKey());
+            currentPage.setSearchResult(searchResult);
+            pages.add(currentPage);
+            paintResult(currentPage);
+            paintNavigationControls(pages);
+        }
+    }
+
+    protected Page getLastPage() {
+        Page lastPage = null;
+        for (Page page : pages) {
+            if (lastPage == null) {
+                lastPage = page;
+            } else {
+                if (page.getPageNumber() > lastPage.getPageNumber()) {
+                    lastPage = page;
+                }
+            }
+        }
+        return lastPage;
+    }
+
     protected Label createNotFoundLabel() {
-        Label label = new Label(getMessage("notFound"));
+        Label label = componentsFactory.createComponent(Label.class);
+        label.setValue(getMessage("notFound"));
         label.setStyleName("h2");
         return label;
     }
 
-    protected Label createSeparator() {
-        Label separator = new Label("<hr/>");
-        separator.setContentMode(ContentMode.HTML);
-        return separator;
-    }
-
     protected Label createEntityLabel(String caption) {
-        Label entityLabel = new Label(caption);
+        Label entityLabel = componentsFactory.createComponent(Label.class);
+        entityLabel.setValue(caption);
         entityLabel.setStyleName("h2");
-        entityLabel.setWidth(200, Sizeable.Unit.PIXELS);
+        entityLabel.setWidth("200px");
         return entityLabel;
     }
 
-    protected void displayInstances(String entityName, VerticalLayout instancesLayout) {
-        List<SearchResult.Entry> entries = searchResult.getEntries(entityName);
+    protected void displayInstances(SearchResult searchResult, String entityName, CssLayout instancesLayout) {
+        Set<SearchResultEntry> entries = searchResult.getEntries(entityName);
 
-        for (SearchResult.Entry entry : entries) {
-            HorizontalLayout instanceLayout = new HorizontalLayout();
-
+        for (SearchResultEntry entry : entries) {
             Button instanceBtn = createInstanceButton(entityName, entry);
-            instanceLayout.addComponent(instanceBtn);
-            instanceLayout.setComponentAlignment(instanceBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
+            instanceBtn.setAlignment(Alignment.MIDDLE_LEFT);
+            instanceBtn.addStyleName("c-fts-entity");
 
-            instancesLayout.addComponent(instanceLayout);
+            instancesLayout.add(instanceBtn);
 
-            SearchResult.HitInfo hi = searchResult.getHitInfo(entry.getId());
+            HitInfo hi = searchResult.getHitInfo(entry.getId(), entityName);
             if (hi != null) {
                 List<String> list = new ArrayList<>(hi.getHits().size());
                 for (Map.Entry<String, String> hitEntry : hi.getHits().entrySet()) {
                     String hitProperty = hitEntry.getKey();
-                    list.add(service.getHitPropertyCaption(entityName, hitProperty) + ": " + hitEntry.getValue());
+                    list.add(ftsService.getHitPropertyCaption(entityName, hitProperty) + ": " + hitEntry.getValue());
                 }
                 Collections.sort(list);
 
                 for (String caption : list) {
-                    HorizontalLayout hitLayout = new HorizontalLayout();
-                    hitLayout.addStyleName("fts-hit");
-
                     Label hitLabel = createHitLabel(caption);
-                    hitLayout.addComponent(hitLabel);
-                    hitLayout.setComponentAlignment(hitLabel, com.vaadin.ui.Alignment.MIDDLE_LEFT);
-
-                    instancesLayout.addComponent(hitLayout);
+                    hitLabel.addStyleName("c-fts-hit");
+                    hitLabel.addStyleName("fts-hit");
+                    hitLabel.setAlignment(Alignment.MIDDLE_LEFT);
+                    instancesLayout.add(hitLabel);
                 }
             }
         }
-        if (!searchResult.getIds(entityName).isEmpty()) {
-            displayMore(entityName, instancesLayout);
-        }
     }
 
-    protected Button createInstanceButton(String entityName, SearchResult.Entry entry) {
-        Button instanceBtn = new CubaButton(entry.getCaption());
-        instanceBtn.setStyleName(ValoTheme.BUTTON_LINK);
-        instanceBtn.addStyleName("fts-found-instance");
-        instanceBtn.addClickListener(event -> onInstanceClick(entityName, entry));
+    protected Button createInstanceButton(String entityName, SearchResultEntry entry) {
+        LinkButton instanceBtn = componentsFactory.createComponent(LinkButton.class);
+        instanceBtn.setStyleName("fts-found-instance");
+
+        BaseAction action = new BaseAction("instanceButton");
+        action.withCaption(entry.getCaption());
+        action.withHandler(e -> onInstanceClick(entityName, entry));
+
+        instanceBtn.setAction(action);
+
         return instanceBtn;
     }
 
-    protected void onInstanceClick(String entityName, SearchResult.Entry entry) {
+    protected void onInstanceClick(String entityName, SearchResultEntry entry) {
         TopLevelWindow appWindow = App.getInstance().getTopLevelWindow();
         if (appWindow instanceof HasWorkArea) {
             AppWorkArea workArea = ((HasWorkArea) appWindow).getWorkArea();
@@ -195,49 +310,25 @@ public class SearchResultsWindow extends AbstractWindow {
     }
 
     protected Label createHitLabel(String caption) {
-        Label hitLabel = new Label(caption);
-        hitLabel.setContentMode(ContentMode.HTML);
+        Label hitLabel = componentsFactory.createComponent(Label.class);
+        hitLabel.setValue(caption);
+        hitLabel.setHtmlEnabled(true);
         hitLabel.addStyleName("fts-hit");
         return hitLabel;
     }
 
-    protected void openEntityWindow(SearchResult.Entry entry, String entityName, WindowManager.OpenType openType) {
+    protected void openEntityWindow(SearchResultEntry entry, String entityName, WindowManager.OpenType openType) {
         WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
         MetaClass metaClass = metadata.getSession().getClass(entityName);
         Entity entity = reloadEntity(metaClass, entry.getId());
         openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
     }
 
-    protected void displayMore(String entityName, VerticalLayout instancesLayout) {
-        HorizontalLayout layout = new HorizontalLayout();
-
-        Button moreBtn = createMoreButton(entityName, instancesLayout);
-        layout.addComponent(moreBtn);
-        layout.setComponentAlignment(moreBtn, com.vaadin.ui.Alignment.MIDDLE_LEFT);
-
-        instancesLayout.addComponent(layout);
-    }
-
-    protected Button createMoreButton(String entityName, VerticalLayout instancesLayout) {
-        Button instanceBtn = new CubaButton(getMessage("more"));
-        instanceBtn.setStyleName(ValoTheme.BUTTON_LINK);
-        instanceBtn.addStyleName("fts-found-instance");
-        instanceBtn.addClickListener(event -> onMoreClick(entityName, instancesLayout));
-        return instanceBtn;
-    }
-
-    protected void onMoreClick(String entityName, VerticalLayout instancesLayout) {
-        searchResult = service.expandResult(searchResult, entityName);
-
-        instancesLayout.removeAllComponents();
-        displayInstances(entityName, instancesLayout);
-    }
-
     /**
      * For entities with composite keys there will be a value of the 'uuid' property in the {@code entityId} parameter.
      */
     protected Entity reloadEntity(MetaClass metaClass, Object entityId) {
-        String ftsPrimaryKeyName = service.getPrimaryKeyPropertyForFts(metaClass).getName();
+        String ftsPrimaryKeyName = ftsService.getPrimaryKeyPropertyForFts(metaClass).getName();
         String queryStr = String.format("select e from %s e where e.%s = :id", metaClass.getName(), ftsPrimaryKeyName);
         LoadContext lc = new LoadContext(metaClass)
                 .setView(View.MINIMAL)

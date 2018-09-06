@@ -6,14 +6,14 @@ package com.haulmont.fts.core.sys;
 
 public class EntityInfo implements Comparable<EntityInfo> {
 
-    private String name;
+    private String entityName;
     private Object id;
     private String text;
     private boolean inLinks;
 
     public EntityInfo(String name, Object id, String text, boolean inLinks) {
         this.id = id;
-        this.name = name;
+        this.entityName = name;
         this.text = text;
         this.inLinks = inLinks;
     }
@@ -22,8 +22,8 @@ public class EntityInfo implements Comparable<EntityInfo> {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public String getEntityName() {
+        return entityName;
     }
 
     public String getText() {
@@ -53,14 +53,14 @@ public class EntityInfo implements Comparable<EntityInfo> {
 
     @Override
     public String toString() {
-        return name + "-" + id;
+        return entityName + "-" + id;
     }
 
     @Override
     public int compareTo(EntityInfo o) {
-        if (name == null || o.name == null)
+        if (entityName == null || o.entityName == null)
             return 0;
         else
-            return name.compareTo(o.name);
+            return entityName.compareTo(o.entityName);
     }
 }

@@ -11,11 +11,10 @@
 
     <dsContext/>
     
-    <layout expand="scrollBox">
-        <scrollBox id="scrollBox">
-            <vbox id="contentBox" spacing="true">
-
-            </vbox>
-        </scrollBox>
+    <layout expand="contentBox">
+        <scrollBox id="contentBox"/>
+        <hbox width="100%" stylename="c-fts-navigation-container">
+            <hbox id="navigationBox" align="MIDDLE_CENTER"/>
+        </hbox>
     </layout>
 </window>

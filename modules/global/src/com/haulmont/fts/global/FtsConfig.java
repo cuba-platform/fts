@@ -35,9 +35,20 @@ public interface FtsConfig extends Config {
     @DefaultInt(100)
     int getMaxSearchResults();
 
-    @Property("fts.searchResultsBatchSize")
-    @DefaultInt(5)
-    int getSearchResultsBatchSize();
+    /**
+     * @return a maximum number of pages that cached in the show results window and
+     * you can navigate between pages.
+     */
+    @Property("fts.pagesCount")
+    @DefaultInt(10)
+    int getPagesCount();
+
+    /**
+     * @return number of searched entities for which system checks RLS by one database query.
+     */
+    @Property("fts.loadSize")
+    @DefaultInt(100)
+    int getLoadSize();
 
     @Property("fts.storeContentInIndex")
     @DefaultBoolean(true)

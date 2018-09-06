@@ -13,6 +13,7 @@ import com.haulmont.cuba.gui.config.WindowConfig;
 import com.haulmont.cuba.gui.config.WindowInfo;
 import com.haulmont.cuba.web.App;
 import com.haulmont.fts.app.FtsService;
+import com.haulmont.fts.global.QueryKey;
 import com.haulmont.fts.global.SearchResult;
 import org.apache.commons.lang3.StringUtils;
 

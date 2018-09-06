@@ -72,6 +72,9 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
         compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: baseVersion)
 
         testCompile(bom['junit:junit'])
+        testCompile(bom['org.spockframework:spock-core']) {
+            exclude(group: 'org.codehaus.groovy', module: 'groovy-all')
+        }
     }
 
     task sourceJar(type: Jar) {
@@ -170,6 +173,11 @@ configure(globalModule) {
 }
 
 configure(coreModule) {
+    configurations {
+        jdbc
+        dbscripts
+    }
+
     dependencies {
         compile(globalModule)
         compile(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion)
@@ -180,6 +188,8 @@ configure(coreModule) {
 
         compile(bom['org.apache.lucene.morphology:russian'])
         compile(bom['org.apache.lucene.morphology:english'])
+
+        compile(group: 'com.google.guava', name: 'guava', version: bom.getVersion('com.google.guava', 'guava'))
 
         //all "poi-*" dependencies must be the same version as "poi" dependency from the cuba
         compile(group: 'org.apache.poi', name: 'poi-ooxml', version: bom.getVersion('org.apache.poi', 'poi'))
@@ -213,7 +223,60 @@ configure(coreModule) {
             exclude (group: 'org.bouncycastle', module: 'bcmail-jdk15on')
             exclude (group: 'org.bouncycastle', module: 'bcprov-jdk15on')
         }
+
+        jdbc(bom['org.hsqldb:hsqldb'])
+        dbscripts(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion, classifier: 'db', ext: 'zip')
         testCompile(group: 'com.haulmont.cuba', name: 'cuba-core-tests', version: baseVersion)
+    }
+
+    assembleDbScripts {
+    }
+
+    entitiesEnhancing {
+        test {
+            enabled = true
+            persistenceConfig = 'fts-test-persistence.xml'
+        }
+    }
+
+    test {
+        scanForTestClasses = false
+        includes = ['**/*Test.class']
+        jvmArgs '-XX:-UseSplitVerifier'
+
+        if (System.getProperty('logback.configurationFile')) {
+            systemProperty 'logback.configurationFile', System.getProperty('logback.configurationFile')
+        }
+    }
+
+    def hsqlDbName = 'ftsdb'
+    def hsqlPort = 9112
+
+    task startDb(description: 'Starts local HSQLDB server', type: CubaHsqlStart) {
+        dbPort = hsqlPort
+        dbName = hsqlDbName
+    }
+
+    task stopDb(description: 'Stops local HSQLDB server', type: CubaHsqlStop)  {
+        dbPort = hsqlPort
+        dbName = hsqlDbName
+    }
+
+    task removeDb(description: 'Removes local HSQL database', type: Delete) {
+        delete new File("$rootProject.projectDir/data")
+    }
+
+    task killDb(description: "Kill local HSQLDB server process running on port $hsqlPort", type: CubaKillProcess) {
+        port = hsqlPort
+    }
+
+    task createTestDb(dependsOn: assemble, description: 'Creates local HSQL database', type: CubaDbCreation) {
+        dbms = 'hsql'
+        host = "localhost:$hsqlPort"
+        dbName = hsqlDbName
+        dbUser = 'sa'
+        dbPassword = ''
+        auxiliaryScript = file('test/com/haulmont/fts/testmodel/create-db.sql')
     }
 }
 

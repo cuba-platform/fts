@@ -37,16 +37,16 @@ public class LuceneSearcherBean implements LuceneSearcher {
     @Inject
     protected IndexSearcherProvider indexSearcherProvider;
 
-    private static final Logger log = LoggerFactory.getLogger(LuceneSearcherBean.class);
-
     @Override
-    public List<EntityInfo> searchAllField(String searchTerm, int maxResults) {
+    public List<EntityInfo> searchAllField(String searchTerm, int firstResult, int maxResults) {
         Set<EntityInfo> set = new LinkedHashSet<>();
         Query query = createQueryForAllFieldSearch(searchTerm);
         IndexSearcher searcher = indexSearcherProvider.acquireIndexSearcher();
         try {
             searcher = indexSearcherProvider.acquireIndexSearcher();
-            TopDocs topDocs = searcher.search(query, maxResults);
+            TopScoreDocCollector collector = TopScoreDocCollector.create(firstResult + maxResults);
+            searcher.search(query, collector);
+            TopDocs topDocs = collector.topDocs(firstResult, maxResults);
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
@@ -195,13 +195,15 @@ public class LuceneSearcherBean implements LuceneSearcher {
     }
 
     @Override
-    public List<EntityInfo> searchLinksField(Object id, int maxResults) {
+    public List<EntityInfo> searchLinksField(Object id, int firstResult, int maxResults) {
         Set<EntityInfo> set = new LinkedHashSet<>();
         Term term = new Term(FLD_LINKS, id.toString());
         Query termQuery = new TermQuery(term);
         IndexSearcher searcher = indexSearcherProvider.acquireIndexSearcher();
         try {
-            TopDocs topDocs = searcher.search(termQuery, maxResults);
+            TopScoreDocCollector collector = TopScoreDocCollector.create(firstResult + maxResults);
+            searcher.search(termQuery, collector);
+            TopDocs topDocs = collector.topDocs(firstResult, maxResults);
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
