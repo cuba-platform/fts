@@ -16,9 +16,6 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.View;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.*;
-import com.haulmont.cuba.gui.components.Button;
-import com.haulmont.cuba.gui.components.CssLayout;
-import com.haulmont.cuba.gui.components.Label;
 import com.haulmont.cuba.gui.components.actions.BaseAction;
 import com.haulmont.cuba.gui.components.mainwindow.AppWorkArea;
 import com.haulmont.cuba.gui.config.WindowConfig;
@@ -26,11 +23,6 @@ import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 import com.haulmont.cuba.web.App;
 import com.haulmont.fts.app.FtsService;
 import com.haulmont.fts.global.*;
-import com.haulmont.fts.global.SearchResult;
-import com.vaadin.server.Sizeable;
-import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.ui.*;
-import com.vaadin.ui.themes.ValoTheme;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
@@ -62,6 +54,35 @@ public class SearchResultsWindow extends AbstractWindow {
     protected FtsConfig ftsConfig;
 
     protected MetaClass fileMetaClass;
+
+
+    protected Page currentPage;
+    protected Queue<Page> pages;
+
+    protected static class Page {
+        protected int pageNumber;
+        protected SearchResult searchResult;
+
+        public Page(int pageNumber) {
+            this.pageNumber = pageNumber;
+        }
+
+        public void setSearchResult(SearchResult searchResult) {
+            this.searchResult = searchResult;
+        }
+
+        public SearchResult getSearchResult() {
+            return searchResult;
+        }
+
+        public int getPageNumber() {
+            return pageNumber;
+        }
+
+        public String getDisplayedPageNumber() {
+            return String.valueOf(pageNumber + 1);
+        }
+    }
 
 
     protected Page currentPage;
