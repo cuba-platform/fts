@@ -62,6 +62,7 @@ def baseVersion = rootProject.hasProperty('cuba.version') ? rootProject['cuba.ve
 
 configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
     apply(plugin: 'java')
+    apply(plugin: 'groovy')
     apply(plugin: 'idea')
     apply(plugin: 'maven')
     apply(plugin: 'findbugs')
@@ -95,6 +96,15 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
     javadoc {
         // move to plugin ?
         options.addStringOption("sourcepath", "")
+    }
+
+    sourceSets {
+        test {
+            groovy {
+                include 'spec/**'
+                srcDir 'test'
+            }
+        }
     }
 
     findbugs {
@@ -227,6 +237,7 @@ configure(coreModule) {
         jdbc(bom['org.hsqldb:hsqldb'])
         dbscripts(group: 'com.haulmont.cuba', name: 'cuba-core', version: baseVersion, classifier: 'db', ext: 'zip')
         testCompile(group: 'com.haulmont.cuba', name: 'cuba-core-tests', version: baseVersion)
+        testRuntime(bom['org.hsqldb:hsqldb'])
     }
 
     assembleDbScripts {
