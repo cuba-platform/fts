@@ -84,35 +84,6 @@ public class SearchResultsWindow extends AbstractWindow {
         }
     }
 
-
-    protected Page currentPage;
-    protected Queue<Page> pages;
-
-    protected static class Page {
-        protected int pageNumber;
-        protected SearchResult searchResult;
-
-        public Page(int pageNumber) {
-            this.pageNumber = pageNumber;
-        }
-
-        public void setSearchResult(SearchResult searchResult) {
-            this.searchResult = searchResult;
-        }
-
-        public SearchResult getSearchResult() {
-            return searchResult;
-        }
-
-        public int getPageNumber() {
-            return pageNumber;
-        }
-
-        public String getDisplayedPageNumber() {
-            return String.valueOf(pageNumber + 1);
-        }
-    }
-
     @Override
     public void init(Map<String, Object> params) {
         fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
