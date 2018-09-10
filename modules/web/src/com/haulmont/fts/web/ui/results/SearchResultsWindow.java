@@ -19,6 +19,7 @@ import com.haulmont.cuba.gui.components.*;
 import com.haulmont.cuba.gui.components.actions.BaseAction;
 import com.haulmont.cuba.gui.components.mainwindow.AppWorkArea;
 import com.haulmont.cuba.gui.config.WindowConfig;
+import com.haulmont.cuba.gui.screen.Screen;
 import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 import com.haulmont.cuba.web.App;
 import com.haulmont.fts.app.FtsService;
@@ -286,7 +287,7 @@ public class SearchResultsWindow extends AbstractWindow {
     }
 
     protected void onInstanceClick(String entityName, SearchResultEntry entry) {
-        TopLevelWindow appWindow = App.getInstance().getTopLevelWindow();
+        Screen appWindow = App.getInstance().getTopLevelWindow().getFrameOwner();
         if (appWindow instanceof HasWorkArea) {
             AppWorkArea workArea = ((HasWorkArea) appWindow).getWorkArea();
 
@@ -302,7 +303,7 @@ public class SearchResultsWindow extends AbstractWindow {
     }
 
     protected Label createHitLabel(String caption) {
-        Label hitLabel = componentsFactory.createComponent(Label.class);
+        Label<String> hitLabel = componentsFactory.createComponent(Label.class);
         hitLabel.setValue(caption);
         hitLabel.setHtmlEnabled(true);
         hitLabel.addStyleName("fts-hit");
