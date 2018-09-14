@@ -32,7 +32,6 @@ dependencies {
     bom("com.haulmont.cuba:cuba-global:$cubaVersion")
 }
 
-apply(plugin: 'idea')
 apply(plugin: 'cuba')
 
 bom.load file('modules/global/src/com/haulmont/fts/bom.properties')
@@ -63,15 +62,12 @@ def baseVersion = rootProject.hasProperty('cuba.version') ? rootProject['cuba.ve
 configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
     apply(plugin: 'java')
     apply(plugin: 'groovy')
-    apply(plugin: 'idea')
     apply(plugin: 'maven')
     apply(plugin: 'findbugs')
     apply(plugin: 'pmd')
     apply(plugin: 'cuba')
 
     dependencies {
-        compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: baseVersion)
-
         testCompile(bom['junit:junit'])
         testCompile(bom['org.spockframework:spock-core']) {
             exclude(group: 'org.codehaus.groovy', module: 'groovy-all')
@@ -174,6 +170,10 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
 }
 
 configure(globalModule) {
+    dependencies {
+        compile(group: 'com.haulmont.cuba', name: 'cuba-global', version: baseVersion)
+    }
+
     jar {
         manifest {
             attributes('App-Component-Id': cuba.artifact.group)
@@ -308,7 +308,6 @@ configure(guiModule) {
 
 configure(desktopModule) {
     dependencies {
-        compile(globalModule)
         compile(guiModule)
         compile(group: 'com.haulmont.cuba', name: 'cuba-desktop', version: baseVersion)
     }
