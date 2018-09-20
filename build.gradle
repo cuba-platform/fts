@@ -202,8 +202,8 @@ configure(coreModule) {
         compile(group: 'com.google.guava', name: 'guava', version: bom.getVersion('com.google.guava', 'guava'))
 
         //all "poi-*" dependencies must be the same version as "poi" dependency from the cuba
-        compile(group: 'org.apache.poi', name: 'poi-ooxml', version: bom.getVersion('org.apache.poi', 'poi'))
         compile(group: 'org.apache.poi', name: 'poi-ooxml-schemas', version: bom.getVersion('org.apache.poi', 'poi'))
+        compile (bom['org.apache.poi:ooxml-schemas'])
         compile(group: 'org.apache.poi', name: 'poi-scratchpad', version: bom.getVersion('org.apache.poi', 'poi'))
 
         compile(bom['org.apache.tika:tika-parsers']) {
