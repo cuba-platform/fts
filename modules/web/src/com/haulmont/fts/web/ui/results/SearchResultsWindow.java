@@ -62,6 +62,7 @@ public class SearchResultsWindow extends AbstractWindow {
 
     protected static class Page {
         protected int pageNumber;
+        protected boolean lastPage;
         protected SearchResult searchResult;
 
         public Page(int pageNumber) {
@@ -74,6 +75,14 @@ public class SearchResultsWindow extends AbstractWindow {
 
         public SearchResult getSearchResult() {
             return searchResult;
+        }
+
+        public boolean isLastPage() {
+            return lastPage;
+        }
+
+        public void setLastPage(boolean lastPage) {
+            this.lastPage = lastPage;
         }
 
         public int getPageNumber() {
@@ -181,7 +190,7 @@ public class SearchResultsWindow extends AbstractWindow {
         Page lastPage = getLastPage();
         if (lastPage != null && lastPage.getSearchResult() != null) {
             SearchResult lastSearchResult = lastPage.getSearchResult();
-            showNextPage = lastSearchResult.getCount() != 0;
+            showNextPage = lastSearchResult.getCount() != 0 && !lastPage.isLastPage();
         }
 
         if (showNextPage) {
@@ -205,12 +214,18 @@ public class SearchResultsWindow extends AbstractWindow {
         Page lastPage = getLastPage();
         if (lastPage != null) {
             SearchResult lastSearchResult = lastPage.getSearchResult();
-            currentPage = new Page(lastPage.getPageNumber() + 1);
             SearchResult searchResult = ftsService.search(lastSearchResult.getSearchTerm(), lastSearchResult.getQueryKey());
-            currentPage.setSearchResult(searchResult);
-            pages.add(currentPage);
-            paintResult(currentPage);
-            paintNavigationControls(pages);
+            if (searchResult.getCount() == 0) {
+                currentPage.setLastPage(true);
+                paintNavigationControls(pages);
+                showNotification(getMessage("notFound"), NotificationType.HUMANIZED);
+            } else {
+                currentPage = new Page(lastPage.getPageNumber() + 1);
+                currentPage.setSearchResult(searchResult);
+                pages.add(currentPage);
+                paintResult(currentPage);
+                paintNavigationControls(pages);
+            }
         }
     }
 
