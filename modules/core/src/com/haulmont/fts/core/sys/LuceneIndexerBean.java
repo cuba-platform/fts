@@ -302,12 +302,14 @@ public class LuceneIndexerBean implements LuceneIndexer {
         } else if (value instanceof Collection && !((Collection) value).isEmpty()) {
             Collection<Entity> collection = (Collection<Entity>) value;
             for (Entity inst : collection) {
-                if (propertyPath.length == 1) {
-                    String originalMetaClassName = metadata.getExtendedEntities().getEffectiveMetaClass(inst.getMetaClass()).getName();
-                    String entityInfoStr = new EntityInfo(originalMetaClassName, inst.getId(), null, true).toString();
-                    appendString(sb, entityInfoStr);
-                } else {
-                    addLinkedPropertyEx(sb, inst, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
+                if (inst != null) {
+                    if (propertyPath.length == 1) {
+                        String originalMetaClassName = metadata.getExtendedEntities().getEffectiveMetaClass(inst.getMetaClass()).getName();
+                        String entityInfoStr = new EntityInfo(originalMetaClassName, inst.getId(), null, true).toString();
+                        appendString(sb, entityInfoStr);
+                    } else {
+                        addLinkedPropertyEx(sb, inst, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
+                    }
                 }
             }
         }
