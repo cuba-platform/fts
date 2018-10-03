@@ -54,6 +54,10 @@ public class SearchResult implements Serializable {
         return results.values().stream().mapToInt(Set::size).sum();
     }
 
+    public int getIdsCount() {
+        return queryKey.getIds().size();
+    }
+
     public void addHit(Object id, String entityName,
                        String text, Normalizer normalizer) {
         EntityKey entityKey = new EntityKey(id, entityName);

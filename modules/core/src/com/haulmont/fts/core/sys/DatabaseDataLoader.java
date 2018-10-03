@@ -47,11 +47,14 @@ public class DatabaseDataLoader {
         void entryAdded(Object entityId, EntityInfo entityInfo);
     }
 
-    public void mergeSearchData(SearchResult searchResult, List<EntityInfo> mergedData, SearchEntryCallback callback) {
+    public void mergeSearchData(SearchResult searchResult, List<EntityInfo> mergedData,
+                                boolean filterByShowInResults,
+                                SearchEntryCallback callback) {
         Map<String, List<EntityInfo>> resultByType = mergedData.stream()
                 .collect(Collectors.groupingBy(EntityInfo::getEntityName));
         for (String entityType : resultByType.keySet()) {
-            if (!manager.showInResults(entityType)) {
+            boolean showInResults = manager.showInResults(entityType);
+            if (filterByShowInResults && !showInResults) {
                 continue;
             }
             MetaClass metaClass = metadata.getSession().getClassNN(entityType);
@@ -68,11 +71,11 @@ public class DatabaseDataLoader {
                 //TODO: detect correct entity id
                 Object entityId = entity.getId();
                 EntityInfo entityInfo = entityIds.get(entityId);
-
-                searchResult.addEntry(new SearchResultEntry(entityId,
-                        entityInfo.getEntityName(),
-                        entity.getInstanceName()));
-
+                if (showInResults) {
+                    searchResult.addEntry(new SearchResultEntry(entityId,
+                            entityInfo.getEntityName(),
+                            entity.getInstanceName()));
+                }
                 callback.entryAdded(entityId, entityInfo);
             }
         }

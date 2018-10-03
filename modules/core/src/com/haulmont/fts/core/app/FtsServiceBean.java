@@ -55,7 +55,7 @@ public class FtsServiceBean implements FtsService {
         if (queryKey == null || queryKey.isSearchByTermAgain()) {
             searchByTerm = true;
             searchByTerm(searchResult, searchTerm, queryKey, maxSearchResults);
-            if (searchResult.getCount() == 0) {
+            if (searchResult.getCount() == 0  && searchResult.getIdsCount() == 0) {
                 return searchResult;
             }
         }
@@ -209,12 +209,12 @@ public class FtsServiceBean implements FtsService {
         while (currentCount < maxSearchResults && !emptyIndex) {
             List<EntityInfo> indexResult = luceneSearcher.searchAllField(searchTerm, firstResult, maxSearchResults);
             if (!indexResult.isEmpty()) {
-                databaseDataLoader.mergeSearchData(searchResult, indexResult, (entityId, entityInfo) -> {
+                databaseDataLoader.mergeSearchData(searchResult, indexResult, false, (entityId, entityInfo) -> {
                     searchResult.addHit(entityId, entityInfo.getEntityName(), entityInfo.getText(),
                             createNormalizer());
                     searchResult.getQueryKey().addId(entityId, entityInfo.getEntityName(), entityInfo.getText());
                 });
-                currentCount = searchResult.getCount();
+                currentCount = Math.max(searchResult.getCount(), searchResult.getIdsCount());
                 firstResult += maxSearchResults;
                 searchResult.getQueryKey().setFirstResult(firstResult);
             } else {
@@ -249,7 +249,7 @@ public class FtsServiceBean implements FtsService {
                 //Now a set of {@link EntityInfo} strings is stored there.
                 indexResult.addAll(luceneSearcher.searchLinksField(entityKey.getId(), firstResult, maxSearchResults));
                 if (!indexResult.isEmpty()) {
-                    databaseDataLoader.mergeSearchData(searchResult, indexResult, (entityIdWithLink, entityInfoWithLink) -> {
+                    databaseDataLoader.mergeSearchData(searchResult, indexResult, true, (entityIdWithLink, entityInfoWithLink) -> {
                         searchResult.addLinkedHit(entityIdWithLink, entityInfoWithLink.getEntityName(), entityKey.getText(),
                                 entityKey.getEntityName(), createNormalizer());
                     });
