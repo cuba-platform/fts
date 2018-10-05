@@ -28,6 +28,7 @@
 
         <property name="cuba.springContextConfig" value="+fts-web-spring.xml"/>
         <property name="cuba.windowConfig" value="+fts-web-screens.xml"/>
+        <property name="cuba.mainMessagePack" value="+com.haulmont.fts.web"/>
     </module>
 
     <module name="desktop" dependsOn="gui" blocks="desktop">
