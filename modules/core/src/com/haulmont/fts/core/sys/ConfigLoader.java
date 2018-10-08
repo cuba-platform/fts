@@ -14,7 +14,7 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.sys.AppContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.text.StrTokenizer;
+import org.apache.commons.text.StringTokenizer;
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.slf4j.Logger;
@@ -68,7 +68,7 @@ public class ConfigLoader {
             configName = DEFAULT_CONFIG;
 
         DefaultResourceLoader resourceLoader = new DefaultResourceLoader();
-        StrTokenizer tokenizer = new StrTokenizer(configName);
+        StringTokenizer tokenizer = new StringTokenizer(configName);
         for (String location : tokenizer.getTokenArray()) {
             Resource resource = resourceLoader.getResource(location);
             if (resource.exists()) {
@@ -91,7 +91,7 @@ public class ConfigLoader {
 
     protected void loadFromStream(InputStream stream, Map<String, EntityDescr> map) {
         Document document = Dom4j.readDocument(stream);
-        for (Element element : Dom4j.elements(document.getRootElement(), "include")) {
+        for (Element element : document.getRootElement().elements("include")) {
             String fileName = element.attributeValue("file");
             if (!StringUtils.isBlank(fileName)) {
                 InputStream incStream = getClass().getResourceAsStream(fileName);
@@ -101,7 +101,7 @@ public class ConfigLoader {
 
         Element rootElem = document.getRootElement();
         Element entitiesElem = rootElem.element("entities");
-        for (Element entityElem : Dom4j.elements(entitiesElem, "entity")) {
+        for (Element entityElem : entitiesElem.elements("entity")) {
             String className = entityElem.attributeValue("class");
             MetaClass metaClass = metadata.getClassNN(ReflectionHelper.getClass(className));
             if (!metadata.getTools().isPersistent(metaClass)) {
@@ -136,7 +136,7 @@ public class ConfigLoader {
     }
 
     protected void setIncludedFields(Element entityElem, MetaClass metaClass, EntityDescr entityDescr) {
-        for (Element element : Dom4j.elements(entityElem, "include")) {
+        for (Element element : entityElem.elements("include")) {
             String re = element.attributeValue("re");
             if (!StringUtils.isBlank(re))
                 includeByRe(entityDescr, metaClass, re);
@@ -149,7 +149,7 @@ public class ConfigLoader {
     }
 
     protected void setExcludedFields(Element entityElem, MetaClass metaClass, EntityDescr entityDescr) {
-        for (Element element : Dom4j.elements(entityElem, "exclude")) {
+        for (Element element : entityElem.elements("exclude")) {
             String re = element.attributeValue("re");
             if (!StringUtils.isBlank(re))
                 excludeByRe(entityDescr, metaClass, re);
@@ -170,8 +170,9 @@ public class ConfigLoader {
     }
 
     protected void includeByName(EntityDescr descr, MetaClass metaClass, String name) {
-        if (metaClass.getPropertyPath(name) != null)
+        if (metaClass.getPropertyPath(name) != null) {
             addPropertyToDescription(descr, name);
+        }
     }
 
     protected void includeByRe(EntityDescr descr, MetaClass metaClass, String re) {
