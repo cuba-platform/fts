@@ -3,14 +3,10 @@
   ~ Use is subject to license terms, see http://www.cuba-platform.com/commercial-software-license for details.
   -->
 
-<window
-        xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
         class="com.haulmont.fts.web.ui.results.SearchResultsWindow"
-        messagesPack="com.haulmont.fts.web.ui.results"
-        >
+        messagesPack="com.haulmont.fts.web.ui.results">
 
-    <dsContext/>
-    
     <layout expand="contentBox">
         <scrollBox id="contentBox"/>
         <hbox width="100%" stylename="c-fts-navigation-container">

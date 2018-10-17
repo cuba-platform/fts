@@ -4,11 +4,6 @@
   -->
 
 <screen-config xmlns="http://schemas.haulmont.com/cuba/screens.xsd">
-
-    <screen id="ftsSearch"
-           class="com.haulmont.fts.web.ui.results.SearchLauncher"/>
-
     <screen id="ftsSearchResults"
-           template="/com/haulmont/fts/web/ui/results/search-results.xml"/>
-
+            template="/com/haulmont/fts/web/ui/results/search-results.xml"/>
 </screen-config>
