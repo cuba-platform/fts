@@ -40,7 +40,7 @@ public class FtsSearchLauncherImpl implements FtsSearchLauncher {
             Notifications notifications = origin.getScreenContext().getNotifications();
 
             notifications.create()
-                    .setCaption(messages.getMainMessage("noSearchTerm"))
+                    .setCaption(messages.getMessage(FtsSearchLauncherImpl.class, "noSearchTerm"))
                     .setType(Notifications.NotificationType.HUMANIZED)
                     .show();
         } else {
@@ -52,7 +52,7 @@ public class FtsSearchLauncherImpl implements FtsSearchLauncher {
                 Notifications notifications = origin.getScreenContext().getNotifications();
 
                 notifications.create()
-                        .setCaption(messages.getMainMessage("notFound"))
+                        .setCaption(messages.getMessage(FtsSearchLauncherImpl.class, "notFound"))
                         .setType(Notifications.NotificationType.HUMANIZED)
                         .show();
             } else {
