@@ -81,12 +81,11 @@ public class DatabaseDataLoader {
         }
     }
 
-    @SuppressWarnings("unchecked")
     protected List<Entity> loadEntities(List<Object> entityIds, MetaClass metaClass) {
         MetaProperty primaryKeyForFts = manager.getPrimaryKeyPropertyForFts(metaClass);
         List<Entity> result = new ArrayList<>();
         for (List<Object> partition : Lists.partition(entityIds, ftsConfig.getLoadSize())) {
-            List<Entity> partitionResult = dataManager.secure()
+            List<Entity<Object>> partitionResult = dataManager.secure()
                     .load(metaClass.getJavaClass())
                     .view(View.MINIMAL)
                     .query(String.format("select e from %s e where e.%s in :ids", metaClass.getName(), primaryKeyForFts.getName()))

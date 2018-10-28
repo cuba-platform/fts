@@ -110,7 +110,7 @@ public class LuceneIndexerBean implements LuceneIndexer {
                             .setParameter("uuid", entityId)
                             .getFirstResult();
                 } else {
-                    entity = em.find((Class<? extends Entity>)metaClass.getJavaClass(), entityId);
+                    entity = em.find(metaClass.getJavaClass(), entityId);
                 }
                 if (entity == null) {
                     log.info("Entity instance not found (could be deleted): {}-{}", entityName, entityId);
