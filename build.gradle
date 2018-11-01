@@ -253,7 +253,6 @@ configure(coreModule) {
     test {
         scanForTestClasses = false
         includes = ['**/*Test.class']
-        jvmArgs '-XX:-UseSplitVerifier'
 
         if (System.getProperty('logback.configurationFile')) {
             systemProperty 'logback.configurationFile', System.getProperty('logback.configurationFile')
