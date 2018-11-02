@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 
 import static com.haulmont.bali.util.Preconditions.checkNotNullArgument;
+import static com.haulmont.cuba.gui.screen.UiControllerUtils.getScreenContext;
 
 @Component(FtsSearchLauncher.NAME)
 public class FtsSearchLauncherImpl implements FtsSearchLauncher {
@@ -37,7 +38,7 @@ public class FtsSearchLauncherImpl implements FtsSearchLauncher {
         checkNotNullArgument(origin);
 
         if (StringUtils.isBlank(searchTerm)) {
-            Notifications notifications = origin.getScreenContext().getNotifications();
+            Notifications notifications = getScreenContext(origin).getNotifications();
 
             notifications.create()
                     .setCaption(messages.getMessage(FtsSearchLauncherImpl.class, "noSearchTerm"))
@@ -49,7 +50,7 @@ public class FtsSearchLauncherImpl implements FtsSearchLauncher {
             SearchResult searchResult = ftsService.search(searchTermPreprocessed);
 
             if (searchResult.isEmpty()) {
-                Notifications notifications = origin.getScreenContext().getNotifications();
+                Notifications notifications = getScreenContext(origin).getNotifications();
 
                 notifications.create()
                         .setCaption(messages.getMessage(FtsSearchLauncherImpl.class, "notFound"))
@@ -58,7 +59,7 @@ public class FtsSearchLauncherImpl implements FtsSearchLauncher {
             } else {
                 WindowInfo windowInfo = windowConfig.getWindowInfo("ftsSearchResults");
 
-                WindowManager wm = (WindowManager) origin.getScreenContext().getScreens();
+                WindowManager wm = (WindowManager) getScreenContext(origin).getScreens();
                 wm.openWindow(windowInfo,
                         OpenType.NEW_TAB,
                         ParamsMap.of(
