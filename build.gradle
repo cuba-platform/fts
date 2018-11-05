@@ -246,7 +246,7 @@ configure(coreModule) {
     entitiesEnhancing {
         test {
             enabled = true
-            persistenceConfig = 'fts-test-persistence.xml'
+            persistenceConfig = 'com/haulmont/fts/test-persistence.xml'
         }
     }
 

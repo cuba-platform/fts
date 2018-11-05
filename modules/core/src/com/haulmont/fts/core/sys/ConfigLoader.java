@@ -41,7 +41,7 @@ public class ConfigLoader {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigLoader.class);
 
-    protected static final String DEFAULT_CONFIG = "/cuba-fts.xml";
+    protected static final String DEFAULT_CONFIG = "/com/haulmont/fts/fts.xml";
 
     protected static String[] systemProps = new String[]{
             "id", "createTs", "createdBy", "version", "updateTs", "updatedBy", "deleteTs", "deletedBy"

@@ -15,10 +15,9 @@ public class FtsTestContainer extends TestContainer {
     public FtsTestContainer() {
         super();
         appComponents = new ArrayList<>(Arrays.asList(
-                "com.haulmont.cuba",
-                "com.haulmont.fts"
+                "com.haulmont.cuba"
         ));
-        appPropertiesFiles = Arrays.asList("cuba-app.properties", "fts-test-app.properties");
+        appPropertiesFiles = Arrays.asList("com/haulmont/cuba/app.properties", "com/haulmont/fts/test-app.properties");
         initDbProperties();
     }
 
