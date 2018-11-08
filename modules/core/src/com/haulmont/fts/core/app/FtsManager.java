@@ -371,7 +371,7 @@ public class FtsManager implements FtsManagerAPI {
 
     @Override
     public int reindexNextBatch() {
-        if (isApplicationContextStarted()) return 0;
+        if (!isApplicationContextStarted()) return 0;
 
         if (!ftsConfig.getEnabled())
             return 0;
