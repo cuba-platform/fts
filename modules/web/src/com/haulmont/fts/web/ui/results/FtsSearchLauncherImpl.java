@@ -7,6 +7,7 @@ package com.haulmont.fts.web.ui.results;
 import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.cuba.core.global.Messages;
 import com.haulmont.cuba.gui.Notifications;
+import com.haulmont.cuba.gui.Notifications.NotificationType;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.WindowManager.OpenType;
 import com.haulmont.cuba.gui.config.WindowConfig;
@@ -40,9 +41,8 @@ public class FtsSearchLauncherImpl implements FtsSearchLauncher {
         if (StringUtils.isBlank(searchTerm)) {
             Notifications notifications = getScreenContext(origin).getNotifications();
 
-            notifications.create()
-                    .setCaption(messages.getMessage(FtsSearchLauncherImpl.class, "noSearchTerm"))
-                    .setType(Notifications.NotificationType.HUMANIZED)
+            notifications.create(NotificationType.HUMANIZED)
+                    .withCaption(messages.getMessage(FtsSearchLauncherImpl.class, "noSearchTerm"))
                     .show();
         } else {
             String searchTermPreprocessed = searchTerm.trim().toLowerCase();
@@ -52,9 +52,8 @@ public class FtsSearchLauncherImpl implements FtsSearchLauncher {
             if (searchResult.isEmpty()) {
                 Notifications notifications = getScreenContext(origin).getNotifications();
 
-                notifications.create()
-                        .setCaption(messages.getMessage(FtsSearchLauncherImpl.class, "notFound"))
-                        .setType(Notifications.NotificationType.HUMANIZED)
+                notifications.create(NotificationType.HUMANIZED)
+                        .withCaption(messages.getMessage(FtsSearchLauncherImpl.class, "notFound"))
                         .show();
             } else {
                 WindowInfo windowInfo = windowConfig.getWindowInfo("ftsSearchResults");
