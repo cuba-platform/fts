@@ -10,6 +10,7 @@ import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.PersistenceSecurity;
 import com.haulmont.cuba.core.entity.Entity;
+import com.haulmont.cuba.core.entity.IdProxy;
 import com.haulmont.cuba.core.global.DataManager;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.View;
@@ -68,8 +69,11 @@ public class DatabaseDataLoader {
             }
             List<Entity> entities = loadEntities(Lists.newArrayList(entityIds.keySet()), metaClass);
             for (Entity entity : entities) {
-                //TODO: detect correct entity id
-                Object entityId = entity.getId();
+                MetaProperty idProperty = manager.getPrimaryKeyPropertyForFts(metaClass);
+                Object entityId = entity.getValue(idProperty.getName());
+                if (entityId instanceof IdProxy) {
+                    entityId = ((IdProxy) entityId).getNN();
+                }
                 EntityInfo entityInfo = entityIds.get(entityId);
                 if (showInResults) {
                     searchResult.addEntry(new SearchResultEntry(entityId,

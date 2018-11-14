@@ -4,6 +4,8 @@
  */
 package com.haulmont.fts.core.sys;
 
+import java.util.Objects;
+
 public class EntityInfo implements Comparable<EntityInfo> {
 
     private String entityName;
@@ -38,17 +40,14 @@ public class EntityInfo implements Comparable<EntityInfo> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         EntityInfo that = (EntityInfo) o;
-
-        if (!id.equals(that.id)) return false;
-
-        return true;
+        return Objects.equals(entityName, that.entityName) &&
+                Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return id.hashCode();
+        return Objects.hash(entityName, id);
     }
 
     @Override
