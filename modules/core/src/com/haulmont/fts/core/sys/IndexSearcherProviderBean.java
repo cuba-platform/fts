@@ -6,6 +6,7 @@
 package com.haulmont.fts.core.sys;
 
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.LRUQueryCache;
 import org.apache.lucene.search.SearcherFactory;
 import org.apache.lucene.search.SearcherManager;
 import org.springframework.stereotype.Component;
@@ -58,5 +59,9 @@ public class IndexSearcherProviderBean implements IndexSearcherProvider {
 
     protected SearcherManager createSearcherManager() throws IOException {
         return new SearcherManager(indexWriterProvider.getIndexWriter(), new SearcherFactory());
+    }
+
+    public LRUQueryCache getDefaultQueryCache() {
+        return (LRUQueryCache) IndexSearcher.getDefaultQueryCache();
     }
 }

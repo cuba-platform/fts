@@ -20,6 +20,7 @@
         <property name="beans">
             <map>
                 <entry key="${cuba.webContextName}.fts:type=FtsManager" value-ref="fts_FtsManagerMBean"/>
+                <entry key="${cuba.webContextName}.fts:type=QueryCacheStats" value-ref="fts_QueryCacheStatsMBean"/>
             </map>
         </property>
     </bean>
