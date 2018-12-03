@@ -41,7 +41,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
     public List<EntityInfo> searchAllField(String searchTerm, int firstResult, int maxResults) {
         Set<EntityInfo> set = new LinkedHashSet<>();
         Query query = createQueryForAllFieldSearch(searchTerm);
-        IndexSearcher searcher = indexSearcherProvider.acquireIndexSearcher();
+        IndexSearcher searcher = null;
         try {
             searcher = indexSearcherProvider.acquireIndexSearcher();
             TopScoreDocCollector collector = TopScoreDocCollector.create(firstResult + maxResults);
@@ -58,7 +58,8 @@ public class LuceneSearcherBean implements LuceneSearcher {
         } catch (IOException e) {
             throw new RuntimeException("Search error", e);
         } finally {
-            indexSearcherProvider.releaseIndexSearcher(searcher);
+            if (searcher != null)
+                indexSearcherProvider.releaseIndexSearcher(searcher);
         }
         return new ArrayList<>(set);
     }
@@ -67,7 +68,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
     public List<EntityInfo> searchAllField(String searchTerm, Collection<String> entityNames) {
         Set<EntityInfo> set = new LinkedHashSet<>();
         Query query = createQueryForAllFieldSearch(searchTerm, entityNames);
-        IndexSearcher searcher = indexSearcherProvider.acquireIndexSearcher();
+        IndexSearcher searcher = null;
         try {
             searcher = indexSearcherProvider.acquireIndexSearcher();
             AllDocsCollector collector = new AllDocsCollector();
@@ -83,7 +84,8 @@ public class LuceneSearcherBean implements LuceneSearcher {
         } catch (IOException e) {
             throw new RuntimeException("Search error", e);
         } finally {
-            indexSearcherProvider.releaseIndexSearcher(searcher);
+            if (searcher != null)
+                indexSearcherProvider.releaseIndexSearcher(searcher);
         }
         return new ArrayList<>(set);
     }
