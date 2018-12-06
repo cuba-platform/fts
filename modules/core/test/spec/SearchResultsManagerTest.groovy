@@ -211,7 +211,7 @@ class SearchResultsManagerTest extends Specification {
 
     protected UserSession authUser(String login) {
         authenticationManager.login(
-                new LoginPasswordCredentials(login, passwordEncryption.getPlainHash(PASSWORD), Locale.getDefault()))
+                new LoginPasswordCredentials(login, PASSWORD, Locale.getDefault()))
                 .getSession()
     }
 
