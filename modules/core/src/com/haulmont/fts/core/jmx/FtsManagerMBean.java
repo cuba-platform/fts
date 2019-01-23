@@ -56,4 +56,10 @@ public interface FtsManagerMBean {
     @JmxRunAsync
     @ManagedOperation(description = "Reindex next entity from queue")
     String reindexNextBatch();
+
+    @ManagedOperation(description = "Returns current index format version")
+    String getIndexFormatVersion();
+
+    @ManagedOperation(description = "Returns last index format version supported by lucene")
+    String getLatestIndexFormatVersion();
 }

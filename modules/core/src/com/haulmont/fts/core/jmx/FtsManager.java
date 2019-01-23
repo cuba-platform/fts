@@ -152,4 +152,14 @@ public class FtsManager implements FtsManagerMBean {
             return ExceptionUtils.getStackTrace(e);
         }
     }
+
+    @Override
+    public String getIndexFormatVersion() {
+        return manager.getIndexFormatVersion();
+    }
+
+    @Override
+    public String getLatestIndexFormatVersion() {
+        return manager.getLatestIndexFormatVersion();
+    }
 }

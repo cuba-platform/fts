@@ -10,6 +10,7 @@ import com.haulmont.cuba.core.entity.Entity;
 
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 /**
  * Provides FTS service functions.
@@ -70,4 +71,14 @@ public interface FtsManagerAPI {
      * primary key
      */
     MetaProperty getPrimaryKeyPropertyForFts(MetaClass metaClass);
+
+    /**
+     * @return current index format version
+     */
+    String getIndexFormatVersion();
+
+    /**
+     * @return last index format version supported by lucene
+     */
+    String getLatestIndexFormatVersion();
 }

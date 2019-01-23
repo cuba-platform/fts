@@ -27,7 +27,10 @@ import com.haulmont.fts.core.sys.*;
 import com.haulmont.fts.global.FtsConfig;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.lucene.index.IndexFormatTooOldException;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -38,6 +41,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 
@@ -89,6 +94,11 @@ public class FtsManager implements FtsManagerAPI {
 
     @Inject
     protected LuceneIndexMaintenance luceneIndexMaintenance;
+
+    @Inject
+    protected DirectoryProvider directoryProvider;
+
+    protected static final Pattern TOO_OLD_INDEX_PATTERN = Pattern.compile("this index is too old \\(version: (.+)\\)");
 
     @Inject
     public void setServerInfo(ServerInfoAPI serverInfo) {
@@ -476,5 +486,45 @@ public class FtsManager implements FtsManagerAPI {
             return metaClass.getPropertyNN("uuid");
         }
         return metadata.getTools().getPrimaryKeyProperty(metaClass);
+    }
+
+    @Override
+    public String getIndexFormatVersion() {
+        try {
+            try {
+                SegmentInfos segmentInfos = SegmentInfos.readLatestCommit(directoryProvider.getDirectory());
+                Version version = segmentInfos.getMinSegmentLuceneVersion();
+                return version != null ? version.toString() : null;
+            } catch (IndexFormatTooOldException e) {
+                if (e.getVersion() != null) {
+                    switch (e.getVersion()) {
+                        case SegmentInfos.VERSION_53:
+                            return "5.3.0";
+                        case SegmentInfos.VERSION_70:
+                            return Version.LUCENE_7_0_0.toString();
+                        case SegmentInfos.VERSION_72:
+                            return Version.LUCENE_7_2_0.toString();
+                        case SegmentInfos.VERSION_74:
+                            return Version.LUCENE_7_4_0.toString();
+                        default:
+                            return null;
+                    }
+                }
+                if (e.getReason() != null) {
+                    Matcher matcher = TOO_OLD_INDEX_PATTERN.matcher(e.getReason());
+                    if (matcher.matches()) {
+                        return matcher.group(1);
+                    }
+                }
+            }
+            return null;
+        } catch (IOException e) {
+            throw new RuntimeException("Error while reading index", e);
+        }
+    }
+
+    @Override
+    public String getLatestIndexFormatVersion() {
+        return Version.LATEST.toString();
     }
 }
