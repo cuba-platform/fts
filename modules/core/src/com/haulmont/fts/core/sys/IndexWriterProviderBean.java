@@ -25,7 +25,6 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
 import org.apache.lucene.morphology.LuceneMorphology;
-import org.apache.lucene.search.SearcherManager;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
@@ -65,6 +64,7 @@ public class IndexWriterProviderBean implements IndexWriterProvider {
         try {
             IndexWriterConfig config = new IndexWriterConfig(analyzer);
             config.setIndexDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy());
+            config.setMergePolicy(new LiveUpgradeMergePolicy(config.getMergePolicy()));
             return new IndexWriter(directoryProvider.getDirectory(), config);
         } catch (IOException e) {
             throw new RuntimeException("Error on IndexWriter creation", e);
