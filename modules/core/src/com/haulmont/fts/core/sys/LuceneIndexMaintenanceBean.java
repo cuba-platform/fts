@@ -20,17 +20,17 @@ import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
 import com.haulmont.fts.global.FtsConfig;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.lucene.index.IndexUpgrader;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.MergePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
-import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Component(LuceneIndexMaintenance.NAME)
-public class LuceneIndexMaintenanceBean implements LuceneIndexMaintenance{
+public class LuceneIndexMaintenanceBean implements LuceneIndexMaintenance {
 
     @Inject
     protected FtsConfig ftsConfig;
@@ -39,10 +39,9 @@ public class LuceneIndexMaintenanceBean implements LuceneIndexMaintenance{
     protected IndexWriterProvider indexWriterProvider;
 
     @Inject
-    protected DirectoryProvider directoryProvider;
-
-    @Inject
     protected Authentication authentication;
+
+    protected final ReentrantLock optimizeLock = new ReentrantLock();
 
     private final Logger log = LoggerFactory.getLogger(LuceneIndexMaintenanceBean.class);
 
@@ -56,9 +55,14 @@ public class LuceneIndexMaintenanceBean implements LuceneIndexMaintenance{
         log.debug("Start optimize");
         authentication.begin();
         try {
-            IndexWriter indexWriter = indexWriterProvider.getIndexWriter();
-            indexWriter.forceMerge(1);
-            indexWriter.commit();
+            optimizeLock.lock();
+            try {
+                IndexWriter indexWriter = indexWriterProvider.getIndexWriter();
+                indexWriter.forceMerge(1);
+                indexWriter.commit();
+            } finally {
+                optimizeLock.unlock();
+            }
             return "Done";
         } catch (Throwable e) {
             log.error("Error", e);
@@ -70,13 +74,33 @@ public class LuceneIndexMaintenanceBean implements LuceneIndexMaintenance{
 
     @Override
     public String upgrade() {
-        IndexUpgrader upgrader = new IndexUpgrader(directoryProvider.getDirectory());
+        if (!AppContext.isStarted())
+            return "Application is not started";
+
+        log.debug("Start upgrade");
+        authentication.begin();
         try {
-            upgrader.upgrade();
-        } catch (IOException e) {
+            IndexWriter indexWriter = indexWriterProvider.getIndexWriter();
+            MergePolicy mergePolicy = indexWriter.getConfig().getMergePolicy();
+            optimizeLock.lock();
+            try {
+                if (mergePolicy instanceof LiveUpgradeMergePolicy) {
+                    ((LiveUpgradeMergePolicy) mergePolicy).setUpgradeInProgress(true);
+                }
+                indexWriter.forceMerge(1);
+                indexWriter.commit();
+            } finally {
+                if (mergePolicy instanceof LiveUpgradeMergePolicy) {
+                    ((LiveUpgradeMergePolicy) mergePolicy).setUpgradeInProgress(false);
+                }
+                optimizeLock.unlock();
+            }
+            return "Done";
+        } catch (Throwable e) {
             log.error("Error", e);
             return ExceptionUtils.getStackTrace(e);
+        } finally {
+            authentication.end();
         }
-        return "successful";
     }
 }
