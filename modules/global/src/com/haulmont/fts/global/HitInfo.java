@@ -231,20 +231,26 @@ public class HitInfo implements Serializable {
                 start = Math.max(tokenizer.getTokenStart() - FTS.HIT_CONTEXT_PAD, 0);
                 while (start > 0 && FTS.isTokenChar(fieldText.charAt(start)))
                     start--;
-                for (int i = 1; i < terms.size(); i++) {
-                    String term = terms.get(i);
-                    if (!tokenizer.hasMoreTokens()) {
-                        end = -1;
-                        break;
-                    }
-                    String w = tokenizer.nextToken();
-                    if (!w.equalsIgnoreCase(term)) {
-                        end = -1;
-                        break;
-                    }
+                if (terms.size() == 1) {
                     end = Math.min(tokenizer.getTokenEnd() + FTS.HIT_CONTEXT_PAD, fieldText.length());
                     while (end < fieldText.length() && FTS.isTokenChar(fieldText.charAt(end)))
                         end++;
+                } else {
+                    for (int i = 1; i < terms.size(); i++) {
+                        String term = terms.get(i);
+                        if (!tokenizer.hasMoreTokens()) {
+                            end = -1;
+                            break;
+                        }
+                        String w = tokenizer.nextToken();
+                        if (!w.equalsIgnoreCase(term)) {
+                            end = -1;
+                            break;
+                        }
+                        end = Math.min(tokenizer.getTokenEnd() + FTS.HIT_CONTEXT_PAD, fieldText.length());
+                        while (end < fieldText.length() && FTS.isTokenChar(fieldText.charAt(end)))
+                            end++;
+                    }
                 }
                 if (end == -1) {
                     continue;
