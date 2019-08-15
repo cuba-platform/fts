@@ -509,8 +509,6 @@ public class FtsManager implements FtsManagerAPI {
             } catch (IndexFormatTooOldException e) {
                 if (e.getVersion() != null) {
                     switch (e.getVersion()) {
-                        case SegmentInfos.VERSION_53:
-                            return "5.3.0";
                         case SegmentInfos.VERSION_70:
                             return Version.LUCENE_7_0_0.toString();
                         case SegmentInfos.VERSION_72:

@@ -24,7 +24,6 @@ public class EntityAttributeTokenizer extends CharTokenizer {
         super();
     }
 
-    @Override
     protected int normalize(int c) {
         return Character.toLowerCase(c);
     }

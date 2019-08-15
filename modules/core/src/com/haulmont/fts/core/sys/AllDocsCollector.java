@@ -17,8 +17,7 @@
 package com.haulmont.fts.core.sys;
 
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.SimpleCollector;
 
 import java.io.IOException;
@@ -52,7 +51,7 @@ public class AllDocsCollector extends SimpleCollector {
     }
 
     @Override
-    public boolean needsScores() {
-        return false;
+    public ScoreMode scoreMode() {
+        return ScoreMode.COMPLETE_NO_SCORES;
     }
 }

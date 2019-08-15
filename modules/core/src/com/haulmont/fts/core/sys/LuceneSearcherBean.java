@@ -55,7 +55,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
         IndexSearcher searcher = null;
         try {
             searcher = indexSearcherProvider.acquireIndexSearcher();
-            TopScoreDocCollector collector = TopScoreDocCollector.create(firstResult + maxResults);
+            TopScoreDocCollector collector = TopScoreDocCollector.create(firstResult + maxResults, Integer.MAX_VALUE);
             searcher.search(query, collector);
             TopDocs topDocs = collector.topDocs(firstResult, maxResults);
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
@@ -214,7 +214,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
         Query termQuery = new TermQuery(term);
         IndexSearcher searcher = indexSearcherProvider.acquireIndexSearcher();
         try {
-            TopScoreDocCollector collector = TopScoreDocCollector.create(firstResult + maxResults);
+            TopScoreDocCollector collector = TopScoreDocCollector.create(firstResult + maxResults, Integer.MAX_VALUE);
             searcher.search(termQuery, collector);
             TopDocs topDocs = collector.topDocs(firstResult, maxResults);
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
