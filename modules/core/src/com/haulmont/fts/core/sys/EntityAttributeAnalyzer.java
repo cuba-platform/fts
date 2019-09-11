@@ -16,13 +16,20 @@
 package com.haulmont.fts.core.sys;
 
 import org.apache.lucene.analysis.Analyzer;
-
-import java.io.Reader;
+import org.apache.lucene.analysis.LowerCaseFilter;
+import org.apache.lucene.analysis.TokenStream;
 
 public class EntityAttributeAnalyzer extends Analyzer {
 
     @Override
     protected TokenStreamComponents createComponents(String fieldName) {
-        return new TokenStreamComponents(new EntityAttributeTokenizer());
+        EntityAttributeTokenizer tokenizer = new EntityAttributeTokenizer();
+        TokenStream tokenStream = new LowerCaseFilter(tokenizer);
+        return new TokenStreamComponents(tokenizer, tokenStream);
+    }
+
+    @Override
+    protected TokenStream normalize(String fieldName, TokenStream in) {
+        return new LowerCaseFilter(in);
     }
 }

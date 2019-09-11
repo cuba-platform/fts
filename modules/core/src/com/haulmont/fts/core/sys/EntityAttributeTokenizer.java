@@ -24,11 +24,6 @@ public class EntityAttributeTokenizer extends CharTokenizer {
         super();
     }
 
-    protected int normalize(int c) {
-        return Character.toLowerCase(c);
-    }
-
-    @Override
     protected boolean isTokenChar(int c) {
         return FTS.isTokenChar(c);
     }
