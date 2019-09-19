@@ -72,4 +72,11 @@ public interface FtsConfig extends Config {
     @Property("fts.reindexBatchSize")
     @DefaultInt(5000)
     int getReindexBatchSize();
+
+    /**
+     * @return the maximum number of times the search term will be added to the hit info for each field
+     */
+    @Property("fts.maxNumberOfSearchTermsInHitInfo")
+    @DefaultInt(1)
+    int getMaxNumberOfSearchTermsInHitInfo();
 }

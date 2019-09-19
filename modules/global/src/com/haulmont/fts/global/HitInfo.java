@@ -16,6 +16,8 @@
 
 package com.haulmont.fts.global;
 
+import com.haulmont.cuba.core.global.AppBeans;
+import com.haulmont.cuba.core.global.Configuration;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
@@ -153,22 +155,28 @@ public class HitInfo implements Serializable {
             }
         }
 
+        int maxNumberOfSearchTermsInHitInfo = AppBeans.get(Configuration.class)
+                .getConfig(FtsConfig.class)
+                .getMaxNumberOfSearchTermsInHitInfo();
+
         for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
             String fieldName = entry.getKey();
             String fieldText = entry.getValue();
 
             if (phraseSearch) {
-                makeFieldPhraseText(terms, fieldName, fieldText);
+                makeFieldPhraseText(terms, fieldName, fieldText, maxNumberOfSearchTermsInHitInfo);
             } else {
-                makeFieldText(terms, fieldName, fieldText, likeSearch, normalizer);
+                makeFieldText(terms, fieldName, fieldText, likeSearch, normalizer, maxNumberOfSearchTermsInHitInfo);
             }
         }
     }
 
     private void makeFieldText(List<String> terms, String fieldName, String fieldText, boolean likeSearch,
-                               Normalizer normalizer) {
+                               Normalizer normalizer, int maxNumberOfSearchTerms) {
+        int numberOfSearchTermsFound = 0;
         StringBuilder sb = new StringBuilder();
         FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
+        outerLoop:
         while (tokenizer.hasMoreTokens()) {
             String word = tokenizer.nextToken().toLowerCase();
             List<String> normalForms = null;
@@ -182,11 +190,15 @@ public class HitInfo implements Serializable {
                 }
                 if (likeSearch ? word.contains(term) : word.startsWith(term)) {
                     makePartTextField(tokenizer, fieldText, sb);
+                    if (++numberOfSearchTermsFound >= maxNumberOfSearchTerms)
+                        break outerLoop;
                 } else {
                     if (!likeSearch && normalizer != null) {
                         for (String form : normalForms) {
                             if (form.equals(normalTerm)) {
                                 makePartTextField(tokenizer, fieldText, sb);
+                                if (++numberOfSearchTermsFound >= maxNumberOfSearchTerms)
+                                    break outerLoop;
                                 break;
                             }
                         }
@@ -220,7 +232,8 @@ public class HitInfo implements Serializable {
         }
     }
 
-    private void makeFieldPhraseText(List<String> terms, String fieldName, String fieldText) {
+    private void makeFieldPhraseText(List<String> terms, String fieldName, String fieldText, int maxNumberOfSearchTerms) {
+        int numberOfSearchTermsFound = 0;
         StringBuilder sb = new StringBuilder();
         FTS.Tokenizer tokenizer = new FTS.Tokenizer(fieldText);
         while (tokenizer.hasMoreTokens()) {
@@ -263,6 +276,9 @@ public class HitInfo implements Serializable {
                 sb.append(phrase);
                 if (end < fieldText.length())
                     sb.append("...");
+                if (++numberOfSearchTermsFound >= maxNumberOfSearchTerms)
+                    break;
+
             }
         }
         hits.put(fieldName, sb.toString());
