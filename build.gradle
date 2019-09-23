@@ -98,7 +98,9 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
     apply(plugin: 'cuba')
 
     dependencies {
-        testCompile(bom['junit:junit'])
+        testCompile(bom['org.junit.jupiter:junit-jupiter-api'])
+        testCompile(bom['org.junit.jupiter:junit-jupiter-engine'])
+        testCompile(bom['org.junit.vintage:junit-vintage-engine'])
         testCompile(bom['org.spockframework:spock-core']) {
             exclude(group: 'org.codehaus.groovy', module: 'groovy-all')
         }
@@ -196,6 +198,10 @@ configure([globalModule, coreModule, webModule, guiModule, desktopModule]) {
 
     check {
         dependsOn += ['pmdReport']
+    }
+
+    test {
+        useJUnitPlatform()
     }
 }
 
