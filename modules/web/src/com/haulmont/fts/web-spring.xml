@@ -29,6 +29,7 @@
         <property name="remoteServices">
             <map>
                 <entry key="cuba_FtsService" value="com.haulmont.fts.app.FtsService"/>
+                <entry key="cuba_HitInfoLoaderService" value="com.haulmont.fts.app.HitInfoLoaderService"/>
             </map>
         </property>
     </bean>

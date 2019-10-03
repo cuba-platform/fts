@@ -29,27 +29,29 @@ public interface FtsService {
 
     String NAME = "cuba_FtsService";
 
-
     /**
-     * Performs a full text search among all entities described in fts
-     * configuration file. Number of entities in result is restricted by
-     * {@link com.haulmont.fts.global.FtsConfig#getMaxSearchResults()}
+     * Performs a full text search among all entities described in fts configuration file. Number of entities in the result is restricted by {@link
+     * com.haulmont.fts.global.FtsConfig#getMaxSearchResults()}
      */
     default SearchResult search(String searchTerm) {
-        return search(searchTerm, (QueryKey) null);
+        return search(searchTerm, (QueryKey) null, FtsSearchOption.POPULATE_HIT_INFOS);
     }
 
     /**
-     * Performs a full text search among all entities described in fts
-     * configuration file. Number of entities in result is restricted by
-     * {@link com.haulmont.fts.global.FtsConfig#getMaxSearchResults()}
+     * Performs a full text search among all entities described in fts configuration file. Number of entities in the result is restricted by {@link
+     * com.haulmont.fts.global.FtsConfig#getMaxSearchResults()}
+     * <p>
+     * If the {@code searchOptions} contains the {@link FtsSearchOption#POPULATE_HIT_INFOS} value then all {@link
+     * com.haulmont.fts.global.SearchResultEntry} of the {@code SearchResult} will contain {@code hitInfos} collection filled.
      */
-    SearchResult search(String searchTerm, QueryKey queryKey);
+    SearchResult search(String searchTerm, QueryKey queryKey, FtsSearchOption... searchOptions);
 
     /**
-     * Performs a full text search. SearchResult will contain only entities with
-     * names passed in {@code entityNames} parameter.
-     * <p>Please notice that the result will contain all entities that match a search criteria</p>
+     * Performs a full text search. SearchResult will contain only entities with names passed in {@code entityNames} parameter.
+     * <p>
+     * Please notice that the result will contain all entities that match a search criteria>
+     * <p>
+     * The {@code hitInfos} collection of the {@link com.haulmont.fts.global.SearchResultEntry} WILL NOT be filled.
      */
     SearchResult search(String searchTerm, List<String> entityNames);
 
@@ -59,8 +61,8 @@ public interface FtsService {
     boolean isEntityIndexed(String entityName);
 
     /**
-     * @return a list of entity names that contains entity name from parameter itself,
-     * names of entity descendants and name of original meta class if passed entity is an extension
+     * @return a list of entity names that contains entity name from parameter itself, names of entity descendants and name of original meta class if
+     * passed entity is an extension
      */
     List<String> collectEntityHierarchyNames(String entityName);
 

@@ -15,6 +15,7 @@
  */
 package com.haulmont.fts.global;
 
+import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.util.*;
 
@@ -25,10 +26,9 @@ public class SearchResult implements Serializable {
     private static final long serialVersionUID = -7860852850200335906L;
 
     protected String searchTerm;
-
-    protected Map<String, Set<SearchResultEntry>> results = new HashMap<>();
-    protected Map<Object, HitInfo> hits = new HashMap<>();
     protected QueryKey queryKey;
+    protected Map<EntityInfo, SearchResultEntry> entriesByEntityInfo = new HashMap<>();
+    protected Map<String, Set<SearchResultEntry>> entriesByEntityName = new HashMap<>();
 
     public SearchResult(String searchTerm) {
         this.searchTerm = searchTerm;
@@ -39,57 +39,40 @@ public class SearchResult implements Serializable {
         return searchTerm;
     }
 
-    public Set<SearchResultEntry> getEntries(String entityName) {
-        Set<SearchResultEntry> entries = results.get(entityName);
+    public void addEntry(SearchResultEntry searchResultEntry) {
+        entriesByEntityInfo.put(searchResultEntry.getEntityInfo(), searchResultEntry);
+        Set<SearchResultEntry> entriesForEtityName = entriesByEntityName.computeIfAbsent(searchResultEntry.getEntityInfo().getEntityName(), s -> new HashSet<>());
+        entriesForEtityName.add(searchResultEntry);
+    }
+
+    @Nullable
+    public SearchResultEntry getEntryByEntityInfo(EntityInfo entityInfo) {
+        return entriesByEntityInfo.get(entityInfo);
+    }
+
+    public Set<SearchResultEntry> getEntriesByEntityName(String entityName) {
+        Set<SearchResultEntry> entries = entriesByEntityName.get(entityName);
         return entries == null ? Collections.emptySet() : Collections.unmodifiableSet(entries);
     }
 
     public Set<SearchResultEntry> getAllEntries() {
-        Set<SearchResultEntry> allEntries = new LinkedHashSet<>();
-        for (Set<SearchResultEntry> entries: results.values()) {
-            allEntries.addAll(entries);
-        }
-        return allEntries;
-    }
-
-    public void addEntry(SearchResultEntry entry) {
-        Set<SearchResultEntry> set = results.computeIfAbsent(entry.getEntityName(), k -> new LinkedHashSet<>());
-        set.add(entry);
+        return new HashSet<>(entriesByEntityInfo.values());
     }
 
     public Collection<String> getEntityNames() {
-        return results.keySet();
+        return entriesByEntityName.keySet();
     }
 
     public int getCount() {
-        return results.values().stream().mapToInt(Set::size).sum();
+        return entriesByEntityInfo.values().size();
     }
 
     public int getIdsCount() {
-        return queryKey.getIds().size();
-    }
-
-    public void addHit(Object id, String entityName,
-                       String text, Normalizer normalizer) {
-        EntityKey entityKey = new EntityKey(id, entityName);
-        HitInfo hi = hits.computeIfAbsent(entityKey, key -> new HitInfo());
-        hi.init(searchTerm, text, null, normalizer);
-    }
-
-    public void addLinkedHit(Object id, String entityName,
-                             String text, String linkedEntityName,
-                             Normalizer normalizer) {
-        EntityKey entityKey = new EntityKey(id, entityName);
-        HitInfo hi = hits.computeIfAbsent(entityKey, key -> new HitInfo());
-        hi.init(searchTerm, text, linkedEntityName, normalizer);
+        return queryKey.getEntityInfos().size();
     }
 
     public boolean isEmpty() {
-        return results.isEmpty();
-    }
-
-    public HitInfo getHitInfo(Object id, String entityName) {
-        return hits.get(new EntityKey(id, entityName));
+        return entriesByEntityInfo.isEmpty();
     }
 
     public QueryKey getQueryKey() {

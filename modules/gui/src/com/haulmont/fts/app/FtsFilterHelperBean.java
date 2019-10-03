@@ -24,16 +24,14 @@ import com.haulmont.cuba.core.global.UserSessionSource;
 import com.haulmont.cuba.gui.components.filter.FtsFilterHelper;
 import com.haulmont.cuba.gui.components.filter.condition.CustomCondition;
 import com.haulmont.cuba.security.global.UserSession;
+import com.haulmont.fts.global.FtsConfig;
 import com.haulmont.fts.global.HitInfo;
 import com.haulmont.fts.global.SearchResult;
-import com.haulmont.fts.global.SearchResultEntry;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component(FtsFilterHelper.NAME)
 public class FtsFilterHelperBean implements FtsFilterHelper {
@@ -50,6 +48,12 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
     @Inject
     protected Metadata metadata;
 
+    @Inject
+    protected HitInfoLoaderService hitInfoLoaderService;
+
+    @Inject
+    protected FtsConfig ftsConfig;
+
     @Override
     public boolean isEntityIndexed(String entityName) {
         return ftsService.isEntityIndexed(entityName);
@@ -59,32 +63,13 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
     public FtsSearchResult search(String searchTerm, String entityName) {
         List<String> entityNames = ftsService.collectEntityHierarchyNames(entityName);
         SearchResult searchResult = ftsService.search(searchTerm.toLowerCase(), entityNames);
-        List ids = new ArrayList<>();
-        Map<Object, String> resultHitInfos = new HashMap<>();
-        for (String entity : searchResult.getEntityNames()) {
-            for (SearchResultEntry entry : searchResult.getEntries(entity)) {
-                ids.add(entry.getId());
-                HitInfo hitInfo = searchResult.getHitInfo(entry.getId(), entityName);
-                if (hitInfo != null) {
-                    StringBuilder sb = new StringBuilder();
-                    for (Map.Entry<String, String> hitEntry : hitInfo.getHits().entrySet()) {
-                        sb.append(ftsService.getHitPropertyCaption(entity, hitEntry.getKey()))
-                                .append(": ")
-                                .append(hitEntry.getValue())
-                                .append("<br/>");
-
-                    }
-                    resultHitInfos.put(entry.getId(), sb.toString());
-                }
-            }
-        }
+        List ids = searchResult.getAllEntries().stream()
+                .map(searchResultEntry -> searchResultEntry.getEntityInfo().getId())
+                .collect(Collectors.toList());
         int queryKey = getNextQueryKey();
         queryResultsService.insert(queryKey, ids);
-
         FtsSearchResult ftsSearchResult = new FtsSearchResult();
         ftsSearchResult.setQueryKey(queryKey);
-        ftsSearchResult.setHitInfos(resultHitInfos);
-
         return ftsSearchResult;
     }
 
@@ -118,6 +103,22 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
         }
         return String.format("exists (select qr from sys$QueryResult qr where qr.%s = {E}.%s and qr.queryKey = :custom$%s and qr.sessionId = :custom$%s)",
                 entityIdField, primaryKeyForFts.getName(), queryKeyParamName, sessionIdParamName);
+    }
+
+    @Override
+    public String buildTableTooltip(String entityName, Object entityId, String searchTerm) {
+        //if the content is not stored in index, we cannot build the tooltip
+        if (!ftsConfig.getStoreContentInIndex()) return "";
+
+        List<HitInfo> hitInfos = hitInfoLoaderService.loadHitInfos(entityName, entityId, searchTerm);
+        StringBuilder sb = new StringBuilder();
+        for (HitInfo hitInfo : hitInfos) {
+            sb.append(ftsService.getHitPropertyCaption(entityName, hitInfo.getFieldName()))
+                    .append(": ")
+                    .append(hitInfo.getHighlightedText())
+                    .append("<br/>");
+        }
+        return sb.toString();
     }
 
     protected int getNextQueryKey() {

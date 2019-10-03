@@ -15,17 +15,24 @@
  */
 package com.haulmont.fts.core.app;
 
+import com.google.common.base.Joiner;
 import com.haulmont.chile.core.model.MetaClass;
 import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.chile.core.model.MetaPropertyPath;
 import com.haulmont.chile.core.model.MetadataObject;
+import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.global.Messages;
 import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.fts.app.FtsSearchOption;
 import com.haulmont.fts.app.FtsService;
-import com.haulmont.fts.core.sys.*;
-import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
+import com.haulmont.fts.app.HitInfoLoaderService;
+import com.haulmont.fts.core.sys.DatabaseDataLoader;
+import com.haulmont.fts.core.sys.EntityDescr;
+import com.haulmont.fts.core.sys.EntityDescrsManager;
+import com.haulmont.fts.core.sys.LuceneSearcher;
 import com.haulmont.fts.global.*;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
@@ -56,8 +63,11 @@ public class FtsServiceBean implements FtsService {
     @Inject
     protected DatabaseDataLoader databaseDataLoader;
 
+    @Inject
+    protected HitInfoLoaderService hitInfoLoaderService;
+
     @Override
-    public SearchResult search(String searchTerm, QueryKey queryKey) {
+    public SearchResult search(String searchTerm, QueryKey queryKey, FtsSearchOption... searchOptions) {
         SearchResult searchResult = new SearchResult(searchTerm);
 
         int maxSearchResults = coreConfig.getMaxSearchResults();
@@ -72,17 +82,21 @@ public class FtsServiceBean implements FtsService {
         }
 
         if (!searchByTerm) {
-            searchResult.getQueryKey().setIds(queryKey.getIds());
+            searchResult.getQueryKey().setEntityInfos(queryKey.getEntityInfos());
             searchResult.getQueryKey().setFirstResult(queryKey.getFirstResult());
         }
 
         searchByLinks(queryKey, searchResult, maxSearchResults);
 
         if (!searchByTerm && searchResult.getCount() == 0 && searchResult.getQueryKey().isSearchByTermAgain()) {
-            return search(searchTerm, searchResult.getQueryKey());
-        } else {
-            return searchResult;
+            searchResult = search(searchTerm, searchResult.getQueryKey(), searchOptions);
         }
+
+        if (coreConfig.getStoreContentInIndex() && ArrayUtils.contains(searchOptions, FtsSearchOption.POPULATE_HIT_INFOS)) {
+            hitInfoLoaderService.populateHitInfos(searchResult);
+        }
+
+        return searchResult;
     }
 
     @Override
@@ -92,11 +106,10 @@ public class FtsServiceBean implements FtsService {
 
         SearchResult searchResult = new SearchResult(searchTerm);
         for (EntityInfo entityInfo : allFieldResults) {
-            searchResult.addHit(entityInfo.getId(), entityInfo.getEntityName(), entityInfo.getText(), createNormalizer());
             //we don't reload entity because we don't need entity caption
-            SearchResultEntry entry = new SearchResultEntry(entityInfo.getId(), entityInfo.getEntityName(),
-                    entityInfo.getId().toString());
-            searchResult.addEntry(entry);
+            SearchResultEntry searchResultEntry = new SearchResultEntry(entityInfo);
+            searchResultEntry.setDirectResult(true);
+            searchResult.addEntry(searchResultEntry);
         }
 
         //try to find entities that has a link to other entities (not from entityNames collection)
@@ -114,10 +127,13 @@ public class FtsServiceBean implements FtsService {
             //that were indexed before this modification.
             entitiesWithLinkInfos.addAll(luceneSearcher.searchLinksField(linkedEntitiesInfo.getId(), entityNames));
             for (EntityInfo entityWithLinkInfo : entitiesWithLinkInfos) {
-                searchResult.addLinkedHit(entityWithLinkInfo.getId(), entityWithLinkInfo.getEntityName(), linkedEntitiesInfo.getText(),
-                        linkedEntitiesInfo.getEntityName(), createNormalizer());
-                searchResult.addEntry(new SearchResultEntry(entityWithLinkInfo.getId(), entityWithLinkInfo.getEntityName(),
-                        entityWithLinkInfo.getId().toString()));
+                SearchResultEntry entry = searchResult.getEntryByEntityInfo(entityWithLinkInfo);
+                if (entry == null) {
+                    entry = new SearchResultEntry(entityWithLinkInfo);
+                    entry.setDirectResult(false);
+                    searchResult.addEntry(entry);
+                }
+                entry.addLinkedEntity(linkedEntitiesInfo);
             }
         }
 
@@ -170,42 +186,38 @@ public class FtsServiceBean implements FtsService {
 
     @Override
     public String getHitPropertyCaption(String entityName, String hitProperty) {
+        List<String> captionParts = new ArrayList<>();
         String[] parts = hitProperty.split("\\.");
-        if (parts.length == 1) {
-            MetaClass metaClass = metadata.getSession().getClass(entityName);
-            if (metaClass == null)
-                return hitProperty;
+        MetaClass fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
+        MetaClass lastMetaClass = metadata.getSession().getClass(entityName);
+        for (int i = 0; i < parts.length; i++) {
+            MetaProperty lastMetaProperty = lastMetaClass.getProperty(parts[i]);
 
-            MetaProperty metaProperty = metaClass.getProperty(hitProperty);
-            if (metaProperty == null)
-                return hitProperty;
-
-            return messages.getTools().getPropertyCaption(metaProperty);
-        } else {
-            String linkEntityName = parts[0];
-            MetaClass metaClass = metadata.getSession().getClass(linkEntityName);
-            if (metaClass == null)
-                return hitProperty;
-
-            MetaClass fileMetaClass = metadata.getSession().getClassNN(FileDescriptor.class);
-
-            if (metaClass == fileMetaClass && parts[1].equals(FTS.FILE_CONT_PROP)) {
+            if (lastMetaClass == fileMetaClass && FTS.FILE_CONT_PROP.equals(parts[i])) {
                 StringBuilder sb = new StringBuilder();
-                for (int i = 2; i < parts.length; i++) {
-                    sb.append(parts[i]);
-                    if (i < parts.length - 1)
+                for (int j = i + 1; j < parts.length; j++) {
+                    sb.append(parts[j]);
+                    if (j < parts.length - 1)
                         sb.append(".");
                 }
-                return messages.formatMessage(FtsServiceBean.class, "fileContent", sb.toString());
+                captionParts.add(messages.formatMessage(FtsServiceBean.class, "fileContent", sb.toString()));
+                break;
             }
 
-            MetaProperty metaProperty = metaClass.getProperty(parts[1]);
-            if (metaProperty == null)
-                return hitProperty;
+            if (lastMetaProperty == null)
+                break;
 
-            return messages.getTools().getEntityCaption(metaClass) + "."
-                    + messages.getTools().getPropertyCaption(metaProperty);
+            captionParts.add(messages.getTools().getPropertyCaption(lastMetaProperty));
+            if (Entity.class.isAssignableFrom(lastMetaProperty.getJavaType())) {
+                lastMetaClass = lastMetaProperty.getRange().asClass();
+            } else if (Collection.class.isAssignableFrom(lastMetaProperty.getJavaType()) && lastMetaProperty.getRange().isClass()) {
+                lastMetaClass = lastMetaProperty.getRange().asClass();
+            } else {
+                break;
+            }
         }
+
+        return Joiner.on(".").join(captionParts);
     }
 
     @Override
@@ -220,10 +232,15 @@ public class FtsServiceBean implements FtsService {
         while (currentCount < maxSearchResults && !emptyIndex) {
             List<EntityInfo> indexResult = luceneSearcher.searchAllField(searchTerm, firstResult, maxSearchResults);
             if (!indexResult.isEmpty()) {
-                databaseDataLoader.mergeSearchData(searchResult, indexResult, false, (entityId, entityInfo) -> {
-                    searchResult.addHit(entityId, entityInfo.getEntityName(), entityInfo.getText(),
-                            createNormalizer());
-                    searchResult.getQueryKey().addId(entityId, entityInfo.getEntityName(), entityInfo.getText());
+                databaseDataLoader.mergeSearchData(indexResult, false, (callbackResult) -> {
+                    EntityInfo entityInfo = callbackResult.getEntityInfo();
+                    Entity entity = callbackResult.getEntity();
+                    if (callbackResult.isShowInResults()) {
+                        SearchResultEntry searchResultEntry = new SearchResultEntry(entityInfo, metadata.getTools().getInstanceName(entity));
+                        searchResultEntry.setDirectResult(true);
+                        searchResult.addEntry(searchResultEntry);
+                    }
+                    searchResult.getQueryKey().addEntityInfo(entityInfo);
                 });
                 currentCount = Math.max(searchResult.getCount(), searchResult.getIdsCount());
                 firstResult += maxSearchResults;
@@ -235,9 +252,9 @@ public class FtsServiceBean implements FtsService {
     }
 
     protected void searchByLinks(QueryKey queryKey, SearchResult searchResult, int maxSearchResults) {
-        EntityKey currentEntityKey = queryKey == null ? null : queryKey.getLastId();
+        EntityInfo currentEntityKey = queryKey == null ? null : queryKey.getLastId();
         boolean skip = true;
-        for (EntityKey entityKey : searchResult.getQueryKey().getIds()) {
+        for (EntityInfo entityInfo : searchResult.getQueryKey().getEntityInfos()) {
             if (searchResult.getCount() >= maxSearchResults) {
                 break;
             }
@@ -245,24 +262,30 @@ public class FtsServiceBean implements FtsService {
             if (currentEntityKey == null) {
                 skip = false;
             }
-            if (Objects.equals(currentEntityKey, entityKey) && queryKey != null) {
+            if (Objects.equals(currentEntityKey, entityInfo) && queryKey != null) {
                 skip = false;
                 firstResult = queryKey.getLinksFirstResult();
             }
             if (skip) {
                 continue;
             }
-            currentEntityKey = entityKey;
+            currentEntityKey = entityInfo;
             boolean emptyIndex = false;
             while (searchResult.getCount() < maxSearchResults && !emptyIndex) {
-                List<EntityInfo> indexResult = luceneSearcher.searchLinksField(entityKey.toString(), firstResult, maxSearchResults);
+                List<EntityInfo> indexResult = luceneSearcher.searchLinksField(entityInfo.toString(), firstResult, maxSearchResults);
                 //Previously "links" field of the Lucene document contained a set of linked entities ids.
                 //Now a set of {@link EntityInfo} strings is stored there.
-                indexResult.addAll(luceneSearcher.searchLinksField(entityKey.getId(), firstResult, maxSearchResults));
+                indexResult.addAll(luceneSearcher.searchLinksField(entityInfo.getId(), firstResult, maxSearchResults));
                 if (!indexResult.isEmpty()) {
-                    databaseDataLoader.mergeSearchData(searchResult, indexResult, true, (entityIdWithLink, entityInfoWithLink) -> {
-                        searchResult.addLinkedHit(entityIdWithLink, entityInfoWithLink.getEntityName(), entityKey.getText(),
-                                entityKey.getEntityName(), createNormalizer());
+                    databaseDataLoader.mergeSearchData(indexResult, true, (callbackResult) -> {
+                        EntityInfo entityInfoWithLink = callbackResult.getEntityInfo();
+                        SearchResultEntry entry = searchResult.getEntryByEntityInfo(entityInfoWithLink);
+                        if (entry == null) {
+                            String instanceName = metadata.getTools().getInstanceName(callbackResult.getEntity());
+                            entry = new SearchResultEntry(entityInfoWithLink, instanceName);
+                            searchResult.addEntry(entry);
+                        }
+                        entry.addLinkedEntity(entityInfo);
                     });
                     firstResult += maxSearchResults;
                 } else {
@@ -274,7 +297,7 @@ public class FtsServiceBean implements FtsService {
                 searchResult.getQueryKey().setLastId(currentEntityKey);
                 break;
             } else {
-                List<EntityKey> ids = searchResult.getQueryKey().getIds();
+                List<EntityInfo> ids = searchResult.getQueryKey().getEntityInfos();
                 if (ids.indexOf(currentEntityKey) == ids.size() - 1) {
                     searchResult.getQueryKey().setLastId(null);
                     searchResult.getQueryKey().setLinksFirstResult(0);
@@ -285,10 +308,5 @@ public class FtsServiceBean implements FtsService {
                 }
             }
         }
-    }
-
-
-    protected Normalizer createNormalizer() {
-        return new MorphologyNormalizer();
     }
 }

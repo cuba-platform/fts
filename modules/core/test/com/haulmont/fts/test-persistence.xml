@@ -22,5 +22,7 @@
     <persistence-unit name="fts" transaction-type="RESOURCE_LOCAL">
         <class>com.haulmont.fts.testmodel.searchresult.MainEntity</class>
         <class>com.haulmont.fts.testmodel.searchresult.RelatedEntity</class>
+        <class>com.haulmont.fts.testmodel.searchresult.Book</class>
+        <class>com.haulmont.fts.testmodel.searchresult.BookReview</class>
     </persistence-unit>
 </persistence>

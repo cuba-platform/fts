@@ -16,6 +16,8 @@
 
 package com.haulmont.fts.core.sys;
 
+import com.haulmont.fts.global.EntityInfo;
+
 import java.util.Collection;
 import java.util.List;
 

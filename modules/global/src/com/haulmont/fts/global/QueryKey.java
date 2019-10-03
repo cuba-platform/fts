@@ -33,8 +33,8 @@ public class QueryKey implements Serializable {
 
     protected int firstResult;
     protected int linksFirstResult;
-    protected EntityKey lastId;
-    protected List<EntityKey> ids = new ArrayList<>();
+    protected EntityInfo lastId;
+    protected List<EntityInfo> entityInfos = new ArrayList<>();
     protected boolean searchByTermAgain;
 
     public int getFirstResult() {
@@ -53,24 +53,24 @@ public class QueryKey implements Serializable {
         this.linksFirstResult = linksFirstResult;
     }
 
-    public EntityKey getLastId() {
+    public EntityInfo getLastId() {
         return lastId;
     }
 
-    public void setLastId(EntityKey lastId) {
+    public void setLastId(EntityInfo lastId) {
         this.lastId = lastId;
     }
 
-    public List<EntityKey> getIds() {
-        return Collections.unmodifiableList(ids);
+    public List<EntityInfo> getEntityInfos() {
+        return Collections.unmodifiableList(entityInfos);
     }
 
-    public void addId(Object id, String entityName, String text) {
-        ids.add(new EntityKey(id, entityName, text));
+    public void addEntityInfo(EntityInfo entityInfo) {
+        entityInfos.add(entityInfo);
     }
 
-    public void setIds(List<EntityKey> ids) {
-        this.ids = new ArrayList<>(ids);
+    public void setEntityInfos(List<EntityInfo> entityInfos) {
+        this.entityInfos = new ArrayList<>(entityInfos);
     }
 
     public boolean isSearchByTermAgain() {

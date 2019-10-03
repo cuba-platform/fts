@@ -232,7 +232,7 @@ class SearchResultsManagerTest extends Specification {
             boolean exists = indexResults.stream().anyMatch(new Predicate<SearchResultEntry>() {
                 @Override
                 boolean test(SearchResultEntry t) {
-                    return Objects.equals(entity.id, t.id)
+                    return Objects.equals(entity.id, t.entityInfo.id)
                 }
             })
             assert exists

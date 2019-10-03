@@ -23,5 +23,13 @@
         <entity class="com.haulmont.fts.testmodel.searchresult.RelatedEntity">
             <include re=".*"/>
         </entity>
+        <entity class="com.haulmont.fts.testmodel.searchresult.Book">
+            <include re=".*"/>
+            <include name="bookReviews.reviewFile"/>
+        </entity>
+        <entity class="com.haulmont.fts.testmodel.searchresult.BookReview" show="false">
+            <include re=".*"/>
+            <exclude name="book"/>
+        </entity>
     </entities>
 </fts-config>

@@ -29,6 +29,7 @@ import com.haulmont.cuba.core.entity.FtsChangeType;
 import com.haulmont.cuba.core.entity.HasUuid;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.FileStorageException;
+import com.haulmont.fts.global.EntityInfo;
 import com.haulmont.fts.global.FTS;
 import com.haulmont.fts.global.FtsConfig;
 import com.haulmont.fts.global.ValueFormatter;
@@ -60,7 +61,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import static com.haulmont.fts.core.sys.LuceneConstants.*;
 
@@ -183,6 +186,12 @@ public class LuceneIndexerBean implements LuceneIndexer {
         }
     }
 
+    /**
+     * Example of the "all" field content:
+     * <ul>
+     *     <li>^^description Description of the book goes here ^^title War and Peace</li>
+     * </ul>
+     */
     protected String createAllFieldContent(Entity entity, EntityDescr descr) throws IndexingException {
         StringBuilder sb = new StringBuilder();
 
@@ -279,6 +288,13 @@ public class LuceneIndexerBean implements LuceneIndexer {
         return parser;
     }
 
+    /**
+     * Examples of the "links" field:
+     * <ul>
+     *     <li><i>^^ebook sys$FileDescriptor-bfec4205-11e1-3c7e-9644-7eee3a732fb2 ^^author sample_Author-0872af91-17d4-304e-85b4-b871aa9e41f6</i></li>
+     *     <li><i>^^attachments^file sys$FileDescriptor-3f659ed4-2d7c-895b-fefc-4f8936c2a80d sys$FileDescriptor-4e8f45c3-64d5-6346-c7ba-6697adfe85db</i></li>
+     * </ul>
+     */
     protected String createLinksFieldContent(Entity entity, EntityDescr descr) {
         StringBuilder sb = new StringBuilder();
 
@@ -305,7 +321,7 @@ public class LuceneIndexerBean implements LuceneIndexer {
         if (value instanceof Entity) {
             if (propertyPath.length == 1) {
                 String originalMetaClassName = metadata.getExtendedEntities().getEffectiveMetaClass(((Entity) value).getMetaClass()).getName();
-                String entityInfoStr = new EntityInfo(originalMetaClassName, ((Entity) value).getId(), null, true).toString();
+                String entityInfoStr = new EntityInfo(originalMetaClassName, ((Entity) value).getId()).toString();
                 appendString(sb, entityInfoStr);
             } else {
                 addLinkedPropertyEx(sb, (Entity) value, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));
@@ -316,7 +332,7 @@ public class LuceneIndexerBean implements LuceneIndexer {
                 if (inst != null) {
                     if (propertyPath.length == 1) {
                         String originalMetaClassName = metadata.getExtendedEntities().getEffectiveMetaClass(inst.getMetaClass()).getName();
-                        String entityInfoStr = new EntityInfo(originalMetaClassName, inst.getId(), null, true).toString();
+                        String entityInfoStr = new EntityInfo(originalMetaClassName, inst.getId()).toString();
                         appendString(sb, entityInfoStr);
                     } else {
                         addLinkedPropertyEx(sb, inst, (String[]) ArrayUtils.subarray(propertyPath, 1, propertyPath.length));

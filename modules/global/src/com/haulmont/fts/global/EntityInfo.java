@@ -13,48 +13,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.haulmont.fts.global;
 
 import java.io.Serializable;
 import java.util.Objects;
 
-public class EntityKey implements Serializable {
-    private static final long serialVersionUID = -9098046057448670825L;
+/**
+ * Class holds an information about the entity
+ */
+public class EntityInfo implements Serializable {
 
-    protected Object id;
-    protected String entityName;
-    protected String text;
+    private String entityName;
+    private Object id;
 
-    public EntityKey(Object id, String entityName, String text) {
+    public EntityInfo(String entityName, Object id) {
         this.id = id;
         this.entityName = entityName;
-        this.text = text;
-    }
-
-    public EntityKey(Object id, String entityName) {
-        this(id, entityName, null);
-    }
-
-    public String getEntityName() {
-        return entityName;
     }
 
     public Object getId() {
         return id;
     }
 
-    public String getText() {
-        return text;
+    public String getEntityName() {
+        return entityName;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        EntityKey entityKey = (EntityKey) o;
-        return Objects.equals(entityName, entityKey.entityName) &&
-                Objects.equals(id, entityKey.id);
+        EntityInfo that = (EntityInfo) o;
+        return Objects.equals(entityName, that.entityName) &&
+                Objects.equals(id, that.id);
     }
 
     @Override
