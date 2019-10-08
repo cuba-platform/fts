@@ -40,6 +40,9 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.TermQuery;
 import org.apache.poi.poifs.filesystem.OfficeXmlFileException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
@@ -60,7 +63,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import static com.haulmont.fts.core.sys.LuceneConstants.*;
 
@@ -95,7 +100,7 @@ public class LuceneIndexerBean implements LuceneIndexer {
     public void indexEntity(String entityName, Object entityId, FtsChangeType changeType, IndexWriter writer) throws IndexingException {
         if (FtsChangeType.DELETE.equals(changeType)) {
             try {
-                writer.deleteDocuments(new Term(FLD_ID, entityId.toString()));
+                deleteDocument(entityName, entityId, writer);
             } catch (IOException e) {
                 log.error("Error deleting {}-{}", entityName, entityId);
                 throw new RuntimeException("Error on deleting a document from the Lucene index", e);
@@ -165,7 +170,8 @@ public class LuceneIndexerBean implements LuceneIndexer {
 
             if (FtsChangeType.UPDATE.equals(changeType)) {
                 log.debug("Updating document {}-{}", entityName, entityId);
-                writer.updateDocument(new Term(FLD_ID, entityId.toString()), doc);
+                deleteDocument(entityName, entityId, writer);
+                writer.addDocument(doc);
             } else {
                 log.debug("Adding document {}-{}", entityName, entityId);
                 writer.addDocument(doc);
@@ -181,6 +187,15 @@ public class LuceneIndexerBean implements LuceneIndexer {
             log.error("Error indexing {}-{}", entityName, entityId);
             throw e;
         }
+    }
+
+    protected void deleteDocument(String entityName, Object entityId, IndexWriter writer) throws IOException {
+        BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
+        Term entityNameTerm = new Term(FLD_ENTITY, entityName);
+        Term idTerm = new Term(FLD_ID, entityId.toString());
+        queryBuilder.add(new TermQuery(idTerm), BooleanClause.Occur.MUST);
+        queryBuilder.add(new TermQuery(entityNameTerm), BooleanClause.Occur.MUST);
+        writer.deleteDocuments(queryBuilder.build());
     }
 
     protected String createAllFieldContent(Entity entity, EntityDescr descr) throws IndexingException {
