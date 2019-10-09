@@ -33,8 +33,12 @@ import com.haulmont.cuba.gui.config.WindowConfig;
 import com.haulmont.cuba.gui.screen.Screen;
 import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 import com.haulmont.cuba.web.App;
+import com.haulmont.fts.app.FtsSearchOption;
 import com.haulmont.fts.app.FtsService;
-import com.haulmont.fts.global.*;
+import com.haulmont.fts.global.FtsConfig;
+import com.haulmont.fts.global.HitInfo;
+import com.haulmont.fts.global.SearchResult;
+import com.haulmont.fts.global.SearchResultEntry;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Inject;
@@ -134,7 +138,7 @@ public class SearchResultsWindow extends AbstractWindow {
         pages = EvictingQueue.create(ftsConfig.getPagesCount());
         currentPage = new Page(0);
         if (searchResult == null) {
-            searchResult = ftsService.search(searchTerm.toLowerCase(), (QueryKey) null);
+            searchResult = ftsService.search(searchTerm.toLowerCase(), null, FtsSearchOption.POPULATE_HIT_INFOS);
         }
         currentPage.setSearchResult(searchResult);
         pages.add(currentPage);
@@ -225,7 +229,7 @@ public class SearchResultsWindow extends AbstractWindow {
         Page lastPage = getLastPage();
         if (lastPage != null) {
             SearchResult lastSearchResult = lastPage.getSearchResult();
-            SearchResult searchResult = ftsService.search(lastSearchResult.getSearchTerm(), lastSearchResult.getQueryKey());
+            SearchResult searchResult = ftsService.search(lastSearchResult.getSearchTerm(), lastSearchResult.getQueryKey(), FtsSearchOption.POPULATE_HIT_INFOS);
             if (searchResult.getCount() == 0) {
                 currentPage.setLastPage(true);
                 paintNavigationControls(pages);
@@ -270,7 +274,7 @@ public class SearchResultsWindow extends AbstractWindow {
     }
 
     protected void displayInstances(SearchResult searchResult, String entityName, CssLayout instancesLayout) {
-        Set<SearchResultEntry> entries = searchResult.getEntries(entityName);
+        Set<SearchResultEntry> entries = searchResult.getEntriesByEntityName(entityName);
 
         for (SearchResultEntry entry : entries) {
             Button instanceBtn = createInstanceButton(entityName, entry);
@@ -279,22 +283,18 @@ public class SearchResultsWindow extends AbstractWindow {
 
             instancesLayout.add(instanceBtn);
 
-            HitInfo hi = searchResult.getHitInfo(entry.getId(), entityName);
-            if (hi != null) {
-                List<String> list = new ArrayList<>(hi.getHits().size());
-                for (Map.Entry<String, String> hitEntry : hi.getHits().entrySet()) {
-                    String hitProperty = hitEntry.getKey();
-                    list.add(ftsService.getHitPropertyCaption(entityName, hitProperty) + ": " + hitEntry.getValue());
-                }
-                Collections.sort(list);
+            List<String> list = new ArrayList<>(entry.getHitInfos().size());
+            for (HitInfo hitInfo : entry.getHitInfos()) {
+                list.add(ftsService.getHitPropertyCaption(entityName, hitInfo.getFieldName()) + ": " + hitInfo.getHighlightedText());
+            }
+            Collections.sort(list);
 
-                for (String caption : list) {
-                    Label hitLabel = createHitLabel(caption);
-                    hitLabel.addStyleName("c-fts-hit");
-                    hitLabel.addStyleName("fts-hit");
-                    hitLabel.setAlignment(Alignment.MIDDLE_LEFT);
-                    instancesLayout.add(hitLabel);
-                }
+            for (String caption : list) {
+                Label hitLabel = createHitLabel(caption);
+                hitLabel.addStyleName("c-fts-hit");
+                hitLabel.addStyleName("fts-hit");
+                hitLabel.setAlignment(Alignment.MIDDLE_LEFT);
+                instancesLayout.add(hitLabel);
             }
         }
     }
@@ -304,7 +304,7 @@ public class SearchResultsWindow extends AbstractWindow {
         instanceBtn.setStyleName("fts-found-instance");
 
         BaseAction action = new BaseAction("instanceButton");
-        action.withCaption(entry.getCaption());
+        action.withCaption(entry.getInstanceName());
         action.withHandler(e -> onInstanceClick(entityName, entry));
 
         instanceBtn.setAction(action);
@@ -339,7 +339,7 @@ public class SearchResultsWindow extends AbstractWindow {
     protected void openEntityWindow(SearchResultEntry entry, String entityName, WindowManager.OpenType openType) {
         WindowConfig windowConfig = AppBeans.get(WindowConfig.NAME);
         MetaClass metaClass = metadata.getSession().getClass(entityName);
-        Entity entity = reloadEntity(metaClass, entry.getId());
+        Entity entity = reloadEntity(metaClass, entry.getEntityInfo().getId());
         openEditor(windowConfig.getEditorScreenId(metaClass), entity, openType);
     }
 

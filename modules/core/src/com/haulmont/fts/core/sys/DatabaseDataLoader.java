@@ -27,9 +27,8 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.View;
 import com.haulmont.cuba.security.entity.EntityOp;
 import com.haulmont.fts.core.app.FtsManagerAPI;
+import com.haulmont.fts.global.EntityInfo;
 import com.haulmont.fts.global.FtsConfig;
-import com.haulmont.fts.global.SearchResult;
-import com.haulmont.fts.global.SearchResultEntry;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
@@ -39,6 +38,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Class is used to filter entities that are found in Lucene index but are not allowed for the user because of row-level security constraints.
+ */
 @Component(DatabaseDataLoader.NAME)
 public class DatabaseDataLoader {
 
@@ -56,13 +58,53 @@ public class DatabaseDataLoader {
     protected FtsConfig ftsConfig;
 
     public interface SearchEntryCallback {
-        void entryAdded(Object entityId, EntityInfo entityInfo);
+        void entryAdded(SearchEntryCallbackResult searchEntryCallbackResult);
     }
 
-    public void mergeSearchData(SearchResult searchResult, List<EntityInfo> mergedData,
+    public static class SearchEntryCallbackResult {
+        protected Entity entity;
+        protected EntityInfo entityInfo;
+        protected boolean showInResults;
+
+        public EntityInfo getEntityInfo() {
+            return entityInfo;
+        }
+
+        public void setEntityInfo(EntityInfo entityInfo) {
+            this.entityInfo = entityInfo;
+        }
+
+        public boolean isShowInResults() {
+            return showInResults;
+        }
+
+        public void setShowInResults(boolean searchInResult) {
+            this.showInResults = searchInResult;
+        }
+
+        public Entity getEntity() {
+            return entity;
+        }
+
+        public void setEntity(Entity entity) {
+            this.entity = entity;
+        }
+    }
+
+    /**
+     * Method accepts a list of {@link EntityInfo} objects that contains entities found by full-text search in Lucene index. Methods checks which of
+     * these entities are allowed by row-level security and invokes the {@code callback} for each allowed entity.
+     *
+     * @param entitiesFoundByFts    a list of entities found by full-text search in Lucene index
+     * @param filterByShowInResults indicates that the "show" attribute from the "fts.xml" config should be taken into account. If the {@code
+     *                              filterByShowInResults} is true and the entity should not be shown in FTS results then entities of this type will
+     *                              be ignored by the method.
+     * @param callback              a callback that will be invoked for each entity that is allowed for the user by row-level security
+     */
+    public void mergeSearchData(List<EntityInfo> entitiesFoundByFts,
                                 boolean filterByShowInResults,
                                 SearchEntryCallback callback) {
-        Map<String, List<EntityInfo>> resultByType = mergedData.stream()
+        Map<String, List<EntityInfo>> resultByType = entitiesFoundByFts.stream()
                 .collect(Collectors.groupingBy(EntityInfo::getEntityName));
         for (String entityType : resultByType.keySet()) {
             boolean showInResults = manager.showInResults(entityType);
@@ -74,24 +116,23 @@ public class DatabaseDataLoader {
                 continue;
             }
             List<EntityInfo> infoList = resultByType.get(entityType);
-            Map<Object, EntityInfo> entityIds = new LinkedHashMap<>();
+            Map<Object, EntityInfo> entityInfosMap = new LinkedHashMap<>();
             for (EntityInfo info : infoList) {
-                entityIds.put(info.getId(), info);
+                entityInfosMap.put(info.getId(), info);
             }
-            List<Entity> entities = loadEntities(Lists.newArrayList(entityIds.keySet()), metaClass);
+            List<Entity> entities = loadEntities(Lists.newArrayList(entityInfosMap.keySet()), metaClass);
             for (Entity entity : entities) {
                 MetaProperty idProperty = manager.getPrimaryKeyPropertyForFts(metaClass);
                 Object entityId = entity.getValue(idProperty.getName());
                 if (entityId instanceof IdProxy) {
                     entityId = ((IdProxy) entityId).getNN();
                 }
-                EntityInfo entityInfo = entityIds.get(entityId);
-                if (showInResults) {
-                    searchResult.addEntry(new SearchResultEntry(entityId,
-                            entityInfo.getEntityName(),
-                            entity.getInstanceName()));
-                }
-                callback.entryAdded(entityId, entityInfo);
+                EntityInfo entityInfo = entityInfosMap.get(entityId);
+                SearchEntryCallbackResult result = new SearchEntryCallbackResult();
+                result.setEntityInfo(entityInfo);
+                result.setShowInResults(showInResults);
+                result.setEntity(entity);
+                callback.entryAdded(result);
             }
         }
     }

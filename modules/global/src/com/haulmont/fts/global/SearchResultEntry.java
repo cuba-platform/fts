@@ -17,51 +17,69 @@
 package com.haulmont.fts.global;
 
 import java.io.Serializable;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 
-public class SearchResultEntry implements Serializable, Comparable<SearchResultEntry> {
+/**
+ * Class represents a single entry of the {@link SearchResult}. Each entry is linked with a single entity.
+ * <p>
+ * The {@link #isDirectResult} field is true if the searchTerm was found among local properties of the entity
+ * <p>
+ * The {@link #linkedEntityInfos} collection contains a list of linked entities which contain the searchTerm
+ * <p>
+ * The {@link #hitInfos} collection contains an information in which field the searchTerm was found (both for local fields and for linked entities)
+ * and also the hitInfo contains a piece highlighted text which includes the search term
+ */
+public class SearchResultEntry implements Serializable {
     private static final long serialVersionUID = -1033032285547581245L;
 
-    private Object id;
-    private String entityName;
-    private String caption;
+    protected EntityInfo entityInfo;
+    protected String instanceName;
+    protected boolean isDirectResult;
+    protected List<EntityInfo> linkedEntityInfos = new ArrayList<>();
+    protected List<HitInfo> hitInfos = new ArrayList<>();
 
-    public SearchResultEntry(Object id, String entityName, String caption) {
-        this.id = id;
-        this.entityName = entityName;
-        this.caption = caption;
+    public SearchResultEntry(EntityInfo entityInfo) {
+        this.entityInfo = entityInfo;
     }
 
-    public Object getId() {
-        return id;
+    public SearchResultEntry(EntityInfo entityInfo, String instanceName) {
+        this.entityInfo = entityInfo;
+        this.instanceName = instanceName;
     }
 
-    public String getEntityName() {
-        return entityName;
+    public EntityInfo getEntityInfo() {
+        return entityInfo;
     }
 
-    public String getCaption() {
-        return caption;
+    public String getInstanceName() {
+        return instanceName;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SearchResultEntry that = (SearchResultEntry) o;
-        return Objects.equals(id, that.id) &&
-                Objects.equals(entityName, that.entityName);
+    public List<EntityInfo> getLinkedEntityInfos() {
+        return linkedEntityInfos;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, entityName);
+    public void addLinkedEntity(EntityInfo linkedEntityInfo) {
+        linkedEntityInfos.add(linkedEntityInfo);
     }
 
-    @Override
-    public int compareTo(SearchResultEntry o) {
-        String c1 = caption == null ? "" : caption;
-        String c2 = o.caption == null ? "" : o.caption;
-        return c1.compareTo(c2);
+    public List<HitInfo> getHitInfos() {
+        return hitInfos;
+    }
+
+    public void setHitInfos(List<HitInfo> hitInfos) {
+        this.hitInfos = hitInfos;
+    }
+
+    /**
+     * @return true if the searchTerm was found in own fields of the entity (in the "all" field of the Lucene document)
+     */
+    public boolean isDirectResult() {
+        return isDirectResult;
+    }
+
+    public void setDirectResult(boolean directResult) {
+        isDirectResult = directResult;
     }
 }

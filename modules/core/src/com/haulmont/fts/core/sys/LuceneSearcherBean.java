@@ -22,15 +22,13 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.UuidProvider;
 import com.haulmont.fts.core.app.FtsManagerAPI;
 import com.haulmont.fts.core.sys.morphology.MorphologyNormalizer;
+import com.haulmont.fts.global.EntityInfo;
 import com.haulmont.fts.global.FTS;
-import com.haulmont.fts.global.FtsConfig;
 import com.haulmont.fts.global.ValueFormatter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
@@ -41,9 +39,6 @@ import static com.haulmont.fts.core.sys.LuceneConstants.*;
 
 @Component(LuceneSearcher.NAME)
 public class LuceneSearcherBean implements LuceneSearcher {
-
-    @Inject
-    protected FtsConfig ftsConfig;
 
     @Inject
     protected IndexSearcherProvider indexSearcherProvider;
@@ -62,8 +57,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
                 String strEntityId = doc.getField(FLD_ID).stringValue();
-                String text = ftsConfig.getStoreContentInIndex() ? doc.getField(FLD_ALL).stringValue() : null;
-                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName), text, false);
+                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName));
                 set.add(entityInfo);
             }
         } catch (IOException e) {
@@ -88,8 +82,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
                 Document doc = searcher.doc(docId);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
                 String strEntityId = doc.getField(FLD_ID).stringValue();
-                String text = ftsConfig.getStoreContentInIndex() ? doc.getField(FLD_ALL).stringValue() : null;
-                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName), text, false);
+                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName));
                 set.add(entityInfo);
             }
         } catch (IOException e) {
@@ -221,7 +214,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
                 Document doc = searcher.doc(scoreDoc.doc);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
                 String strEntityId = doc.getField(FLD_ID).stringValue();
-                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName), null, true);
+                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName));
                 set.add(entityInfo);
             }
         } catch (IOException e) {
@@ -244,8 +237,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
                 Document doc = searcher.doc(docId);
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
                 String strEntityId = doc.getField(FLD_ID).stringValue();
-                String text = ftsConfig.getStoreContentInIndex() ? doc.getField(FLD_ALL).stringValue() : null;
-                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName), text, true);
+                EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName));
                 set.add(entityInfo);
             }
         } catch (IOException e) {
