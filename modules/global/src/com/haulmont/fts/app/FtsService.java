@@ -49,7 +49,7 @@ public interface FtsService {
     /**
      * Performs a full text search. SearchResult will contain only entities with names passed in {@code entityNames} parameter.
      * <p>
-     * Please notice that the result will contain all entities that match a search criteria>
+     * Please notice that the result will contain all entities that match a search criteria
      * <p>
      * The {@code hitInfos} collection of the {@link com.haulmont.fts.global.SearchResultEntry} WILL NOT be filled.
      */
