@@ -16,7 +16,10 @@
   -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:context="http://www.springframework.org/schema/context">
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:gui="http://schemas.haulmont.com/cuba/spring/cuba-gui.xsd">
+
+    <gui:screens base-packages="com.haulmont.fts"/>
 
     <!-- Annotation-based beans -->
 

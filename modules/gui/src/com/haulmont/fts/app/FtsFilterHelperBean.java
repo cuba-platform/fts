@@ -21,9 +21,11 @@ import com.haulmont.chile.core.model.MetaProperty;
 import com.haulmont.cuba.core.app.QueryResultsService;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.UserSessionSource;
+import com.haulmont.cuba.gui.components.Action;
 import com.haulmont.cuba.gui.components.filter.FtsFilterHelper;
 import com.haulmont.cuba.gui.components.filter.condition.CustomCondition;
 import com.haulmont.cuba.security.global.UserSession;
+import com.haulmont.fts.action.ShowHitInfoDetailsAction;
 import com.haulmont.fts.global.FtsConfig;
 import com.haulmont.fts.global.HitInfo;
 import com.haulmont.fts.global.SearchResult;
@@ -119,6 +121,11 @@ public class FtsFilterHelperBean implements FtsFilterHelper {
                     .append("<br/>");
         }
         return sb.toString();
+    }
+
+    @Override
+    public Action createFtsDetailsAction(String searchTerm) {
+        return new ShowHitInfoDetailsAction(searchTerm);
     }
 
     protected int getNextQueryKey() {
