@@ -65,6 +65,13 @@ public interface FtsConfig extends Config {
     @DefaultBoolean(true)
     boolean getStoreContentInIndex();
 
+    /**
+     * Specifies whether the file content should be indexed
+     */
+    @Property("fts.fileContentIndexingEnabled")
+    @DefaultBoolean(true)
+    boolean getFileContentIndexingEnabled();
+
     @Property("fts.indexingHosts")
     @Factory(factory = StringListTypeFactory.class)
     List<String> getIndexingHosts();

@@ -197,7 +197,7 @@ public class LuceneIndexerBean implements LuceneIndexer {
                 appendString(sb, str);
             }
         }
-        if (entity instanceof FileDescriptor) {
+        if (entity instanceof FileDescriptor && ftsConfig.getFileContentIndexingEnabled()) {
             appendString(sb, makeFieldName(FTS.FILE_CONT_PROP));
             sb.append(FTS.FIELD_SEP).append(((FileDescriptor) entity).getName().replaceAll("\\s+", FTS.FIELD_SEP));
             appendFileContent(sb, (FileDescriptor) entity);
