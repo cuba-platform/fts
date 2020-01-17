@@ -60,6 +60,8 @@ class SearchResultsManagerTest extends Specification {
     private Group constraintGroup1, constraintGroup2
     private Constraint constraint1, constraint2
     private User constraintUser1, constraintUser2
+    private Role fullAccessRole
+    private UserRole userRole1, userRole2
 
     private static final String PASSWORD = "password"
 
@@ -121,6 +123,22 @@ class SearchResultsManagerTest extends Specification {
             constraintUser2.setGroup(constraintGroup2)
             em.persist(constraintUser2)
 
+            fullAccessRole = metadata.create(Role)
+            fullAccessRole.name = "test-full-access"
+            fullAccessRole.defaultEntityReadAccess = Access.ALLOW
+            fullAccessRole.defaultEntityAttributeAccess = EntityAttrAccess.MODIFY
+            em.persist(this.fullAccessRole)
+
+            userRole1 = metadata.create(UserRole)
+            userRole1.role = this.fullAccessRole
+            userRole1.user = constraintUser1
+            em.persist(userRole1)
+
+            userRole2 = metadata.create(UserRole)
+            userRole2.role = this.fullAccessRole
+            userRole2.user = constraintUser2
+            em.persist(userRole2)
+
             tx.commit()
         } finally {
             tx.end()
@@ -130,6 +148,8 @@ class SearchResultsManagerTest extends Specification {
     void cleanup() {
         ftsManager.setEnabled(false)
         clearData()
+        cont.deleteRecord("SEC_USER_ROLE", userRole1.getId(), userRole2.getId())
+        cont.deleteRecord("SEC_ROLE", fullAccessRole.getId())
         cont.deleteRecord("SEC_USER", constraintUser1.getId(), constraintUser2.getId())
         cont.deleteRecord("SEC_CONSTRAINT", constraint1.getId(), constraint2.getId())
         cont.deleteRecord("SEC_GROUP", parentGroup.getId(), constraintGroup1.getId(), constraintGroup2.getId())
