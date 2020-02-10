@@ -62,6 +62,7 @@ class SearchResultsManagerTest extends Specification {
     private User constraintUser1, constraintUser2
     private Role fullAccessRole
     private UserRole userRole1, userRole2
+    private Permission permission1, permission2
 
     private static final String PASSWORD = "password"
 
@@ -125,9 +126,21 @@ class SearchResultsManagerTest extends Specification {
 
             fullAccessRole = metadata.create(Role)
             fullAccessRole.name = "test-full-access"
-            fullAccessRole.defaultEntityReadAccess = Access.ALLOW
-            fullAccessRole.defaultEntityAttributeAccess = EntityAttrAccess.MODIFY
             em.persist(this.fullAccessRole)
+
+            permission1 = metadata.create(Permission)
+            permission1.type = PermissionType.ENTITY_OP
+            permission1.target = '*:read'
+            permission1.value = 1
+            permission1.role = fullAccessRole
+            em.persist(permission1)
+
+            permission2 = metadata.create(Permission)
+            permission2.type = PermissionType.ENTITY_ATTR
+            permission2.target = '*:*'
+            permission2.value = 2
+            permission2.role = fullAccessRole
+            em.persist(permission2)
 
             userRole1 = metadata.create(UserRole)
             userRole1.role = this.fullAccessRole
@@ -148,6 +161,7 @@ class SearchResultsManagerTest extends Specification {
     void cleanup() {
         ftsManager.setEnabled(false)
         clearData()
+        cont.deleteRecord("SEC_PERMISSION", permission1.getId(), permission2.getId())
         cont.deleteRecord("SEC_USER_ROLE", userRole1.getId(), userRole2.getId())
         cont.deleteRecord("SEC_ROLE", fullAccessRole.getId())
         cont.deleteRecord("SEC_USER", constraintUser1.getId(), constraintUser2.getId())
