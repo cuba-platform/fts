@@ -31,7 +31,8 @@ public class FtsMinimalRoleDefinition extends AnnotatedRoleDefinition {
 
     @Override
     @ScreenAccess(screenIds = {
-            "ftsSearchResults"
+            "ftsSearchResults",
+            "fts_HitInfoDetailsScreen"
     })
     public ScreenPermissionsContainer screenPermissions() {
         return super.screenPermissions();
