@@ -16,6 +16,7 @@
 
 package com.haulmont.fts.core.jmx;
 
+import com.google.common.base.Strings;
 import com.haulmont.cuba.security.app.Authenticated;
 import com.haulmont.fts.core.app.FtsManagerAPI;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -84,6 +85,7 @@ public class FtsManager implements FtsManagerMBean {
     @Authenticated
     @Override
     public String reindexEntity(String entityName) {
+        if (Strings.isNullOrEmpty(entityName)) return "Fill entity name";
         try {
             manager.deleteIndexForEntity(entityName);
             int count = manager.reindexEntity(entityName);
@@ -112,6 +114,7 @@ public class FtsManager implements FtsManagerMBean {
     @Authenticated
     @Override
     public String asyncReindexEntity(String entityName) {
+        if (Strings.isNullOrEmpty(entityName)) return "Fill entity name";
         try {
             manager.deleteIndexForEntity(entityName);
             manager.asyncReindexEntity(entityName);
