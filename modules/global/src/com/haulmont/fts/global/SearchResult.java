@@ -41,7 +41,8 @@ public class SearchResult implements Serializable {
 
     public void addEntry(SearchResultEntry searchResultEntry) {
         entriesByEntityInfo.put(searchResultEntry.getEntityInfo(), searchResultEntry);
-        Set<SearchResultEntry> entriesForEntityName = entriesByEntityName.computeIfAbsent(searchResultEntry.getEntityInfo().getEntityName(), s -> new HashSet<>());
+        Set<SearchResultEntry> entriesForEntityName = entriesByEntityName.computeIfAbsent(searchResultEntry.getEntityInfo().getEntityName(),
+                s -> new LinkedHashSet<>());
         entriesForEntityName.add(searchResultEntry);
     }
 
