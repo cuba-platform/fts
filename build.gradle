@@ -241,6 +241,7 @@ configure(coreModule) {
         compile(group: 'org.apache.poi', name: 'poi-ooxml-schemas', version: bom.getVersion('org.apache.poi', 'poi'))
         compile(group: 'org.apache.poi', name: 'poi-ooxml', version: bom.getVersion('org.apache.poi', 'poi'))
         compile(group: 'org.apache.poi', name: 'poi-scratchpad', version: bom.getVersion('org.apache.poi', 'poi'))
+        compile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: bom.getVersion('com.fasterxml.jackson.core', 'jackson-databind'))
 
         compile(bom['org.apache.tika:tika-parsers']) {
             exclude(group: 'junit', module: 'junit')
