@@ -74,14 +74,14 @@ public class EntitiesCollector {
     }
 
     @SuppressWarnings("unchecked")
-    public List loadResults() {
+    public List<Object> loadResults() {
         if (!ftsManager.isEntityCanBeIndexed(metaClass)) return new ArrayList();
 
         if (!Stores.isMain(storeName)) {
             EntityManager storeEm = persistence.getEntityManager(storeName);
             if (excludeFromQueue) {
                 EntityManager mainEm = persistence.getEntityManager();
-                List ids = mainEm.createQuery(getExcludeIdsQueryString())
+                List<Object> ids = mainEm.createQuery(getExcludeIdsQueryString())
                         .setParameter("entityName", metaClass.getName())
                         .getResultList();
                 if (ids.isEmpty()) {
@@ -89,10 +89,10 @@ public class EntitiesCollector {
                             .setParameter("ids", ids)
                             .getResultList();
                 }
-                List result = new ArrayList();
+                List<Object> result = new ArrayList<>();
                 for (int i = 0; i < ids.size(); i += LOADING_SIZE) {
-                    List loadingIds = ids.subList(i, Math.min(i + LOADING_SIZE, ids.size()));
-                    List loadingResult = storeEm.createQuery(getQueryString())
+                    List<Object> loadingIds = ids.subList(i, Math.min(i + LOADING_SIZE, ids.size()));
+                    List<Object> loadingResult = storeEm.createQuery(getQueryString())
                             .setParameter("ids", loadingIds)
                             .setMaxResults(ftsConfig.getReindexBatchSize())
                             .getResultList();
