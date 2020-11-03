@@ -430,8 +430,6 @@ public class FtsManager implements FtsManagerAPI {
             authentication.begin();
             reindexing = true;
 
-            int count = 0;
-
             MetaClass metaClass = metadata.getClassNN(reindexEntitiesQueue.element());
             EntityDescr entityDescr = entityDescrsManager.getDescrByEntityName(metaClass.getName());
 
@@ -439,53 +437,56 @@ public class FtsManager implements FtsManagerAPI {
                 return 0;
             }
 
-            EntitiesCollector collector = AppBeans.getPrototype(EntitiesCollector.NAME, metaClass);
-            collector.setExcludeFromQueue(true);
+            return persistence.callInTransaction(em -> {
+                int count = 0;
 
-            if (Strings.isNullOrEmpty(entityDescr.getSearchableIfScript())) {
-                collector.setIdOnly(true);
-                List<Object> ids = executeInStoreTx(metaClass, collector::loadResults);
+                EntitiesCollector collector = AppBeans.getPrototype(EntitiesCollector.NAME, metaClass);
+                collector.setExcludeFromQueue(true);
 
-                for (Object id : ids) {
-                    ftsSender.enqueue(entityDescr.getMetaClass().getName(), id, FtsChangeType.INSERT);
-                    count++;
-                }
-                if (ids.size() < ftsConfig.getReindexBatchSize()) {
-                    reindexEntitiesQueue.remove();
-                }
-                log.debug("{} instances of {} was added to the FTS queue", count, metaClass.getName());
-            } else {
-                List<FtsQueue> currentFakeQueueItems = new ArrayList<>();
-                List<Object> ids = new ArrayList<>();
+                if (Strings.isNullOrEmpty(entityDescr.getSearchableIfScript())) {
+                    collector.setIdOnly(true);
+                    List<Object> ids = executeInStoreTx(metaClass, collector::loadResults);
 
-                executeInStoreTx(metaClass, () -> {
-                    for (Object obj : collector.loadResults()) {
-                        Entity<?> entity = (Entity<?>) obj;
-                        if (runSearchableIf(entity, entityDescr)) {
-                            ids.add(entity.getId());
-                        } else {
-                            currentFakeQueueItems.add(createFakeFtsQueue(metaClass.getName(), entity.getId()));
-                        }
+                    for (Object id : ids) {
+                        ftsSender.enqueue(entityDescr.getMetaClass().getName(), id, FtsChangeType.INSERT);
+                        count++;
                     }
-                    return null;
-                });
-
-                for (Object id : ids) {
-                    ftsSender.enqueue(metaClass.getName(), id, FtsChangeType.INSERT);
-                    count++;
-                }
-
-                if (ids.size() < ftsConfig.getReindexBatchSize()) {
-                    reindexEntitiesQueue.remove();
-                    ftsSender.emptyFakeQueue(metaClass.getName());
+                    if (ids.size() < ftsConfig.getReindexBatchSize()) {
+                        reindexEntitiesQueue.remove();
+                    }
+                    log.debug("{} instances of {} was added to the FTS queue", count, metaClass.getName());
                 } else {
-                    currentFakeQueueItems.forEach(q -> persistence.getEntityManager().persist(q));
-                }
-                log.debug("{} instances of {} was processed. {} of them was added to the FTS queue",
-                        ids.size(), metaClass.getName(), count);
-            }
+                    List<FtsQueue> currentFakeQueueItems = new ArrayList<>();
+                    List<Object> ids = new ArrayList<>();
 
-            return count;
+                    executeInStoreTx(metaClass, () -> {
+                        for (Object obj : collector.loadResults()) {
+                            Entity<?> entity = (Entity<?>) obj;
+                            if (runSearchableIf(entity, entityDescr)) {
+                                ids.add(entity.getId());
+                            } else {
+                                currentFakeQueueItems.add(createFakeFtsQueue(metaClass.getName(), entity.getId()));
+                            }
+                        }
+                        return null;
+                    });
+
+                    for (Object id : ids) {
+                        ftsSender.enqueue(metaClass.getName(), id, FtsChangeType.INSERT);
+                        count++;
+                    }
+
+                    if (ids.size() < ftsConfig.getReindexBatchSize()) {
+                        reindexEntitiesQueue.remove();
+                        ftsSender.emptyFakeQueue(metaClass.getName());
+                    } else {
+                        currentFakeQueueItems.forEach(q -> persistence.getEntityManager().persist(q));
+                    }
+                    log.debug("{} instances of {} was processed. {} of them was added to the FTS queue",
+                            ids.size(), metaClass.getName(), count);
+                }
+                return count;
+            });
         } finally {
             reindexLock.unlock();
             reindexing = false;
