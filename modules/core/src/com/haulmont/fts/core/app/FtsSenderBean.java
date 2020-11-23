@@ -75,29 +75,29 @@ public class FtsSenderBean implements FtsSender {
             if (descr != null) {
                 enqueue(entity.getMetaClass().getName(), entity.getId(), FtsChangeType.DELETE);
             }
-        } else {
-            List<Entity> list = manager.getSearchableEntities(entity);
-            if (!list.isEmpty()) {
-                for (Entity e : list) {
-                    MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
-                    if (PersistenceHelper.isNew(e) && e instanceof BaseDbGeneratedIdEntity) {
-                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
-                            @Override
-                            public void afterCommit() {
-                                Object entityId = e.getId();
-                                try (Transaction tx = persistence.createTransaction()) {
-                                    enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
-                                    tx.commit();
-                                }
+        }
+
+        List<Entity> list = manager.getSearchableEntities(entity);
+        if (!list.isEmpty()) {
+            for (Entity e : list) {
+                MetaClass metaClass = metadata.getSession().getClassNN(e.getClass());
+                if (PersistenceHelper.isNew(e) && e instanceof BaseDbGeneratedIdEntity) {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+                        @Override
+                        public void afterCommit() {
+                            Object entityId = e.getId();
+                            try (Transaction tx = persistence.createTransaction()) {
+                                enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
+                                tx.commit();
                             }
-                        });
-                    } else {
-                        Object entityId = e.getId();
-                        if (metadata.getTools().hasCompositePrimaryKey(metaClass) && HasUuid.class.isAssignableFrom(metaClass.getJavaClass())) {
-                            entityId = ((HasUuid) e).getUuid();
                         }
-                        enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
+                    });
+                } else {
+                    Object entityId = e.getId();
+                    if (metadata.getTools().hasCompositePrimaryKey(metaClass) && HasUuid.class.isAssignableFrom(metaClass.getJavaClass())) {
+                        entityId = ((HasUuid) e).getUuid();
                     }
+                    enqueue(metaClass.getName(), entityId, FtsChangeType.UPDATE);
                 }
             }
         }
