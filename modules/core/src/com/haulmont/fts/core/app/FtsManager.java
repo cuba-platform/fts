@@ -459,8 +459,9 @@ public class FtsManager implements FtsManagerAPI {
                     List<FtsQueue> currentFakeQueueItems = new ArrayList<>();
                     List<Object> ids = new ArrayList<>();
 
-                    executeInStoreTx(metaClass, () -> {
-                        for (Object obj : collector.loadResults()) {
+                    Integer loadedSize = executeInStoreTx(metaClass, () -> {
+                        List<Object> loaded = collector.loadResults();
+                        for (Object obj : loaded) {
                             Entity<?> entity = (Entity<?>) obj;
                             if (runSearchableIf(entity, entityDescr)) {
                                 ids.add(entity.getId());
@@ -468,7 +469,7 @@ public class FtsManager implements FtsManagerAPI {
                                 currentFakeQueueItems.add(createFakeFtsQueue(metaClass.getName(), entity.getId()));
                             }
                         }
-                        return null;
+                        return loaded.size();
                     });
 
                     for (Object id : ids) {
@@ -476,7 +477,7 @@ public class FtsManager implements FtsManagerAPI {
                         count++;
                     }
 
-                    if (ids.size() < ftsConfig.getReindexBatchSize()) {
+                    if (loadedSize < ftsConfig.getReindexBatchSize()) {
                         reindexEntitiesQueue.remove();
                         ftsSender.emptyFakeQueue(metaClass.getName());
                     } else {
