@@ -58,6 +58,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
                 String strEntityId = doc.getField(FLD_ID).stringValue();
                 EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName));
+                entityInfo.setScore(scoreDoc.score);
                 set.add(entityInfo);
             }
         } catch (IOException e) {
@@ -215,6 +216,7 @@ public class LuceneSearcherBean implements LuceneSearcher {
                 String entityName = doc.getField(FLD_ENTITY).stringValue();
                 String strEntityId = doc.getField(FLD_ID).stringValue();
                 EntityInfo entityInfo = new EntityInfo(entityName, parseIdFromString(strEntityId, entityName));
+                entityInfo.setScore(scoreDoc.score);
                 set.add(entityInfo);
             }
         } catch (IOException e) {
