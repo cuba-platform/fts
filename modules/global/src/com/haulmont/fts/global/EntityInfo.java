@@ -25,10 +25,12 @@ public class EntityInfo implements Serializable {
 
     private String entityName;
     private Object id;
+    private float score;
 
     public EntityInfo(String entityName, Object id) {
         this.id = id;
         this.entityName = entityName;
+        this.score = 0;
     }
 
     public Object getId() {
@@ -37,6 +39,14 @@ public class EntityInfo implements Serializable {
 
     public String getEntityName() {
         return entityName;
+    }
+
+    public float getScore() {
+        return score;
+    }
+
+    public void setScore(float score) {
+        this.score = score;
     }
 
     @Override

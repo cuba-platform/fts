@@ -18,6 +18,7 @@ package com.haulmont.fts.global;
 import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Contains information about searched entities and searched page {@link QueryKey}
@@ -52,8 +53,12 @@ public class SearchResult implements Serializable {
     }
 
     public Set<SearchResultEntry> getEntriesByEntityName(String entityName) {
-        Set<SearchResultEntry> entries = entriesByEntityName.get(entityName);
-        return entries == null ? Collections.emptySet() : Collections.unmodifiableSet(entries);
+        final Comparator<SearchResultEntry> comparator = Comparator.comparing(searchResultEntry -> searchResultEntry.getEntityInfo().getScore());
+        Set<SearchResultEntry> entries = entriesByEntityName.get(entityName)
+                .stream()
+                .sorted(comparator.reversed())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return Collections.unmodifiableSet(entries);
     }
 
     public Set<SearchResultEntry> getAllEntries() {
