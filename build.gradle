@@ -252,7 +252,10 @@ configure(coreModule) {
 
         compile(bom['org.apache.tika:tika-parsers']) {
             exclude(group: 'junit', module: 'junit')
-            exclude(group: 'org.apache.poi', module: 'poi')
+            // POI must come only from the platform (cuba bom) via the explicit poi-* declarations above.
+            // Excluding just the 'poi' module is not enough: poi-ooxml/poi-scratchpad brought by tika-parsers
+            // win the version conflict and pull their own 'poi' through the non-excluded explicit path.
+            exclude(group: 'org.apache.poi')
             exclude (group: 'edu.ucar', module: 'netcdf4')
             exclude (group: 'edu.ucar', module: 'grib')
             exclude (group: 'edu.ucar', module: 'cdm')
